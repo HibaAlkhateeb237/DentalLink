@@ -7,6 +7,15 @@ This repository contains the backend API for **DENTALLINK**, a dental lab manage
 Primary objective:
 - Build a scalable, maintainable **RESTful API** for order lifecycle, lab workflow, pricing/payments, delivery, notifications, and reporting.
 
+## Localization
+
+- **Supported languages:** `ar` (Arabic) and `en` (English).
+- **Default locale:** `ar` (Arabic).
+- Use Laravel translation helpers (`__()`, `trans()`) for all user-facing messages, validation messages, and API response strings.
+- Store translation files under `resources/lang/{locale}` (for example `resources/lang/ar` and `resources/lang/en`).
+- For API responses, include translated messages by using the request's locale; avoid hardcoding text in controllers/services. Use `app()->setLocale($locale)` when handling locale from request headers or user settings.
+- Tests and automated messages should assume the application default is Arabic unless a different locale is explicitly set.
+
 ## Tech Stack Constraints (Must Follow)
 
 - **Laravel (latest)**

@@ -78,9 +78,21 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', 'en'),
+    'locale' => env('APP_LOCALE', 'ar'),
 
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Supported Locales
+    |--------------------------------------------------------------------------
+    |
+    | A simple list of locales the application supports. Use this to drive
+    | language switchers, validation of locale input, or middleware that
+    | sets the application locale. Default is Arabic ('ar').
+    |
+    */
+    'supported_locales' => ['ar', 'en'],
 
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
 
