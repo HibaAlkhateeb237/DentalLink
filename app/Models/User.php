@@ -9,11 +9,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -98,5 +100,97 @@ class User extends Authenticatable
     public function permissions(): MorphToMany
     {
         return $this->morphToMany(Permission::class, 'model', 'model_has_permissions', 'model_id', 'permission_id');
+    }
+
+    public function hasRole(string|array $roleNames, ?int $departmentId = null): bool
+    {
+        $requestedRoles = collect((array) $roleNames)
+            ->filter(static fn (string $roleName): bool => $roleName !== '')
+            ->map(static fn (string $roleName): string => trim($roleName));
+
+        if ($requestedRoles->isEmpty()) {
+            return false;
+        }
+
+        return $this->effectiveRoleNames($departmentId)
+            ->intersect($requestedRoles)
+            ->isNotEmpty();
+    }
+
+    public function hasPermission(string|array $permissionNames, ?int $departmentId = null): bool
+    {
+        $requestedPermissions = collect((array) $permissionNames)
+            ->filter(static fn (string $permissionName): bool => $permissionName !== '')
+            ->map(static fn (string $permissionName): string => trim($permissionName));
+
+        if ($requestedPermissions->isEmpty()) {
+            return false;
+        }
+
+        return $this->effectivePermissionNames($departmentId)
+            ->intersect($requestedPermissions)
+            ->isNotEmpty();
+    }
+
+    public function hasRoleInDepartment(string|array $roleNames, int $departmentId): bool
+    {
+        return $this->hasRole($roleNames, $departmentId);
+    }
+
+    public function hasPermissionInDepartment(string|array $permissionNames, int $departmentId): bool
+    {
+        return $this->hasPermission($permissionNames, $departmentId);
+    }
+
+    public function hasDepartmentAccess(int $departmentId): bool
+    {
+        $this->loadMissing('departmentUserRoles:department_id,user_id');
+
+        return $this->departmentUserRoles
+            ->pluck('department_id')
+            ->contains($departmentId);
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    public function effectiveRoleNames(?int $departmentId = null): Collection
+    {
+        $this->loadMissing('roles:id,name', 'departmentUserRoles.role:id,name');
+
+        $globalRoleNames = $this->roles->pluck('name');
+
+        $departmentRoleNames = $this->departmentUserRoles
+            ->when($departmentId !== null, static fn (Collection $roles): Collection => $roles->where('department_id', $departmentId))
+            ->pluck('role.name')
+            ->filter();
+
+        return $globalRoleNames
+            ->merge($departmentRoleNames)
+            ->map(static fn (string $roleName): string => trim($roleName))
+            ->unique()
+            ->values();
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    public function effectivePermissionNames(?int $departmentId = null): Collection
+    {
+        $this->loadMissing('roles.permissions:id,name', 'departmentUserRoles.role.permissions:id,name');
+
+        $globalRolePermissions = $this->roles
+            ->flatMap(static fn (Role $role): Collection => $role->permissions->pluck('name'));
+
+        $departmentRolePermissions = $this->departmentUserRoles
+            ->when($departmentId !== null, static fn (Collection $roles): Collection => $roles->where('department_id', $departmentId))
+            ->flatMap(static fn (DepartmentUserRole $departmentUserRole): Collection => $departmentUserRole->role?->permissions?->pluck('name') ?? collect());
+
+        return $globalRolePermissions
+            ->merge($departmentRolePermissions)
+            ->filter(static fn (?string $permissionName): bool => filled($permissionName))
+            ->map(static fn (string $permissionName): string => trim($permissionName))
+            ->unique()
+            ->values();
     }
 }
