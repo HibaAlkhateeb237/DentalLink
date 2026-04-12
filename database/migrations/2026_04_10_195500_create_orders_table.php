@@ -22,7 +22,7 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
             $table->string('qr_code')->unique();
-            $table->enum('priority', ['low', 'normal', 'high', 'urgent'])->default('normal');
+            $table->enum('priority', ['normal', 'urgent'])->default('normal');
             $table->enum('status', ['pending', 'accepted', 'in_progress', 'completed', 'delivered', 'cancelled'])->default('pending');
             $table->enum('order_type', ['digital', 'physical', 'hybrid'])->default('digital');
             $table->text('notes')->nullable();
