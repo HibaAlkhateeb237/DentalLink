@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\AssignRoleRequest;
+use App\Http\Requests\Auth\CompleteRegisterRequest;
 use App\Http\Requests\Auth\LoginRequest;
-use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\RequestRegisterOtpRequest;
+use App\Http\Requests\Auth\VerifyRegisterOtpRequest;
 use App\Http\Resources\Auth\AuthUserResource;
 use App\Models\User;
 use App\Services\Auth\AuthService;
@@ -18,7 +20,111 @@ class AuthController extends Controller
 {
     public function __construct(private readonly AuthService $authService) {}
 
-    public function register(RegisterRequest $request): JsonResponse
+    public function requestRegisterOtp(RequestRegisterOtpRequest $request): JsonResponse
+    {
+        $this->applyLocale($request);
+
+        $throttleKey = $this->registerOtpThrottleKey($request);
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 3)) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => __('auth.otp_too_many_send_attempts'),
+                'data' => [
+                    'retry_after_seconds' => RateLimiter::availableIn($throttleKey),
+                ],
+            ], 429);
+        }
+
+        $result = $this->authService->requestRegistrationOtp(
+            $request->string('email')->toString(),
+            app()->getLocale(),
+        );
+
+        if ($result['status'] === 'email_exists') {
+            return new JsonResponse([
+                'success' => false,
+                'message' => __('auth.email_already_registered'),
+            ], 422);
+        }
+
+        if ($result['status'] === 'cooldown') {
+            return new JsonResponse([
+                'success' => false,
+                'message' => __('auth.otp_resend_cooldown'),
+                'data' => [
+                    'retry_after_seconds' => $result['retry_after_seconds'],
+                ],
+            ], 429);
+        }
+
+        RateLimiter::hit($throttleKey, 900);
+
+        return new JsonResponse([
+            'success' => true,
+            'message' => __('auth.otp_sent_successfully'),
+            'data' => [
+                'email' => $result['email'],
+                'expires_in_seconds' => $result['expires_in_seconds'],
+            ],
+        ]);
+    }
+
+    public function verifyRegisterOtp(VerifyRegisterOtpRequest $request): JsonResponse
+    {
+        $this->applyLocale($request);
+
+        $throttleKey = $this->verifyOtpThrottleKey($request);
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 10)) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => __('auth.otp_too_many_verify_attempts'),
+                'data' => [
+                    'retry_after_seconds' => RateLimiter::availableIn($throttleKey),
+                ],
+            ], 429);
+        }
+
+        $result = $this->authService->verifyRegistrationOtp(
+            $request->string('email')->toString(),
+            $request->string('code')->toString(),
+        );
+
+        if ($result['status'] === 'verified') {
+            RateLimiter::clear($throttleKey);
+
+            return new JsonResponse([
+                'success' => true,
+                'message' => __('auth.otp_verified_successfully'),
+                'data' => [
+                    'verification_token' => $result['verification_token'],
+                    'expires_in_seconds' => $result['expires_in_seconds'],
+                ],
+            ]);
+        }
+
+        RateLimiter::hit($throttleKey, 600);
+
+        if ($result['status'] === 'too_many_attempts') {
+            return new JsonResponse([
+                'success' => false,
+                'message' => __('auth.otp_too_many_verify_attempts'),
+                'data' => [
+                    'retry_after_seconds' => $result['retry_after_seconds'],
+                ],
+            ], 429);
+        }
+
+        return new JsonResponse([
+            'success' => false,
+            'message' => $result['status'] === 'expired'
+                ? __('auth.otp_expired')
+                : __('auth.otp_invalid'),
+        ], 422);
+    }
+
+    public function completeRegister(CompleteRegisterRequest $request): JsonResponse
     {
         $this->applyLocale($request);
 
@@ -26,6 +132,20 @@ class AuthController extends Controller
             $request->validated(),
             $request->string('device_name')->toString(),
         );
+
+        if ($result['status'] === 'invalid_verification_token') {
+            return new JsonResponse([
+                'success' => false,
+                'message' => __('auth.invalid_verification_token'),
+            ], 422);
+        }
+
+        if ($result['status'] === 'email_exists') {
+            return new JsonResponse([
+                'success' => false,
+                'message' => __('auth.email_already_registered'),
+            ], 422);
+        }
 
         /** @var User $user */
         $user = $result['user'];
@@ -146,6 +266,16 @@ class AuthController extends Controller
     private function throttleKey(Request $request): string
     {
         return Str::transliterate(Str::lower($request->string('email')->toString()).'|'.$request->ip());
+    }
+
+    private function registerOtpThrottleKey(Request $request): string
+    {
+        return Str::transliterate('register-otp-send|'.Str::lower($request->string('email')->toString()).'|'.$request->ip());
+    }
+
+    private function verifyOtpThrottleKey(Request $request): string
+    {
+        return Str::transliterate('register-otp-verify|'.Str::lower($request->string('email')->toString()).'|'.$request->ip());
     }
 
     private function applyLocale(Request $request): void
