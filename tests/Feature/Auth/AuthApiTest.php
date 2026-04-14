@@ -5,8 +5,10 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use App\Notifications\Auth\RegisterOtpNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AuthApiTest extends TestCase
@@ -124,6 +126,44 @@ class AuthApiTest extends TestCase
         Carbon::setTestNow();
 
         $response->assertStatus(422);
+    }
+
+    public function test_user_can_complete_registration_with_profile_image(): void
+    {
+        Notification::fake();
+        Storage::fake('public');
+
+        $this->postJson('/api/auth/register/request-otp', [
+            'email' => 'doctor-image@example.com',
+        ])->assertOk();
+
+        $otpCode = null;
+
+        Notification::assertSentOnDemand(RegisterOtpNotification::class, function (RegisterOtpNotification $notification) use (&$otpCode): bool {
+            $otpCode = $notification->code;
+
+            return true;
+        });
+
+        $verifyOtp = $this->postJson('/api/auth/register/verify-otp', [
+            'email' => 'doctor-image@example.com',
+            'code' => $otpCode,
+        ]);
+
+        $response = $this->withHeader('Accept', 'application/json')->post('/api/auth/register/complete', [
+            'verification_token' => $verifyOtp->json('data.verification_token'),
+            'name' => 'Doctor Image',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'profile_image' => UploadedFile::fake()->image('avatar.jpg'),
+        ]);
+
+        $response->assertCreated();
+
+        $user = User::query()->where('email', 'doctor-image@example.com')->firstOrFail();
+
+        $this->assertNotNull($user->profile_image);
+        Storage::disk('public')->assertExists((string) $user->profile_image);
     }
 
     public function test_user_can_login_and_logout(): void

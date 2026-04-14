@@ -130,7 +130,7 @@ class AuthController extends Controller
 
         $result = $this->authService->register(
             $request->validated(),
-            $request->string('device_name')->toString(),
+            $request->file('profile_image'),
         );
 
         if ($result['status'] === 'invalid_verification_token') {
@@ -177,10 +177,7 @@ class AuthController extends Controller
             ], 429);
         }
 
-        $result = $this->authService->login(
-            $credentials,
-            $request->string('device_name')->toString(),
-        );
+        $result = $this->authService->login($credentials);
 
         if ($result === null) {
             RateLimiter::hit($throttleKey, 60);
@@ -265,17 +262,17 @@ class AuthController extends Controller
 
     private function throttleKey(Request $request): string
     {
-        return Str::transliterate(Str::lower($request->string('email')->toString()).'|'.$request->ip());
+        return Str::transliterate(Str::lower($request->string('email')->toString()) . '|' . $request->ip());
     }
 
     private function registerOtpThrottleKey(Request $request): string
     {
-        return Str::transliterate('register-otp-send|'.Str::lower($request->string('email')->toString()).'|'.$request->ip());
+        return Str::transliterate('register-otp-send|' . Str::lower($request->string('email')->toString()) . '|' . $request->ip());
     }
 
     private function verifyOtpThrottleKey(Request $request): string
     {
-        return Str::transliterate('register-otp-verify|'.Str::lower($request->string('email')->toString()).'|'.$request->ip());
+        return Str::transliterate('register-otp-verify|' . Str::lower($request->string('email')->toString()) . '|' . $request->ip());
     }
 
     private function applyLocale(Request $request): void

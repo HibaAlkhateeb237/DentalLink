@@ -7,10 +7,12 @@ use App\Models\RegistrationOtp;
 use App\Models\Role;
 use App\Models\User;
 use App\Notifications\Auth\RegisterOtpNotification;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
 
@@ -136,7 +138,7 @@ class AuthService
      * @param  array{verification_token:string,name:string,password:string,phone?:string|null}  $validated
      * @return array{status:'completed',user:User,token:string}|array{status:'invalid_verification_token'|'email_exists'}
      */
-    public function register(array $validated, string $tokenName): array
+    public function register(array $validated, ?UploadedFile $profileImage = null): array
     {
         $registrationOtp = RegistrationOtp::query()
             ->where('verification_token', $validated['verification_token'])
@@ -156,38 +158,49 @@ class AuthService
             ];
         }
 
-        $user = DB::transaction(function () use ($validated): User {
-            $registrationOtp = RegistrationOtp::query()
-                ->where('verification_token', $validated['verification_token'])
-                ->lockForUpdate()
-                ->firstOrFail();
+        $profileImagePath = $profileImage?->store('users/profile-images', 'public');
 
-            $user = User::query()->create([
-                'name' => $validated['name'],
-                'email' => $registrationOtp->email,
-                'password' => $validated['password'],
-                'phone' => $validated['phone'] ?? null,
-            ]);
+        try {
+            $user = DB::transaction(function () use ($validated, $profileImagePath): User {
+                $registrationOtp = RegistrationOtp::query()
+                    ->where('verification_token', $validated['verification_token'])
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
-            $defaultRoleId = Role::query()
-                ->where('name', 'doctor')
-                ->where('guard_name', 'sanctum')
-                ->value('id');
+                $user = User::query()->create([
+                    'name' => $validated['name'],
+                    'email' => $registrationOtp->email,
+                    'password' => $validated['password'],
+                    'phone' => $validated['phone'] ?? null,
+                    'profile_image' => $profileImagePath,
+                ]);
 
-            if ($defaultRoleId !== null) {
-                $user->roles()->syncWithoutDetaching([$defaultRoleId]);
+                $defaultRoleId = Role::query()
+                    ->where('name', 'doctor')
+                    ->where('guard_name', 'sanctum')
+                    ->value('id');
+
+                if ($defaultRoleId !== null) {
+                    $user->roles()->syncWithoutDetaching([$defaultRoleId]);
+                }
+
+                $registrationOtp->update([
+                    'consumed_at' => now(),
+                    'verification_token' => null,
+                    'verification_token_expires_at' => null,
+                ]);
+
+                return $user;
+            });
+        } catch (\Throwable $exception) {
+            if ($profileImagePath !== null) {
+                Storage::disk('public')->delete($profileImagePath);
             }
 
-            $registrationOtp->update([
-                'consumed_at' => now(),
-                'verification_token' => null,
-                'verification_token_expires_at' => null,
-            ]);
+            throw $exception;
+        }
 
-            return $user;
-        });
-
-        $token = $user->createToken($tokenName !== '' ? $tokenName : 'api-token', ['*'])->plainTextToken;
+        $token = $user->createToken('api-token', ['*'])->plainTextToken;
 
         return [
             'status' => 'completed',
@@ -200,7 +213,7 @@ class AuthService
      * @param  array{email:string,password:string}  $credentials
      * @return array{user:User,token:string}|null
      */
-    public function login(array $credentials, string $tokenName): ?array
+    public function login(array $credentials): ?array
     {
         if (! Auth::attempt($credentials)) {
             return null;
@@ -209,7 +222,7 @@ class AuthService
         /** @var User $user */
         $user = Auth::user();
 
-        $token = $user->createToken($tokenName !== '' ? $tokenName : 'api-token', ['*'])->plainTextToken;
+        $token = $user->createToken('api-token', ['*'])->plainTextToken;
 
         return [
             'user' => $user,
