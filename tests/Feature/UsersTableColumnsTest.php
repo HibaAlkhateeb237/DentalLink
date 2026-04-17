@@ -13,10 +13,10 @@ class UsersTableColumnsTest extends TestCase
     /**
      * Ensure users table has requested profile columns.
      */
-    public function test_users_table_contains_birthdate_and_location_columns(): void
+    public function test_users_table_contains_birthdate_location_lab_name_and_coordinates_columns(): void
     {
         $this->assertTrue(
-            Schema::hasColumns('users', ['birthdate', 'location'])
+            Schema::hasColumns('users', ['birthdate', 'location', 'lab_name', 'location_lat', 'location_lng'])
         );
     }
 }

@@ -18,6 +18,11 @@ class AuthUserResource extends JsonResource
             'email' => $this->email,
             'phone' => $this->phone,
             'profile_image' => $this->profile_image,
+            'birthdate' => $this->birthdate,
+            'location' => $this->location,
+            'location_lat' => $this->location_lat,
+            'location_lng' => $this->location_lng,
+            'lab_name' => $this->lab_name,
         ];
     }
 }

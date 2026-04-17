@@ -135,7 +135,7 @@ class AuthService
     }
 
     /**
-     * @param  array{verification_token:string,name:string,password:string,phone?:string|null}  $validated
+     * @param  array{verification_token:string,name:string,password:string,phone?:string|null,birthdate?:string|null,location?:string|null,location_lat?:float|int|string|null,location_lng?:float|int|string|null}  $validated
      * @return array{status:'completed',user:User,token:string}|array{status:'invalid_verification_token'|'email_exists'}
      */
     public function register(array $validated, ?UploadedFile $profileImage = null): array
@@ -172,6 +172,10 @@ class AuthService
                     'email' => $registrationOtp->email,
                     'password' => $validated['password'],
                     'phone' => $validated['phone'] ?? null,
+                    'birthdate' => $validated['birthdate'] ?? null,
+                    'location' => $validated['location'] ?? null,
+                    'location_lat' => $validated['location_lat'] ?? null,
+                    'location_lng' => $validated['location_lng'] ?? null,
                     'profile_image' => $profileImagePath,
                 ]);
 
@@ -241,6 +245,54 @@ class AuthService
         }
 
         $user->tokens()->delete();
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    public function updateProfile(User $user, array $validated, ?UploadedFile $profileImage = null): User
+    {
+        $currentProfileImage = $user->profile_image;
+        $newProfileImagePath = $profileImage?->store('users/profile-images', 'public');
+        $removeProfileImage = ($validated['remove_profile_image'] ?? false) === true;
+
+        if ($removeProfileImage && $newProfileImagePath !== null) {
+            Storage::disk('public')->delete($newProfileImagePath);
+            $newProfileImagePath = null;
+        }
+
+        if ($newProfileImagePath !== null) {
+            $validated['profile_image'] = $newProfileImagePath;
+        }
+
+        if ($removeProfileImage) {
+            $validated['profile_image'] = null;
+        }
+
+        unset($validated['remove_profile_image']);
+
+        try {
+            DB::transaction(function () use ($user, $validated): void {
+                $user->fill($validated);
+                $user->save();
+            });
+        } catch (\Throwable $exception) {
+            if ($newProfileImagePath !== null) {
+                Storage::disk('public')->delete($newProfileImagePath);
+            }
+
+            throw $exception;
+        }
+
+        if (! $removeProfileImage && $newProfileImagePath !== null && $currentProfileImage !== null && $currentProfileImage !== $newProfileImagePath) {
+            Storage::disk('public')->delete($currentProfileImage);
+        }
+
+        if ($removeProfileImage && $currentProfileImage !== null) {
+            Storage::disk('public')->delete($currentProfileImage);
+        }
+
+        return $user->fresh();
     }
 
     /**

@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\AssignRoleRequest;
 use App\Http\Requests\Auth\CompleteRegisterRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RequestRegisterOtpRequest;
+use App\Http\Requests\Auth\UpdateProfileRequest;
 use App\Http\Requests\Auth\VerifyRegisterOtpRequest;
 use App\Http\Resources\Auth\AuthUserResource;
 use App\Models\User;
@@ -247,6 +248,35 @@ class AuthController extends Controller
         ]);
     }
 
+    public function updateProfile(UpdateProfileRequest $request): JsonResponse
+    {
+        $this->applyLocale($request);
+
+        /** @var User|null $user */
+        $user = $request->user();
+
+        if ($user === null) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => __('auth.unauthenticated'),
+            ], 401);
+        }
+
+        $updatedUser = $this->authService->updateProfile(
+            $user,
+            $request->validated(),
+            $request->file('profile_image'),
+        );
+
+        return new JsonResponse([
+            'success' => true,
+            'message' => __('auth.profile_updated_successfully'),
+            'data' => [
+                'user' => AuthUserResource::make($updatedUser)->resolve(),
+            ],
+        ]);
+    }
+
     public function assignRole(AssignRoleRequest $request): JsonResponse
     {
         $this->applyLocale($request);
@@ -262,17 +292,17 @@ class AuthController extends Controller
 
     private function throttleKey(Request $request): string
     {
-        return Str::transliterate(Str::lower($request->string('email')->toString()) . '|' . $request->ip());
+        return Str::transliterate(Str::lower($request->string('email')->toString()).'|'.$request->ip());
     }
 
     private function registerOtpThrottleKey(Request $request): string
     {
-        return Str::transliterate('register-otp-send|' . Str::lower($request->string('email')->toString()) . '|' . $request->ip());
+        return Str::transliterate('register-otp-send|'.Str::lower($request->string('email')->toString()).'|'.$request->ip());
     }
 
     private function verifyOtpThrottleKey(Request $request): string
     {
-        return Str::transliterate('register-otp-verify|' . Str::lower($request->string('email')->toString()) . '|' . $request->ip());
+        return Str::transliterate('register-otp-verify|'.Str::lower($request->string('email')->toString()).'|'.$request->ip());
     }
 
     private function applyLocale(Request $request): void

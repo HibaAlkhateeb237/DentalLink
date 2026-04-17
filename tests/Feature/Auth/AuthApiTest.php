@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Role;
 use App\Models\User;
 use App\Notifications\Auth\RegisterOtpNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -9,6 +10,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class AuthApiTest extends TestCase
@@ -48,16 +50,29 @@ class AuthApiTest extends TestCase
             'data' => ['verification_token', 'expires_in_seconds'],
         ]);
 
-        $response = $this->postJson('/api/auth/register/complete', [
-            'verification_token' => $verifyOtp->json('data.verification_token'),
-            'name' => 'Doctor One',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
-        ]);
+        $response = $this
+            ->withHeader('Authorization', 'Bearer '.$verifyOtp->json('data.verification_token'))
+            ->postJson('/api/auth/register/complete', [
+                'name' => 'Doctor One',
+                'password' => 'password123',
+                'password_confirmation' => 'password123',
+                'birthdate' => '1990-05-10',
+                'location' => 'Cairo',
+                'location_lat' => 30.0444200,
+                'location_lng' => 31.2357100,
+            ]);
 
         $response
             ->assertCreated()
-            ->assertJsonStructure(['success', 'message', 'data' => ['token', 'user' => ['id', 'name', 'email']]]);
+            ->assertJsonStructure(['success', 'message', 'data' => ['token', 'user' => ['id', 'name', 'email']]])
+            ->assertJsonPath('data.user.location', 'Cairo');
+
+        $this->assertStringStartsWith('1990-05-10', (string) $response->json('data.user.birthdate'));
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'doctor1@example.com',
+            'location' => 'Cairo',
+        ]);
     }
 
     public function test_cannot_verify_registration_with_invalid_code(): void
@@ -116,12 +131,13 @@ class AuthApiTest extends TestCase
 
         Carbon::setTestNow(now()->addMinutes(31));
 
-        $response = $this->postJson('/api/auth/register/complete', [
-            'verification_token' => $verificationToken,
-            'name' => 'Doctor Four',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
-        ]);
+        $response = $this
+            ->withHeader('Authorization', 'Bearer '.$verificationToken)
+            ->postJson('/api/auth/register/complete', [
+                'name' => 'Doctor Four',
+                'password' => 'password123',
+                'password_confirmation' => 'password123',
+            ]);
 
         Carbon::setTestNow();
 
@@ -150,20 +166,22 @@ class AuthApiTest extends TestCase
             'code' => $otpCode,
         ]);
 
-        $response = $this->withHeader('Accept', 'application/json')->post('/api/auth/register/complete', [
-            'verification_token' => $verifyOtp->json('data.verification_token'),
-            'name' => 'Doctor Image',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
-            'profile_image' => UploadedFile::fake()->image('avatar.jpg'),
-        ]);
+        $response = $this
+            ->withHeader('Accept', 'application/json')
+            ->withHeader('Authorization', 'Bearer '.$verifyOtp->json('data.verification_token'))
+            ->post('/api/auth/register/complete', [
+                'name' => 'Doctor Image',
+                'password' => 'password123',
+                'password_confirmation' => 'password123',
+                'profile_image' => UploadedFile::fake()->image('avatar.jpg'),
+            ]);
 
         $response->assertCreated();
 
         $user = User::query()->where('email', 'doctor-image@example.com')->firstOrFail();
 
         $this->assertNotNull($user->profile_image);
-        Storage::disk('public')->assertExists((string) $user->profile_image);
+        $this->assertTrue(Storage::disk('public')->exists((string) $user->profile_image));
     }
 
     public function test_user_can_login_and_logout(): void
@@ -200,6 +218,104 @@ class AuthApiTest extends TestCase
         $response = $this->get('/api/auth/me');
 
         $response->assertUnauthorized();
+    }
+
+    public function test_authenticated_user_can_update_profile(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'Doctor Before',
+            'email' => 'doctor-before@example.com',
+            'phone' => null,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->patchJson('/api/auth/me', [
+            'name' => 'Doctor After',
+            'phone' => '0501234567',
+            'location' => 'Cairo',
+            'location_lat' => 30.0444200,
+            'location_lng' => 31.2357100,
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.user.name', 'Doctor After')
+            ->assertJsonPath('data.user.phone', '0501234567')
+            ->assertJsonPath('data.user.location', 'Cairo')
+            ->assertJsonPath('data.user.location_lat', '30.0444200')
+            ->assertJsonPath('data.user.location_lng', '31.2357100');
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'name' => 'Doctor After',
+            'phone' => '0501234567',
+            'location' => 'Cairo',
+            'location_lat' => '30.0444200',
+            'location_lng' => '31.2357100',
+        ]);
+    }
+
+    public function test_authenticated_user_can_replace_profile_image(): void
+    {
+        Storage::fake('public');
+
+        $oldImage = UploadedFile::fake()->image('old-avatar.jpg')->store('users/profile-images', 'public');
+
+        $user = User::factory()->create([
+            'profile_image' => $oldImage,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->patch('/api/auth/me', [
+            'profile_image' => UploadedFile::fake()->image('new-avatar.jpg'),
+        ], [
+            'Accept' => 'application/json',
+        ]);
+
+        $response->assertOk();
+
+        $user->refresh();
+
+        $this->assertNotNull($user->profile_image);
+        $this->assertNotSame($oldImage, $user->profile_image);
+        $this->assertFalse(Storage::disk('public')->exists($oldImage));
+        $this->assertTrue(Storage::disk('public')->exists((string) $user->profile_image));
+    }
+
+    public function test_update_profile_requires_authentication(): void
+    {
+        $response = $this->patchJson('/api/auth/me', [
+            'name' => 'No Auth',
+        ]);
+
+        $response->assertUnauthorized();
+    }
+
+    public function test_doctor_cannot_update_lab_name(): void
+    {
+        $user = User::factory()->create();
+
+        $doctorRole = Role::query()->create([
+            'name' => 'doctor',
+            'guard_name' => 'sanctum',
+        ]);
+
+        $user->roles()->syncWithoutDetaching([$doctorRole->id]);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->patchJson('/api/auth/me', [
+            'lab_name' => 'My Lab',
+        ]);
+
+        $response
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['lab_name']);
+
+        $this->assertNull($user->fresh()?->lab_name);
     }
 
     public function test_login_is_rate_limited_after_five_failures(): void
