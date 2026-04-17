@@ -1,0 +1,25 @@
+<?php
+
+return [
+    'registered_successfully' => 'Registered successfully.',
+    'otp_sent_successfully' => 'Verification code sent to your email.',
+    'otp_verified_successfully' => 'Email verified successfully.',
+    'logged_in_successfully' => 'Logged in successfully.',
+    'logged_out_successfully' => 'Logged out successfully.',
+    'role_assigned_successfully' => 'Role assigned successfully.',
+    'invalid_credentials' => 'Invalid credentials.',
+    'too_many_attempts' => 'Too many failed login attempts. Try again later.',
+    'otp_too_many_send_attempts' => 'Too many OTP send requests. Try again later.',
+    'otp_too_many_verify_attempts' => 'Too many OTP verification attempts. Try again later.',
+    'otp_resend_cooldown' => 'Please wait before requesting a new verification code.',
+    'otp_invalid' => 'Invalid verification code.',
+    'otp_expired' => 'Verification code has expired.',
+    'invalid_verification_token' => 'Invalid or expired registration completion token.',
+    'email_already_registered' => 'This email is already registered.',
+    'otp_email_subject' => 'Verification code for your account registration',
+    'otp_email_intro' => 'Use the following verification code to complete your account registration.',
+    'otp_email_code' => 'Verification code: :code',
+    'otp_email_expiry' => 'The code expires in 10 minutes.',
+    'unauthenticated' => 'Unauthenticated.',
+    'forbidden' => 'Forbidden.',
+];
