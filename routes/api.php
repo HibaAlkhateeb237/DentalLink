@@ -2,24 +2,24 @@
 
 // routes/api.php
 
-use App\Http\Controllers\LabController;
-
-
 use App\Http\Controllers\Auth\AuthController;
-
+use App\Http\Controllers\LabController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/ping', function () {
     return response()->json([
-        'status' => 'ok',
-        'app' => config('app.name'),
+        'success' => true,
+        'status' => 200,
+        'message' => __('messages.success'),
+        'data' => [
+            'app' => config('app.name'),
+        ],
+        'errors' => null,
     ]);
 });
 
-
 Route::get('/labs', [LabController::class, 'index'])->name('labs.index');
 Route::post('/labs/search', [LabController::class, 'search'])->name('labs.search');
-
 
 Route::get('/labs/top-rated', [LabController::class, 'topRated'])->name('labs.top-rated');
 Route::get('/labs/nearby', [LabController::class, 'nearby'])->name('labs.nearby');

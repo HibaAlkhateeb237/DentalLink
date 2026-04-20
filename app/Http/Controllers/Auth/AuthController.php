@@ -30,10 +30,12 @@ class AuthController extends Controller
         if (RateLimiter::tooManyAttempts($throttleKey, 3)) {
             return new JsonResponse([
                 'success' => false,
+                'status' => 429,
                 'message' => __('auth.otp_too_many_send_attempts'),
                 'data' => [
                     'retry_after_seconds' => RateLimiter::availableIn($throttleKey),
                 ],
+                'errors' => null,
             ], 429);
         }
 
@@ -45,17 +47,22 @@ class AuthController extends Controller
         if ($result['status'] === 'email_exists') {
             return new JsonResponse([
                 'success' => false,
+                'status' => 422,
                 'message' => __('auth.email_already_registered'),
+                'data' => null,
+                'errors' => null,
             ], 422);
         }
 
         if ($result['status'] === 'cooldown') {
             return new JsonResponse([
                 'success' => false,
+                'status' => 429,
                 'message' => __('auth.otp_resend_cooldown'),
                 'data' => [
                     'retry_after_seconds' => $result['retry_after_seconds'],
                 ],
+                'errors' => null,
             ], 429);
         }
 
@@ -63,11 +70,13 @@ class AuthController extends Controller
 
         return new JsonResponse([
             'success' => true,
+            'status' => 200,
             'message' => __('auth.otp_sent_successfully'),
             'data' => [
                 'email' => $result['email'],
                 'expires_in_seconds' => $result['expires_in_seconds'],
             ],
+            'errors' => null,
         ]);
     }
 
@@ -80,10 +89,12 @@ class AuthController extends Controller
         if (RateLimiter::tooManyAttempts($throttleKey, 10)) {
             return new JsonResponse([
                 'success' => false,
+                'status' => 429,
                 'message' => __('auth.otp_too_many_verify_attempts'),
                 'data' => [
                     'retry_after_seconds' => RateLimiter::availableIn($throttleKey),
                 ],
+                'errors' => null,
             ], 429);
         }
 
@@ -97,11 +108,13 @@ class AuthController extends Controller
 
             return new JsonResponse([
                 'success' => true,
+                'status' => 200,
                 'message' => __('auth.otp_verified_successfully'),
                 'data' => [
                     'verification_token' => $result['verification_token'],
                     'expires_in_seconds' => $result['expires_in_seconds'],
                 ],
+                'errors' => null,
             ]);
         }
 
@@ -110,18 +123,23 @@ class AuthController extends Controller
         if ($result['status'] === 'too_many_attempts') {
             return new JsonResponse([
                 'success' => false,
+                'status' => 429,
                 'message' => __('auth.otp_too_many_verify_attempts'),
                 'data' => [
                     'retry_after_seconds' => $result['retry_after_seconds'],
                 ],
+                'errors' => null,
             ], 429);
         }
 
         return new JsonResponse([
             'success' => false,
+            'status' => 422,
             'message' => $result['status'] === 'expired'
                 ? __('auth.otp_expired')
                 : __('auth.otp_invalid'),
+            'data' => null,
+            'errors' => null,
         ], 422);
     }
 
@@ -137,14 +155,20 @@ class AuthController extends Controller
         if ($result['status'] === 'invalid_verification_token') {
             return new JsonResponse([
                 'success' => false,
+                'status' => 422,
                 'message' => __('auth.invalid_verification_token'),
+                'data' => null,
+                'errors' => null,
             ], 422);
         }
 
         if ($result['status'] === 'email_exists') {
             return new JsonResponse([
                 'success' => false,
+                'status' => 422,
                 'message' => __('auth.email_already_registered'),
+                'data' => null,
+                'errors' => null,
             ], 422);
         }
 
@@ -153,11 +177,13 @@ class AuthController extends Controller
 
         return new JsonResponse([
             'success' => true,
+            'status' => 201,
             'message' => __('auth.registered_successfully'),
             'data' => [
                 'token' => $result['token'],
                 'user' => AuthUserResource::make($user)->resolve(),
             ],
+            'errors' => null,
         ], 201);
     }
 
@@ -171,10 +197,12 @@ class AuthController extends Controller
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
             return new JsonResponse([
                 'success' => false,
+                'status' => 429,
                 'message' => __('auth.too_many_attempts'),
                 'data' => [
                     'retry_after_seconds' => RateLimiter::availableIn($throttleKey),
                 ],
+                'errors' => null,
             ], 429);
         }
 
@@ -185,7 +213,10 @@ class AuthController extends Controller
 
             return new JsonResponse([
                 'success' => false,
+                'status' => 422,
                 'message' => __('auth.invalid_credentials'),
+                'data' => null,
+                'errors' => null,
             ], 422);
         }
 
@@ -196,11 +227,13 @@ class AuthController extends Controller
 
         return new JsonResponse([
             'success' => true,
+            'status' => 200,
             'message' => __('auth.logged_in_successfully'),
             'data' => [
                 'token' => $result['token'],
                 'user' => AuthUserResource::make($user)->resolve(),
             ],
+            'errors' => null,
         ]);
     }
 
@@ -216,8 +249,10 @@ class AuthController extends Controller
 
         return new JsonResponse([
             'success' => true,
+            'status' => 200,
             'message' => __('auth.logged_out_successfully'),
             'data' => null,
+            'errors' => null,
         ]);
     }
 
@@ -231,7 +266,10 @@ class AuthController extends Controller
         if ($user === null) {
             return new JsonResponse([
                 'success' => false,
+                'status' => 401,
                 'message' => __('auth.unauthenticated'),
+                'data' => null,
+                'errors' => null,
             ], 401);
         }
 
@@ -239,12 +277,14 @@ class AuthController extends Controller
 
         return new JsonResponse([
             'success' => true,
+            'status' => 200,
             'message' => __('messages.success'),
             'data' => [
                 'user' => AuthUserResource::make($user)->resolve(),
                 'roles' => $user->effectiveRoleNames($departmentId),
                 'permissions' => $user->effectivePermissionNames($departmentId),
             ],
+            'errors' => null,
         ]);
     }
 
@@ -258,7 +298,10 @@ class AuthController extends Controller
         if ($user === null) {
             return new JsonResponse([
                 'success' => false,
+                'status' => 401,
                 'message' => __('auth.unauthenticated'),
+                'data' => null,
+                'errors' => null,
             ], 401);
         }
 
@@ -270,10 +313,12 @@ class AuthController extends Controller
 
         return new JsonResponse([
             'success' => true,
+            'status' => 200,
             'message' => __('auth.profile_updated_successfully'),
             'data' => [
                 'user' => AuthUserResource::make($updatedUser)->resolve(),
             ],
+            'errors' => null,
         ]);
     }
 
@@ -285,8 +330,10 @@ class AuthController extends Controller
 
         return new JsonResponse([
             'success' => true,
+            'status' => 200,
             'message' => __('auth.role_assigned_successfully'),
             'data' => null,
+            'errors' => null,
         ]);
     }
 

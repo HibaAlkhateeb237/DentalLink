@@ -179,6 +179,10 @@ class AuthService
                     'profile_image' => $profileImagePath,
                 ]);
 
+                $user->forceFill([
+                    'email_verified_at' => now(),
+                ])->save();
+
                 $defaultRoleId = Role::query()
                     ->where('name', 'doctor')
                     ->where('guard_name', 'sanctum')

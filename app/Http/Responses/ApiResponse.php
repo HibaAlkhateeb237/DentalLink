@@ -10,8 +10,10 @@ class ApiResponse
     {
         return response()->json([
             'success' => true,
+            'status' => $status,
             'message' => $message,
             'data' => $data,
+            'errors' => null,
         ], $status);
     }
 
@@ -19,11 +21,15 @@ class ApiResponse
     {
         $payload = [
             'success' => false,
+            'status' => $status,
             'message' => $message,
+            'data' => null,
         ];
 
         if ($errors !== null) {
             $payload['errors'] = $errors;
+        } else {
+            $payload['errors'] = null;
         }
 
         return response()->json($payload, $status);

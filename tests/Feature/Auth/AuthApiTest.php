@@ -27,6 +27,7 @@ class AuthApiTest extends TestCase
 
         $requestOtp->assertOk()->assertJsonStructure([
             'success',
+            'status',
             'message',
             'data' => ['email', 'expires_in_seconds'],
         ]);
@@ -46,6 +47,7 @@ class AuthApiTest extends TestCase
 
         $verifyOtp->assertOk()->assertJsonStructure([
             'success',
+            'status',
             'message',
             'data' => ['verification_token', 'expires_in_seconds'],
         ]);
@@ -64,7 +66,7 @@ class AuthApiTest extends TestCase
 
         $response
             ->assertCreated()
-            ->assertJsonStructure(['success', 'message', 'data' => ['token', 'user' => ['id', 'name', 'email']]])
+            ->assertJsonStructure(['success', 'status', 'message', 'data' => ['token', 'user' => ['id', 'name', 'email']]])
             ->assertJsonPath('data.user.location', 'Cairo');
 
         $this->assertStringStartsWith('1990-05-10', (string) $response->json('data.user.birthdate'));
@@ -73,6 +75,9 @@ class AuthApiTest extends TestCase
             'email' => 'doctor1@example.com',
             'location' => 'Cairo',
         ]);
+
+        $registeredUser = User::query()->where('email', 'doctor1@example.com')->firstOrFail();
+        $this->assertNotNull($registeredUser->email_verified_at);
     }
 
     public function test_cannot_verify_registration_with_invalid_code(): void
@@ -196,7 +201,7 @@ class AuthApiTest extends TestCase
             'password' => 'password123',
         ]);
 
-        $login->assertOk()->assertJsonStructure(['success', 'message', 'data' => ['token']]);
+        $login->assertOk()->assertJsonStructure(['success', 'status', 'message', 'data' => ['token']]);
 
         $token = $login->json('data.token');
 
@@ -241,6 +246,7 @@ class AuthApiTest extends TestCase
         $response
             ->assertOk()
             ->assertJsonPath('success', true)
+            ->assertJsonPath('status', 200)
             ->assertJsonPath('data.user.name', 'Doctor After')
             ->assertJsonPath('data.user.phone', '0501234567')
             ->assertJsonPath('data.user.location', 'Cairo')
