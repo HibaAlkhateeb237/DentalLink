@@ -12,7 +12,7 @@ class LabSeeder extends Seeder
      */
     public function run(): void
     {
-        $names = [
+        $realLabNames = [
             'المركز السني الحديث',
             'سولاريس دنت',
             'ماغي للتعويضات السنية',
@@ -35,7 +35,7 @@ class LabSeeder extends Seeder
             'مخبر اراك لصناعة الاسنان',
             'مخبر الأخيار',
             'مخبر التيتانيوم',
-            'مخبر الثريا ( تعويضات زرع )',
+            'مخبر الثريا (تعويضات زرع)',
             'مخبر الحاج علي',
             'مخبر الرضوان',
             'مخبر الريم',
@@ -64,21 +64,20 @@ class LabSeeder extends Seeder
             'ناجي لويس',
             'نادر عثمان السعيد',
             'مخبر افاق لطب الاسنان - حسام يحيى',
-            'مختبر عسل للتعويضات السنية - المخبري الفني خالد اليوسف',
+            'مختبر عسل للتعويضات السنية - خالد اليوسف',
             'مخبر شهد التخصصي في الأسنان',
             'مخبر آرام لصناعة الأسنان',
             'Ted Dent Lab',
             'Hraied Dental Lab',
             'المركز السوري الألماني',
             'مخبر هراير لصناعة الأسنان',
-            'مخبر فهد لصناعة الاسنان Fahed Dental Lab',
+            'مخبر فهد لصناعة الاسنان',
             'المخبر المركزي السوري',
             'مخبر نصار لصناعة الاسنان',
             'مخبر وسيم',
-            'مخبر ومستودع الفرقان',
             'مخبر يحيى للتعويضات الخزفية',
             'مخبر يوسف ترك',
-            'مخبرالتقويم',
+            'مخبر التقويم',
             'مختبر ليمو لصناعة الاسنان',
             'مرعشليان',
             'مركز الامين',
@@ -107,48 +106,52 @@ class LabSeeder extends Seeder
             'مخبر الشام لصناعة الأسنان',
             'مخبر الحلبوني لصناعة الاسنان',
             'مخبر لصناعة الاسنان',
-            'مكتب مواد طب الاسنان',
             'مخبر المجتهد لصناعة الأسنان',
             'مخبر اللؤلؤ لطب الأسنان',
             'مخبر رضا صبحي النن',
             'مخبر نبيل كحلا',
             'مخبر المجد لصناعة الأسنان',
+            'مخبر برايت سمايل',
+            'مخبر دنتال كير',
+            'مخبر اسنان الشفاء',
+            'مخبر اللمسة الذهبية',
+            'مخبر الروابي للتقنيات السنية',
         ];
 
-        $locations = [
-            ['city' => 'دمشق', 'district' => 'المزة', 'latitude' => 33.5138070, 'longitude' => 36.2765279],
-            ['city' => 'حلب', 'district' => 'الجميلية', 'latitude' => 36.2021040, 'longitude' => 37.1342600],
-            ['city' => 'حمص', 'district' => 'الحميدية', 'latitude' => 34.7333330, 'longitude' => 36.7166670],
-            ['city' => 'حماة', 'district' => 'المدينة', 'latitude' => 35.1333330, 'longitude' => 36.7500000],
-            ['city' => 'اللاذقية', 'district' => 'الزراعة', 'latitude' => 35.5200000, 'longitude' => 35.7900000],
-            ['city' => 'طرطوس', 'district' => 'الوسط', 'latitude' => 34.8833330, 'longitude' => 35.8833330],
-            ['city' => 'دير الزور', 'district' => 'القصور', 'latitude' => 35.3333330, 'longitude' => 40.1500000],
-            ['city' => 'الرقة', 'district' => 'الوسط', 'latitude' => 35.9500000, 'longitude' => 39.0166670],
-            ['city' => 'الحسكة', 'district' => 'غويران', 'latitude' => 36.5000000, 'longitude' => 40.7500000],
-            ['city' => 'درعا', 'district' => 'المدينة', 'latitude' => 32.6188890, 'longitude' => 36.1020000],
+        $districts = [
+            'المزة', 'أبو رمانة', 'المهاجرين', 'الشعلان', 'كفرسوسة',
+            'الميدان', 'المالكي', 'القصاع', 'ركن الدين', 'الصالحية',
+            'الروضة', 'العدوي', 'ساروجة', 'البرامكة', 'المزرعة',
         ];
 
+        $centerLatitude = 33.5138070;
+        $centerLongitude = 36.2765279;
         $now = now();
 
         Lab::query()->delete();
 
         $records = [];
 
-        foreach ($names as $index => $name) {
-            $location = $locations[$index % count($locations)];
+        for ($index = 1; $index <= 100; $index++) {
+            $district = $districts[($index - 1) % count($districts)];
+            $name = $realLabNames[$index - 1];
+
+            $latOffset = (($index % 20) - 10) * 0.0015;
+            $lngOffset = (((int) floor(($index - 1) / 20)) - 2) * 0.0020;
 
             $records[] = [
                 'name' => $name,
-                'phone' => '+963'.str_pad((string) (1001001 + $index), 7, '0', STR_PAD_LEFT),
-                'address' => $location['city'].'، سوريا',
-                'latitude' => $location['latitude'],
-                'longitude' => $location['longitude'],
-                'rating' => round(4.1 + (($index % 9) * 0.09), 2),
+                'phone' => '+96311'.str_pad((string) (2200000 + $index), 7, '0', STR_PAD_LEFT),
+                'address' => 'دمشق، '.$district.'، سوريا',
+                'latitude' => round($centerLatitude + $latOffset, 7),
+                'longitude' => round($centerLongitude + $lngOffset, 7),
                 'created_at' => $now,
                 'updated_at' => $now,
             ];
         }
 
-        Lab::query()->insert($records);
+        foreach (array_chunk($records, 50) as $chunk) {
+            Lab::query()->insert($chunk);
+        }
     }
 }

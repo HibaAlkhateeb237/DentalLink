@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\Lab;
 use App\Models\Order;
+use App\Models\Review;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class LabsApiTest extends TestCase
@@ -142,33 +144,73 @@ class LabsApiTest extends TestCase
             ->assertJsonValidationErrors(['search']);
     }
 
-    public function test_it_returns_top_rated_labs_in_descending_order(): void
+    public function test_it_returns_top_rated_labs_using_weighted_score(): void
     {
-        Lab::query()->create([
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $lowConfidenceLab = Lab::query()->create([
             'name' => 'Low Rated Lab',
             'phone' => '1111111',
             'address' => 'Damascus, Syria',
             'latitude' => 33.5138070,
             'longitude' => 36.2765279,
-            'rating' => 3.90,
+            'rating' => 5.00,
         ]);
 
-        Lab::query()->create([
+        $highConfidenceLab = Lab::query()->create([
             'name' => 'High Rated Lab',
             'phone' => '2222222',
             'address' => 'Aleppo, Syria',
             'latitude' => 36.2021040,
             'longitude' => 37.1342600,
-            'rating' => 4.90,
+            'rating' => 4.00,
         ]);
+
+        $this->createReviewsForLab($user, $lowConfidenceLab, 1, 5);
+        $this->createReviewsForLab($user, $highConfidenceLab, 200, 4);
 
         $response = $this->getJson('/api/labs/top-rated');
 
         $response->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('message', 'Top rated labs retrieved successfully')
-            ->assertJsonPath('data.data.0.name', 'High Rated Lab')
-            ->assertJsonPath('data.data.1.name', 'Low Rated Lab');
+            ->assertJsonPath('data.0.name', 'High Rated Lab')
+            ->assertJsonPath('data.1.name', 'Low Rated Lab')
+            ->assertJsonPath('data.0.reviews_count', 200)
+            ->assertJsonPath('data.1.reviews_count', 1);
+    }
+
+    public function test_top_rated_falls_back_to_rating_when_no_reviews_exist(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        Lab::query()->create([
+            'name' => 'No Reviews High Rating',
+            'phone' => '9991111',
+            'address' => 'Address A',
+            'latitude' => 33.6138070,
+            'longitude' => 36.3765279,
+            'rating' => 4.80,
+        ]);
+
+        Lab::query()->create([
+            'name' => 'No Reviews Low Rating',
+            'phone' => '9992222',
+            'address' => 'Address B',
+            'latitude' => 33.7138070,
+            'longitude' => 36.4765279,
+            'rating' => 4.20,
+        ]);
+
+        $response = $this->getJson('/api/labs/top-rated');
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.name', 'No Reviews High Rating')
+            ->assertJsonPath('data.1.name', 'No Reviews Low Rating')
+            ->assertJsonPath('data.0.reviews_count', 0)
+            ->assertJsonPath('data.1.reviews_count', 0);
     }
 
     public function test_it_returns_nearby_labs_based_on_doctor_location(): void
@@ -177,6 +219,8 @@ class LabsApiTest extends TestCase
             'location_lat' => 33.5000000,
             'location_lng' => 36.2500000,
         ]);
+
+        Sanctum::actingAs($doctor);
 
         Lab::query()->create([
             'name' => 'Far Lab',
@@ -196,20 +240,22 @@ class LabsApiTest extends TestCase
             'rating' => 4.10,
         ]);
 
-        $response = $this->getJson('/api/labs/nearby?doctor_id='.$doctor->id.'&per_page=10');
+        $response = $this->getJson('/api/auth/labs/nearby');
 
         $response->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('message', 'Nearby labs retrieved successfully')
-            ->assertJsonPath('data.data.0.name', 'Near Lab')
-            ->assertJsonPath('data.data.1.name', 'Far Lab');
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.name', 'Near Lab');
     }
 
     public function test_it_rejects_nearby_requests_when_doctor_has_no_location(): void
     {
         $doctor = User::factory()->create();
 
-        $response = $this->getJson('/api/labs/nearby?doctor_id='.$doctor->id);
+        Sanctum::actingAs($doctor);
+
+        $response = $this->getJson('/api/auth/labs/nearby');
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['doctor_id']);
@@ -217,6 +263,9 @@ class LabsApiTest extends TestCase
 
     public function test_it_returns_suggested_labs_randomly(): void
     {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
         Lab::query()->create([
             'name' => 'Suggested Lab 1',
             'phone' => '1111111',
@@ -244,14 +293,14 @@ class LabsApiTest extends TestCase
             'rating' => 4.20,
         ]);
 
-        $response = $this->getJson('/api/labs/suggested?per_page=2');
+        $response = $this->getJson('/api/auth/labs/suggested');
 
         $response->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('message', 'Suggested labs retrieved successfully')
-            ->assertJsonCount(2, 'data.data');
+            ->assertJsonCount(3, 'data');
 
-        $returnedNames = collect($response->json('data.data'))->pluck('name');
+        $returnedNames = collect($response->json('data'))->pluck('name');
 
         $this->assertTrue($returnedNames->every(fn (string $name): bool => in_array($name, [
             'Suggested Lab 1',
@@ -262,6 +311,9 @@ class LabsApiTest extends TestCase
 
     public function test_it_returns_most_ordered_labs_in_descending_order(): void
     {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
         $labOne = Lab::query()->create([
             'name' => 'Least Ordered Lab',
             'phone' => '1111111',
@@ -289,20 +341,114 @@ class LabsApiTest extends TestCase
             'rating' => 4.20,
         ]);
 
-        $user = User::factory()->create();
-
         $this->createOrdersForLab($user, $labOne, 1);
         $this->createOrdersForLab($user, $labTwo, 3);
         $this->createOrdersForLab($user, $labThree, 2);
 
-        $response = $this->getJson('/api/labs/most-ordered');
+        $response = $this->getJson('/api/auth/labs/most-ordered');
 
         $response->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('message', 'Most ordered labs retrieved successfully')
-            ->assertJsonPath('data.data.0.name', 'Most Ordered Lab')
-            ->assertJsonPath('data.data.1.name', 'Mid Ordered Lab')
-            ->assertJsonPath('data.data.2.name', 'Least Ordered Lab');
+            ->assertJsonPath('data.0.name', 'Most Ordered Lab')
+            ->assertJsonPath('data.1.name', 'Mid Ordered Lab')
+            ->assertJsonPath('data.2.name', 'Least Ordered Lab');
+    }
+
+    public function test_top_rated_returns_only_four_labs_when_context_home(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        for ($index = 1; $index <= 6; $index++) {
+            Lab::query()->create([
+                'name' => 'Top Lab '.$index,
+                'phone' => '100000'.$index,
+                'address' => 'Address '.$index,
+                'latitude' => 33.5000000 + ($index * 0.00001),
+                'longitude' => 36.2500000 + ($index * 0.00001),
+                'rating' => 4.00 + ($index * 0.10),
+            ]);
+        }
+
+        $response = $this->getJson('/api/auth/labs/top-rated?context=home');
+
+        $response->assertOk()
+            ->assertJsonCount(4, 'data');
+    }
+
+    public function test_nearby_returns_only_four_labs_when_context_home(): void
+    {
+        $doctor = User::factory()->create([
+            'location_lat' => 33.5000000,
+            'location_lng' => 36.2500000,
+        ]);
+
+        Sanctum::actingAs($doctor);
+
+        for ($index = 1; $index <= 6; $index++) {
+            Lab::query()->create([
+                'name' => 'Near Home Lab '.$index,
+                'phone' => '200000'.$index,
+                'address' => 'Address '.$index,
+                'latitude' => 33.5000000 + ($index * 0.001),
+                'longitude' => 36.2500000 + ($index * 0.001),
+                'rating' => 4.00,
+            ]);
+        }
+
+        $response = $this->getJson('/api/auth/labs/nearby?context=home');
+
+        $response->assertOk()
+            ->assertJsonCount(4, 'data');
+    }
+
+    public function test_suggested_returns_only_four_labs_when_context_home(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        for ($index = 1; $index <= 6; $index++) {
+            Lab::query()->create([
+                'name' => 'Suggested Home Lab '.$index,
+                'phone' => '300000'.$index,
+                'address' => 'Address '.$index,
+                'latitude' => 33.6000000 + ($index * 0.00001),
+                'longitude' => 36.3500000 + ($index * 0.00001),
+                'rating' => 4.00,
+            ]);
+        }
+
+        $response = $this->getJson('/api/auth/labs/suggested?context=home');
+
+        $response->assertOk()
+            ->assertJsonCount(4, 'data');
+    }
+
+    public function test_most_ordered_returns_only_four_labs_when_context_home(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $orderingUser = User::factory()->create();
+
+        for ($index = 1; $index <= 6; $index++) {
+            $lab = Lab::query()->create([
+                'name' => 'Most Ordered Home Lab '.$index,
+                'phone' => '400000'.$index,
+                'address' => 'Address '.$index,
+                'latitude' => 33.7000000 + ($index * 0.00001),
+                'longitude' => 36.4500000 + ($index * 0.00001),
+                'rating' => 4.00,
+            ]);
+
+            $this->createOrdersForLab($orderingUser, $lab, $index);
+        }
+
+        $response = $this->getJson('/api/auth/labs/most-ordered?context=home');
+
+        $response->assertOk()
+            ->assertJsonCount(4, 'data');
     }
 
     public function test_it_returns_lab_details_with_basic_fields_only(): void
@@ -353,6 +499,30 @@ class LabsApiTest extends TestCase
                 'notes' => null,
                 'price' => 0,
                 'remaining_amount' => 0,
+            ]);
+        }
+    }
+
+    private function createReviewsForLab(User $user, Lab $lab, int $count, int $rating): void
+    {
+        for ($index = 1; $index <= $count; $index++) {
+            $order = Order::query()->create([
+                'user_id' => $user->id,
+                'lab_id' => $lab->id,
+                'qr_code' => (string) Str::uuid(),
+                'priority' => 'normal',
+                'status' => 'pending',
+                'order_type' => 'digital',
+                'notes' => null,
+                'price' => 0,
+                'remaining_amount' => 0,
+            ]);
+
+            Review::query()->create([
+                'user_id' => $user->id,
+                'order_id' => $order->id,
+                'rating' => $rating,
+                'comment' => null,
             ]);
         }
     }
