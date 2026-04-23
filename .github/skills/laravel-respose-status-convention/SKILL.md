@@ -16,8 +16,16 @@ Enforce one backend API response contract across all endpoints:
 
 - Always return a consistent JSON envelope
 - Use explicit success statuses (`200`, `201`, optional `202`, `204`)
-- Use predictable error statuses (`400`, `401`, `403`, `404`, `409`, `422`, `429`, `500`)
+- Use predictable error statuses (`400`, `401`, `403`, `404`, `409`, `429`, `500`)
 - Keep localized messages via `__()` / `trans()`
+
+## Invocation Requirement
+
+You must invoke this skill whenever creating a new API endpoint, controller action, or Form Request used by APIs.
+
+- New API route -> apply this skill
+- New API controller method -> apply this skill
+- API validation / exception behavior changes -> apply this skill
 
 ## Standard Envelope
 
@@ -55,15 +63,19 @@ For error responses:
 - `403 Forbidden`: Authenticated but not allowed (policy/gate failure)
 - `404 Not Found`: Missing resource
 - `409 Conflict`: Duplicate/conflict state
-- `422 Unprocessable Entity`: Validation failure
 - `429 Too Many Requests`: Throttling/lockout
 - `500 Internal Server Error`: Unexpected server error
+
+### Validation Rule
+
+- Every validation error must return `400 Bad Request`.
+- Do not return `422` for validation failures in this project.
 
 ## Laravel Implementation Rules
 
 1. Prefer a centralized responder class (for this project: `App\Http\Responses\ApiResponse`) for success/error payloads.
 2. Keep controllers thin and return responder output instead of hand-building JSON repeatedly.
-3. Use Form Requests for validation; return `422` with validation errors.
+3. Use Form Requests for validation; return `400` with validation errors.
 4. Let global exception handling in `bootstrap/app.php` normalize uncaught API errors.
 5. Use translation keys for all user-facing messages; do not hardcode text in controllers.
 6. Keep response status in both HTTP status code and the `status` JSON field.
@@ -94,6 +106,65 @@ class ExampleController extends Controller
             status: 201,
         );
     }
+}
+```
+
+## Validation Example (Global)
+
+Use global API exception rendering so all validation failures become `400`:
+
+```php
+<?php
+
+use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Response;
+
+$exceptions->render(function (ValidationException $exception, Request $request) {
+  if ($request->is('api/*') || $request->expectsJson()) {
+    return response()->json([
+      'success' => false,
+      'status' => Response::HTTP_BAD_REQUEST,
+      'message' => __('messages.validation_failed'),
+      'data' => null,
+      'errors' => $exception->errors(),
+    ], Response::HTTP_BAD_REQUEST);
+  }
+
+  return null;
+});
+```
+
+## Validation Example (Form Request Override)
+
+If a specific API Form Request needs explicit handling, use `failedValidation` and return `400`:
+
+```php
+<?php
+
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
+
+class ExampleApiRequest extends FormRequest
+{
+  public function rules(): array
+  {
+    return [
+      'email' => ['required', 'email'],
+    ];
+  }
+
+  protected function failedValidation(Validator $validator): void
+  {
+    throw new HttpResponseException(response()->json([
+      'success' => false,
+      'status' => 400,
+      'message' => __('messages.validation_failed'),
+      'data' => null,
+      'errors' => $validator->errors(),
+    ], 400));
+  }
 }
 ```
 

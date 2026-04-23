@@ -147,6 +147,39 @@ class AuthApiTest extends TestCase
         $secondRequest->assertStatus(429);
     }
 
+    public function test_request_otp_with_invalid_email_returns_bad_request(): void
+    {
+        $response = $this->postJson('/api/auth/register/request-otp', [
+            'email' => 'asdsad',
+        ]);
+
+        $response
+            ->assertStatus(400)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('status', 400)
+            ->assertJsonPath('message', __('messages.validation_failed'))
+            ->assertJsonStructure([
+                'errors' => ['email'],
+            ]);
+    }
+
+    public function test_request_otp_with_existing_email_returns_conflict(): void
+    {
+        User::factory()->create([
+            'email' => 'existing-register@example.com',
+        ]);
+
+        $response = $this->postJson('/api/auth/register/request-otp', [
+            'email' => 'existing-register@example.com',
+        ]);
+
+        $response
+            ->assertConflict()
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('status', 409)
+            ->assertJsonPath('message', __('auth.email_already_registered'));
+    }
+
     public function test_cannot_complete_registration_with_expired_verification_token(): void
     {
         Notification::fake();
@@ -246,6 +279,21 @@ class AuthApiTest extends TestCase
         $logout->assertOk();
     }
 
+    public function test_login_with_invalid_email_format_returns_bad_request(): void
+    {
+        $response = $this->postJson('/api/auth/login', [
+            'email' => 'safa',
+            'password' => '0000',
+        ]);
+
+        $response
+            ->assertBadRequest()
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('status', 400)
+            ->assertJsonPath('message', __('messages.validation_failed'))
+            ->assertJsonValidationErrors(['email']);
+    }
+
     public function test_me_requires_authentication(): void
     {
         $response = $this->getJson('/api/auth/me');
@@ -270,7 +318,7 @@ class AuthApiTest extends TestCase
 
         Sanctum::actingAs($user);
 
-        $response = $this->patchJson('/api/auth/me', [
+        $response = $this->postJson('/api/auth/me', [
             'name' => 'Doctor After',
             'phone' => '0501234567',
             'location' => 'Cairo',
@@ -310,7 +358,7 @@ class AuthApiTest extends TestCase
 
         Sanctum::actingAs($user);
 
-        $response = $this->patch('/api/auth/me', [
+        $response = $this->post('/api/auth/me', [
             'profile_image' => UploadedFile::fake()->image('new-avatar.jpg'),
         ], [
             'Accept' => 'application/json',
@@ -359,7 +407,7 @@ class AuthApiTest extends TestCase
 
     public function test_update_profile_requires_authentication(): void
     {
-        $response = $this->patchJson('/api/auth/me', [
+        $response = $this->postJson('/api/auth/me', [
             'name' => 'No Auth',
         ]);
 
@@ -379,12 +427,12 @@ class AuthApiTest extends TestCase
 
         Sanctum::actingAs($user);
 
-        $response = $this->patchJson('/api/auth/me', [
+        $response = $this->postJson('/api/auth/me', [
             'lab_name' => 'My Lab',
         ]);
 
         $response
-            ->assertStatus(422)
+            ->assertStatus(400)
             ->assertJsonValidationErrors(['lab_name']);
 
         $this->assertNull($user->fresh()?->lab_name);
@@ -430,7 +478,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $response
-            ->assertStatus(422)
+            ->assertStatus(400)
             ->assertJsonValidationErrors(['current_password']);
 
         $user->refresh();

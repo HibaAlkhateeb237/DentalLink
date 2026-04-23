@@ -17,13 +17,13 @@ class ApiResponse
         ], $status);
     }
 
-    public function error(string $message = 'Error', int $status = 400, mixed $errors = null): JsonResponse
+    public function error(string $message = 'Error', int $status = 400, mixed $errors = null, mixed $data = null): JsonResponse
     {
         $payload = [
             'success' => false,
             'status' => $status,
             'message' => $message,
-            'data' => null,
+            'data' => $data,
         ];
 
         if ($errors !== null) {

@@ -138,7 +138,7 @@ class LabsApiTest extends TestCase
             'search' => '',
         ]);
 
-        $response->assertStatus(422)
+        $response->assertStatus(400)
             ->assertJsonValidationErrors(['search']);
     }
 
@@ -211,7 +211,7 @@ class LabsApiTest extends TestCase
 
         $response = $this->getJson('/api/labs/nearby?doctor_id='.$doctor->id);
 
-        $response->assertStatus(422)
+        $response->assertStatus(400)
             ->assertJsonValidationErrors(['doctor_id']);
     }
 

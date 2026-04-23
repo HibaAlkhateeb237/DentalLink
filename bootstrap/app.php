@@ -63,11 +63,11 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->is('api/*') || $request->expectsJson()) {
                 return response()->json([
                     'success' => false,
-                    'status' => Response::HTTP_UNPROCESSABLE_ENTITY,
+                    'status' => Response::HTTP_BAD_REQUEST,
                     'message' => __('messages.validation_failed'),
                     'data' => null,
                     'errors' => $exception->errors(),
-                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+                ], Response::HTTP_BAD_REQUEST);
             }
 
             return null;
