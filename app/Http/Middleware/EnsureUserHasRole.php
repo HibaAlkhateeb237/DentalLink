@@ -20,7 +20,10 @@ class EnsureUserHasRole
         if ($user === null) {
             return new JsonResponse([
                 'success' => false,
+                'status' => 401,
                 'message' => __('auth.unauthenticated'),
+                'data' => null,
+                'errors' => null,
             ], 401);
         }
 
@@ -33,7 +36,10 @@ class EnsureUserHasRole
         if (! $user->hasRole($roles, $departmentId)) {
             return new JsonResponse([
                 'success' => false,
+                'status' => 403,
                 'message' => __('auth.forbidden'),
+                'data' => null,
+                'errors' => null,
             ], 403);
         }
 

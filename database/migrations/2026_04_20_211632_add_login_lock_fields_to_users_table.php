@@ -12,10 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('phone')->nullable()->after('email');
-            $table->string('profile_image')->nullable()->after('password');
-            $table->decimal('location_lat', 10, 7)->nullable()->after('profile_image');
-            $table->decimal('location_lng', 10, 7)->nullable()->after('location_lat');
+            $table->unsignedTinyInteger('failed_login_attempts')->default(0)->after('password');
+            $table->timestamp('locked_until')->nullable()->after('failed_login_attempts')->index();
         });
     }
 
@@ -25,7 +23,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['phone', 'profile_image', 'location_lat', 'location_lng']);
+            $table->dropIndex(['locked_until']);
+            $table->dropColumn(['failed_login_attempts', 'locked_until']);
         });
     }
 };

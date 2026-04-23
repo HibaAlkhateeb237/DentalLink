@@ -27,6 +27,9 @@ class User extends Authenticatable
         'email',
         'phone',
         'profile_image',
+        'birthdate',
+        'location',
+        'lab_name',
         'location_lat',
         'location_lng',
         'password',
@@ -51,8 +54,11 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'birthdate' => 'date',
             'location_lat' => 'decimal:7',
             'location_lng' => 'decimal:7',
+            'failed_login_attempts' => 'integer',
+            'locked_until' => 'datetime',
             'password' => 'hashed',
         ];
     }

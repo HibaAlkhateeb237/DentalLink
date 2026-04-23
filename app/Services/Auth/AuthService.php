@@ -7,15 +7,21 @@ use App\Models\RegistrationOtp;
 use App\Models\Role;
 use App\Models\User;
 use App\Notifications\Auth\RegisterOtpNotification;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthService
 {
+    private const LOGIN_MAX_FAILED_ATTEMPTS = 5;
+
+    private const LOGIN_LOCK_SECONDS = 900;
+
     private const OTP_EXPIRES_IN_SECONDS = 600;
 
     private const OTP_RESEND_COOLDOWN_SECONDS = 60;
@@ -133,10 +139,10 @@ class AuthService
     }
 
     /**
-     * @param  array{verification_token:string,name:string,password:string,phone?:string|null}  $validated
+     * @param  array{verification_token:string,name:string,password:string,phone?:string|null,birthdate?:string|null,location?:string|null,location_lat?:float|int|string|null,location_lng?:float|int|string|null}  $validated
      * @return array{status:'completed',user:User,token:string}|array{status:'invalid_verification_token'|'email_exists'}
      */
-    public function register(array $validated, string $tokenName): array
+    public function register(array $validated, ?UploadedFile $profileImage = null): array
     {
         $registrationOtp = RegistrationOtp::query()
             ->where('verification_token', $validated['verification_token'])
@@ -156,38 +162,57 @@ class AuthService
             ];
         }
 
-        $user = DB::transaction(function () use ($validated): User {
-            $registrationOtp = RegistrationOtp::query()
-                ->where('verification_token', $validated['verification_token'])
-                ->lockForUpdate()
-                ->firstOrFail();
+        $profileImagePath = $profileImage?->store('users/profile-images', 'public');
 
-            $user = User::query()->create([
-                'name' => $validated['name'],
-                'email' => $registrationOtp->email,
-                'password' => $validated['password'],
-                'phone' => $validated['phone'] ?? null,
-            ]);
+        try {
+            $user = DB::transaction(function () use ($validated, $profileImagePath): User {
+                $registrationOtp = RegistrationOtp::query()
+                    ->where('verification_token', $validated['verification_token'])
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
-            $defaultRoleId = Role::query()
-                ->where('name', 'doctor')
-                ->where('guard_name', 'sanctum')
-                ->value('id');
+                $user = User::query()->create([
+                    'name' => $validated['name'],
+                    'email' => $registrationOtp->email,
+                    'password' => $validated['password'],
+                    'phone' => $validated['phone'] ?? null,
+                    'birthdate' => $validated['birthdate'] ?? null,
+                    'location' => $validated['location'] ?? null,
+                    'location_lat' => $validated['location_lat'] ?? null,
+                    'location_lng' => $validated['location_lng'] ?? null,
+                    'profile_image' => $profileImagePath,
+                ]);
 
-            if ($defaultRoleId !== null) {
-                $user->roles()->syncWithoutDetaching([$defaultRoleId]);
+                $user->forceFill([
+                    'email_verified_at' => now(),
+                ])->save();
+
+                $defaultRoleId = Role::query()
+                    ->where('name', 'doctor')
+                    ->where('guard_name', 'sanctum')
+                    ->value('id');
+
+                if ($defaultRoleId !== null) {
+                    $user->roles()->syncWithoutDetaching([$defaultRoleId]);
+                }
+
+                $registrationOtp->update([
+                    'consumed_at' => now(),
+                    'verification_token' => null,
+                    'verification_token_expires_at' => null,
+                ]);
+
+                return $user;
+            });
+        } catch (\Throwable $exception) {
+            if ($profileImagePath !== null) {
+                Storage::disk('public')->delete($profileImagePath);
             }
 
-            $registrationOtp->update([
-                'consumed_at' => now(),
-                'verification_token' => null,
-                'verification_token_expires_at' => null,
-            ]);
+            throw $exception;
+        }
 
-            return $user;
-        });
-
-        $token = $user->createToken($tokenName !== '' ? $tokenName : 'api-token', ['*'])->plainTextToken;
+        $token = $user->createToken('api-token', ['*'])->plainTextToken;
 
         return [
             'status' => 'completed',
@@ -198,20 +223,52 @@ class AuthService
 
     /**
      * @param  array{email:string,password:string}  $credentials
-     * @return array{user:User,token:string}|null
+     * @return array{status:'authenticated',user:User,token:string}|array{status:'invalid'}|array{status:'locked',retry_after_seconds:int}
      */
-    public function login(array $credentials, string $tokenName): ?array
+    public function login(array $credentials): array
     {
+        $user = User::query()
+            ->where('email', $credentials['email'])
+            ->first();
+
+        if ($user !== null && $user->locked_until !== null && $user->locked_until->isFuture()) {
+            return [
+                'status' => 'locked',
+                'retry_after_seconds' => max(now()->diffInSeconds($user->locked_until), 1),
+            ];
+        }
+
         if (! Auth::attempt($credentials)) {
-            return null;
+            if ($user !== null) {
+                $failedAttempts = $user->failed_login_attempts + 1;
+
+                $user->forceFill([
+                    'failed_login_attempts' => $failedAttempts,
+                    'locked_until' => $failedAttempts >= self::LOGIN_MAX_FAILED_ATTEMPTS
+                        ? now()->addSeconds(self::LOGIN_LOCK_SECONDS)
+                        : null,
+                ])->save();
+            }
+
+            return [
+                'status' => 'invalid',
+            ];
         }
 
         /** @var User $user */
         $user = Auth::user();
 
-        $token = $user->createToken($tokenName !== '' ? $tokenName : 'api-token', ['*'])->plainTextToken;
+        if ($user->failed_login_attempts > 0 || $user->locked_until !== null) {
+            $user->forceFill([
+                'failed_login_attempts' => 0,
+                'locked_until' => null,
+            ])->save();
+        }
+
+        $token = $user->createToken('api-token', ['*'])->plainTextToken;
 
         return [
+            'status' => 'authenticated',
             'user' => $user,
             'token' => $token,
         ];
@@ -228,6 +285,63 @@ class AuthService
         }
 
         $user->tokens()->delete();
+    }
+
+    public function changePassword(User $user, string $newPassword): void
+    {
+        DB::transaction(function () use ($user, $newPassword): void {
+            $user->forceFill([
+                'password' => $newPassword,
+            ])->save();
+        });
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    public function updateProfile(User $user, array $validated, ?UploadedFile $profileImage = null): User
+    {
+        $currentProfileImage = $user->profile_image;
+        $newProfileImagePath = $profileImage?->store('users/profile-images', 'public');
+        $removeProfileImage = ($validated['remove_profile_image'] ?? false) === true;
+
+        if ($removeProfileImage && $newProfileImagePath !== null) {
+            Storage::disk('public')->delete($newProfileImagePath);
+            $newProfileImagePath = null;
+        }
+
+        if ($newProfileImagePath !== null) {
+            $validated['profile_image'] = $newProfileImagePath;
+        }
+
+        if ($removeProfileImage) {
+            $validated['profile_image'] = null;
+        }
+
+        unset($validated['remove_profile_image']);
+
+        try {
+            DB::transaction(function () use ($user, $validated): void {
+                $user->fill($validated);
+                $user->save();
+            });
+        } catch (\Throwable $exception) {
+            if ($newProfileImagePath !== null) {
+                Storage::disk('public')->delete($newProfileImagePath);
+            }
+
+            throw $exception;
+        }
+
+        if (! $removeProfileImage && $newProfileImagePath !== null && $currentProfileImage !== null && $currentProfileImage !== $newProfileImagePath) {
+            Storage::disk('public')->delete($currentProfileImage);
+        }
+
+        if ($removeProfileImage && $currentProfileImage !== null) {
+            Storage::disk('public')->delete($currentProfileImage);
+        }
+
+        return $user->fresh();
     }
 
     /**

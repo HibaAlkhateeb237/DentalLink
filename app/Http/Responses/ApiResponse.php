@@ -10,20 +10,26 @@ class ApiResponse
     {
         return response()->json([
             'success' => true,
+            'status' => $status,
             'message' => $message,
             'data' => $data,
+            'errors' => null,
         ], $status);
     }
 
-    public function error(string $message = 'Error', int $status = 400, mixed $errors = null): JsonResponse
+    public function error(string $message = 'Error', int $status = 400, mixed $errors = null, mixed $data = null): JsonResponse
     {
         $payload = [
             'success' => false,
+            'status' => $status,
             'message' => $message,
+            'data' => $data,
         ];
 
         if ($errors !== null) {
             $payload['errors'] = $errors;
+        } else {
+            $payload['errors'] = null;
         }
 
         return response()->json($payload, $status);

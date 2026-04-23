@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+
         Review::query()->delete();
         Order::query()->delete();
         Favorite::query()->delete();
@@ -52,5 +53,12 @@ class DatabaseSeeder extends Seeder
         if ($systemAdminRoleId !== null) {
             $user->roles()->syncWithoutDetaching([$systemAdminRoleId]);
         }
+
+        $this->call([
+            LabSeeder::class,
+            RolesAndPermissionsSeeder::class,
+            SystemAdminUserSeeder::class,
+        ]);
+
     }
 }

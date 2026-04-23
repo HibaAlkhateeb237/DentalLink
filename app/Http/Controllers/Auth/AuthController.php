@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\AssignRoleRequest;
+use App\Http\Requests\Auth\ChangePasswordRequest;
 use App\Http\Requests\Auth\CompleteRegisterRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RequestRegisterOtpRequest;
+use App\Http\Requests\Auth\UpdateProfileRequest;
 use App\Http\Requests\Auth\VerifyRegisterOtpRequest;
 use App\Http\Resources\Auth\AuthUserResource;
+use App\Http\Responses\ApiResponse;
 use App\Models\User;
 use App\Services\Auth\AuthService;
 use Illuminate\Http\JsonResponse;
@@ -18,7 +21,10 @@ use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
-    public function __construct(private readonly AuthService $authService) {}
+    public function __construct(
+        private readonly AuthService $authService,
+        private readonly ApiResponse $apiResponse,
+    ) {}
 
     public function requestRegisterOtp(RequestRegisterOtpRequest $request): JsonResponse
     {
@@ -27,13 +33,14 @@ class AuthController extends Controller
         $throttleKey = $this->registerOtpThrottleKey($request);
 
         if (RateLimiter::tooManyAttempts($throttleKey, 3)) {
-            return new JsonResponse([
-                'success' => false,
-                'message' => __('auth.otp_too_many_send_attempts'),
-                'data' => [
+            return $this->apiResponse->error(
+                __('auth.otp_too_many_send_attempts'),
+                429,
+                null,
+                [
                     'retry_after_seconds' => RateLimiter::availableIn($throttleKey),
                 ],
-            ], 429);
+            );
         }
 
         $result = $this->authService->requestRegistrationOtp(
@@ -42,32 +49,30 @@ class AuthController extends Controller
         );
 
         if ($result['status'] === 'email_exists') {
-            return new JsonResponse([
-                'success' => false,
-                'message' => __('auth.email_already_registered'),
-            ], 422);
+            return $this->apiResponse->error(__('auth.email_already_registered'), 409);
         }
 
         if ($result['status'] === 'cooldown') {
-            return new JsonResponse([
-                'success' => false,
-                'message' => __('auth.otp_resend_cooldown'),
-                'data' => [
+            return $this->apiResponse->error(
+                __('auth.otp_resend_cooldown'),
+                429,
+                null,
+                [
                     'retry_after_seconds' => $result['retry_after_seconds'],
                 ],
-            ], 429);
+            );
         }
 
         RateLimiter::hit($throttleKey, 900);
 
-        return new JsonResponse([
-            'success' => true,
-            'message' => __('auth.otp_sent_successfully'),
-            'data' => [
+        return $this->apiResponse->success(
+            [
                 'email' => $result['email'],
                 'expires_in_seconds' => $result['expires_in_seconds'],
             ],
-        ]);
+            __('auth.otp_sent_successfully'),
+            200,
+        );
     }
 
     public function verifyRegisterOtp(VerifyRegisterOtpRequest $request): JsonResponse
@@ -77,13 +82,14 @@ class AuthController extends Controller
         $throttleKey = $this->verifyOtpThrottleKey($request);
 
         if (RateLimiter::tooManyAttempts($throttleKey, 10)) {
-            return new JsonResponse([
-                'success' => false,
-                'message' => __('auth.otp_too_many_verify_attempts'),
-                'data' => [
+            return $this->apiResponse->error(
+                __('auth.otp_too_many_verify_attempts'),
+                429,
+                null,
+                [
                     'retry_after_seconds' => RateLimiter::availableIn($throttleKey),
                 ],
-            ], 429);
+            );
         }
 
         $result = $this->authService->verifyRegistrationOtp(
@@ -94,34 +100,35 @@ class AuthController extends Controller
         if ($result['status'] === 'verified') {
             RateLimiter::clear($throttleKey);
 
-            return new JsonResponse([
-                'success' => true,
-                'message' => __('auth.otp_verified_successfully'),
-                'data' => [
+            return $this->apiResponse->success(
+                [
                     'verification_token' => $result['verification_token'],
                     'expires_in_seconds' => $result['expires_in_seconds'],
                 ],
-            ]);
+                __('auth.otp_verified_successfully'),
+                200,
+            );
         }
 
         RateLimiter::hit($throttleKey, 600);
 
         if ($result['status'] === 'too_many_attempts') {
-            return new JsonResponse([
-                'success' => false,
-                'message' => __('auth.otp_too_many_verify_attempts'),
-                'data' => [
+            return $this->apiResponse->error(
+                __('auth.otp_too_many_verify_attempts'),
+                429,
+                null,
+                [
                     'retry_after_seconds' => $result['retry_after_seconds'],
                 ],
-            ], 429);
+            );
         }
 
-        return new JsonResponse([
-            'success' => false,
-            'message' => $result['status'] === 'expired'
+        return $this->apiResponse->error(
+            $result['status'] === 'expired'
                 ? __('auth.otp_expired')
                 : __('auth.otp_invalid'),
-        ], 422);
+            422,
+        );
     }
 
     public function completeRegister(CompleteRegisterRequest $request): JsonResponse
@@ -130,34 +137,28 @@ class AuthController extends Controller
 
         $result = $this->authService->register(
             $request->validated(),
-            $request->string('device_name')->toString(),
+            $request->file('profile_image'),
         );
 
         if ($result['status'] === 'invalid_verification_token') {
-            return new JsonResponse([
-                'success' => false,
-                'message' => __('auth.invalid_verification_token'),
-            ], 422);
+            return $this->apiResponse->error(__('auth.invalid_verification_token'), 422);
         }
 
         if ($result['status'] === 'email_exists') {
-            return new JsonResponse([
-                'success' => false,
-                'message' => __('auth.email_already_registered'),
-            ], 422);
+            return $this->apiResponse->error(__('auth.email_already_registered'), 409);
         }
 
         /** @var User $user */
         $user = $result['user'];
 
-        return new JsonResponse([
-            'success' => true,
-            'message' => __('auth.registered_successfully'),
-            'data' => [
+        return $this->apiResponse->success(
+            [
                 'token' => $result['token'],
                 'user' => AuthUserResource::make($user)->resolve(),
             ],
-        ], 201);
+            __('auth.registered_successfully'),
+            201,
+        );
     }
 
     public function login(LoginRequest $request): JsonResponse
@@ -168,27 +169,33 @@ class AuthController extends Controller
         $throttleKey = $this->throttleKey($request);
 
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
-            return new JsonResponse([
-                'success' => false,
-                'message' => __('auth.too_many_attempts'),
-                'data' => [
+            return $this->apiResponse->error(
+                __('auth.too_many_attempts'),
+                429,
+                null,
+                [
                     'retry_after_seconds' => RateLimiter::availableIn($throttleKey),
                 ],
-            ], 429);
+            );
         }
 
-        $result = $this->authService->login(
-            $credentials,
-            $request->string('device_name')->toString(),
-        );
+        $result = $this->authService->login($credentials);
 
-        if ($result === null) {
+        if ($result['status'] === 'locked') {
+            return $this->apiResponse->error(
+                __('auth.too_many_attempts'),
+                429,
+                null,
+                [
+                    'retry_after_seconds' => $result['retry_after_seconds'],
+                ],
+            );
+        }
+
+        if ($result['status'] === 'invalid') {
             RateLimiter::hit($throttleKey, 60);
 
-            return new JsonResponse([
-                'success' => false,
-                'message' => __('auth.invalid_credentials'),
-            ], 422);
+            return $this->apiResponse->error(__('auth.invalid_credentials'), 422);
         }
 
         RateLimiter::clear($throttleKey);
@@ -196,14 +203,14 @@ class AuthController extends Controller
         /** @var User $user */
         $user = $result['user'];
 
-        return new JsonResponse([
-            'success' => true,
-            'message' => __('auth.logged_in_successfully'),
-            'data' => [
+        return $this->apiResponse->success(
+            [
                 'token' => $result['token'],
                 'user' => AuthUserResource::make($user)->resolve(),
             ],
-        ]);
+            __('auth.logged_in_successfully'),
+            200,
+        );
     }
 
     public function logout(Request $request): JsonResponse
@@ -216,11 +223,7 @@ class AuthController extends Controller
             $this->authService->logout($user);
         }
 
-        return new JsonResponse([
-            'success' => true,
-            'message' => __('auth.logged_out_successfully'),
-            'data' => null,
-        ]);
+        return $this->apiResponse->success(null, __('auth.logged_out_successfully'), 200);
     }
 
     public function me(Request $request): JsonResponse
@@ -231,23 +234,46 @@ class AuthController extends Controller
         $user = $request->user();
 
         if ($user === null) {
-            return new JsonResponse([
-                'success' => false,
-                'message' => __('auth.unauthenticated'),
-            ], 401);
+            return $this->apiResponse->error(__('auth.unauthenticated'), 401);
         }
 
         $departmentId = $request->integer('department_id') ?: null;
 
-        return new JsonResponse([
-            'success' => true,
-            'message' => __('messages.success'),
-            'data' => [
+        return $this->apiResponse->success(
+            [
                 'user' => AuthUserResource::make($user)->resolve(),
                 'roles' => $user->effectiveRoleNames($departmentId),
                 'permissions' => $user->effectivePermissionNames($departmentId),
             ],
-        ]);
+            __('messages.success'),
+            200,
+        );
+    }
+
+    public function updateProfile(UpdateProfileRequest $request): JsonResponse
+    {
+        $this->applyLocale($request);
+
+        /** @var User|null $user */
+        $user = $request->user();
+
+        if ($user === null) {
+            return $this->apiResponse->error(__('auth.unauthenticated'), 401);
+        }
+
+        $updatedUser = $this->authService->updateProfile(
+            $user,
+            $request->validated(),
+            $request->file('profile_image'),
+        );
+
+        return $this->apiResponse->success(
+            [
+                'user' => AuthUserResource::make($updatedUser)->resolve(),
+            ],
+            __('auth.profile_updated_successfully'),
+            200,
+        );
     }
 
     public function assignRole(AssignRoleRequest $request): JsonResponse
@@ -256,11 +282,23 @@ class AuthController extends Controller
 
         $this->authService->assignRole($request->validated());
 
-        return new JsonResponse([
-            'success' => true,
-            'message' => __('auth.role_assigned_successfully'),
-            'data' => null,
-        ]);
+        return $this->apiResponse->success(null, __('auth.role_assigned_successfully'), 200);
+    }
+
+    public function changePassword(ChangePasswordRequest $request): JsonResponse
+    {
+        $this->applyLocale($request);
+
+        /** @var User|null $user */
+        $user = $request->user();
+
+        if ($user === null) {
+            return $this->apiResponse->error(__('auth.unauthenticated'), 401);
+        }
+
+        $this->authService->changePassword($user, $request->string('password')->toString());
+
+        return $this->apiResponse->success(null, __('auth.password_updated_successfully'), 200);
     }
 
     private function throttleKey(Request $request): string
