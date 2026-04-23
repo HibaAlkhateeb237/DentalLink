@@ -57,6 +57,8 @@ class User extends Authenticatable
             'birthdate' => 'date',
             'location_lat' => 'decimal:7',
             'location_lng' => 'decimal:7',
+            'failed_login_attempts' => 'integer',
+            'locked_until' => 'datetime',
             'password' => 'hashed',
         ];
     }
@@ -109,8 +111,8 @@ class User extends Authenticatable
     public function hasRole(string|array $roleNames, ?int $departmentId = null): bool
     {
         $requestedRoles = collect((array) $roleNames)
-            ->filter(static fn(string $roleName): bool => $roleName !== '')
-            ->map(static fn(string $roleName): string => trim($roleName));
+            ->filter(static fn (string $roleName): bool => $roleName !== '')
+            ->map(static fn (string $roleName): string => trim($roleName));
 
         if ($requestedRoles->isEmpty()) {
             return false;
@@ -124,8 +126,8 @@ class User extends Authenticatable
     public function hasPermission(string|array $permissionNames, ?int $departmentId = null): bool
     {
         $requestedPermissions = collect((array) $permissionNames)
-            ->filter(static fn(string $permissionName): bool => $permissionName !== '')
-            ->map(static fn(string $permissionName): string => trim($permissionName));
+            ->filter(static fn (string $permissionName): bool => $permissionName !== '')
+            ->map(static fn (string $permissionName): string => trim($permissionName));
 
         if ($requestedPermissions->isEmpty()) {
             return false;
@@ -165,13 +167,13 @@ class User extends Authenticatable
         $globalRoleNames = $this->roles->pluck('name');
 
         $departmentRoleNames = $this->departmentUserRoles
-            ->when($departmentId !== null, static fn(Collection $roles): Collection => $roles->where('department_id', $departmentId))
+            ->when($departmentId !== null, static fn (Collection $roles): Collection => $roles->where('department_id', $departmentId))
             ->pluck('role.name')
             ->filter();
 
         return $globalRoleNames
             ->merge($departmentRoleNames)
-            ->map(static fn(string $roleName): string => trim($roleName))
+            ->map(static fn (string $roleName): string => trim($roleName))
             ->unique()
             ->values();
     }
@@ -184,16 +186,16 @@ class User extends Authenticatable
         $this->loadMissing('roles.permissions:id,name', 'departmentUserRoles.role.permissions:id,name');
 
         $globalRolePermissions = $this->roles
-            ->flatMap(static fn(Role $role): Collection => $role->permissions->pluck('name'));
+            ->flatMap(static fn (Role $role): Collection => $role->permissions->pluck('name'));
 
         $departmentRolePermissions = $this->departmentUserRoles
-            ->when($departmentId !== null, static fn(Collection $roles): Collection => $roles->where('department_id', $departmentId))
-            ->flatMap(static fn(DepartmentUserRole $departmentUserRole): Collection => $departmentUserRole->role?->permissions?->pluck('name') ?? collect());
+            ->when($departmentId !== null, static fn (Collection $roles): Collection => $roles->where('department_id', $departmentId))
+            ->flatMap(static fn (DepartmentUserRole $departmentUserRole): Collection => $departmentUserRole->role?->permissions?->pluck('name') ?? collect());
 
         return $globalRolePermissions
             ->merge($departmentRolePermissions)
-            ->filter(static fn(?string $permissionName): bool => filled($permissionName))
-            ->map(static fn(string $permissionName): string => trim($permissionName))
+            ->filter(static fn (?string $permissionName): bool => filled($permissionName))
+            ->map(static fn (string $permissionName): string => trim($permissionName))
             ->unique()
             ->values();
     }

@@ -18,6 +18,10 @@ use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthService
 {
+    private const LOGIN_MAX_FAILED_ATTEMPTS = 5;
+
+    private const LOGIN_LOCK_SECONDS = 900;
+
     private const OTP_EXPIRES_IN_SECONDS = 600;
 
     private const OTP_RESEND_COOLDOWN_SECONDS = 60;
@@ -219,20 +223,52 @@ class AuthService
 
     /**
      * @param  array{email:string,password:string}  $credentials
-     * @return array{user:User,token:string}|null
+     * @return array{status:'authenticated',user:User,token:string}|array{status:'invalid'}|array{status:'locked',retry_after_seconds:int}
      */
-    public function login(array $credentials): ?array
+    public function login(array $credentials): array
     {
+        $user = User::query()
+            ->where('email', $credentials['email'])
+            ->first();
+
+        if ($user !== null && $user->locked_until !== null && $user->locked_until->isFuture()) {
+            return [
+                'status' => 'locked',
+                'retry_after_seconds' => max(now()->diffInSeconds($user->locked_until), 1),
+            ];
+        }
+
         if (! Auth::attempt($credentials)) {
-            return null;
+            if ($user !== null) {
+                $failedAttempts = $user->failed_login_attempts + 1;
+
+                $user->forceFill([
+                    'failed_login_attempts' => $failedAttempts,
+                    'locked_until' => $failedAttempts >= self::LOGIN_MAX_FAILED_ATTEMPTS
+                        ? now()->addSeconds(self::LOGIN_LOCK_SECONDS)
+                        : null,
+                ])->save();
+            }
+
+            return [
+                'status' => 'invalid',
+            ];
         }
 
         /** @var User $user */
         $user = Auth::user();
 
+        if ($user->failed_login_attempts > 0 || $user->locked_until !== null) {
+            $user->forceFill([
+                'failed_login_attempts' => 0,
+                'locked_until' => null,
+            ])->save();
+        }
+
         $token = $user->createToken('api-token', ['*'])->plainTextToken;
 
         return [
+            'status' => 'authenticated',
             'user' => $user,
             'token' => $token,
         ];
@@ -249,6 +285,15 @@ class AuthService
         }
 
         $user->tokens()->delete();
+    }
+
+    public function changePassword(User $user, string $newPassword): void
+    {
+        DB::transaction(function () use ($user, $newPassword): void {
+            $user->forceFill([
+                'password' => $newPassword,
+            ])->save();
+        });
     }
 
     /**

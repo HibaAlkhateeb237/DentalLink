@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\AssignRoleRequest;
+use App\Http\Requests\Auth\ChangePasswordRequest;
 use App\Http\Requests\Auth\CompleteRegisterRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RequestRegisterOtpRequest;
@@ -208,7 +209,19 @@ class AuthController extends Controller
 
         $result = $this->authService->login($credentials);
 
-        if ($result === null) {
+        if ($result['status'] === 'locked') {
+            return new JsonResponse([
+                'success' => false,
+                'status' => 429,
+                'message' => __('auth.too_many_attempts'),
+                'data' => [
+                    'retry_after_seconds' => $result['retry_after_seconds'],
+                ],
+                'errors' => null,
+            ], 429);
+        }
+
+        if ($result['status'] === 'invalid') {
             RateLimiter::hit($throttleKey, 60);
 
             return new JsonResponse([
@@ -332,6 +345,34 @@ class AuthController extends Controller
             'success' => true,
             'status' => 200,
             'message' => __('auth.role_assigned_successfully'),
+            'data' => null,
+            'errors' => null,
+        ]);
+    }
+
+    public function changePassword(ChangePasswordRequest $request): JsonResponse
+    {
+        $this->applyLocale($request);
+
+        /** @var User|null $user */
+        $user = $request->user();
+
+        if ($user === null) {
+            return new JsonResponse([
+                'success' => false,
+                'status' => 401,
+                'message' => __('auth.unauthenticated'),
+                'data' => null,
+                'errors' => null,
+            ], 401);
+        }
+
+        $this->authService->changePassword($user, $request->string('password')->toString());
+
+        return new JsonResponse([
+            'success' => true,
+            'status' => 200,
+            'message' => __('auth.password_updated_successfully'),
             'data' => null,
             'errors' => null,
         ]);

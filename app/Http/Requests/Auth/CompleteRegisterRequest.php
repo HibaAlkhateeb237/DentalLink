@@ -6,13 +6,6 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class CompleteRegisterRequest extends FormRequest
 {
-    protected function prepareForValidation(): void
-    {
-        $this->merge([
-            'verification_token' => $this->bearerToken(),
-        ]);
-    }
-
     public function authorize(): bool
     {
         return true;

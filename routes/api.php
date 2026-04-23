@@ -35,7 +35,8 @@ Route::prefix('auth')->group(function (): void {
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/me', [AuthController::class, 'me']);
-        Route::patch('/me', [AuthController::class, 'updateProfile']);
+        Route::post('/me', [AuthController::class, 'updateProfile']);
+        Route::post('/change-password', [AuthController::class, 'changePassword']);
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::post('/assign-role', [AuthController::class, 'assignRole'])
             ->middleware('permission:users.assign-role');
