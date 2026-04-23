@@ -27,6 +27,14 @@ Route::get('/labs/suggested', [LabController::class, 'suggested'])->name('labs.s
 Route::get('/labs/most-ordered', [LabController::class, 'mostOrdered'])->name('labs.most-ordered');
 Route::get('/labs/{lab}', [LabController::class, 'show'])->name('labs.show');
 
+Route::middleware(['auth:sanctum', 'role:system_admin'])->prefix('admin/labs')->group(function (): void {
+    Route::get('/', [LabController::class, 'adminIndex'])->name('admin.labs.index');
+    Route::get('/{lab}', [LabController::class, 'adminShow'])->name('admin.labs.show');
+    Route::post('/', [LabController::class, 'store'])->name('admin.labs.store');
+    Route::put('/{lab}', [LabController::class, 'update'])->name('admin.labs.update');
+    Route::delete('/{lab}', [LabController::class, 'destroy'])->name('admin.labs.destroy');
+});
+
 Route::prefix('auth')->group(function (): void {
     Route::post('/register/request-otp', [AuthController::class, 'requestRegisterOtp'])->middleware('throttle:api');
     Route::post('/register/verify-otp', [AuthController::class, 'verifyRegisterOtp'])->middleware('throttle:api');

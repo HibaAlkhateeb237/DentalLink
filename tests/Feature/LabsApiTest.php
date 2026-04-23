@@ -4,9 +4,13 @@ namespace Tests\Feature;
 
 use App\Models\Lab;
 use App\Models\Order;
+use App\Models\Role;
 use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class LabsApiTest extends TestCase
@@ -338,6 +342,148 @@ class LabsApiTest extends TestCase
         $response = $this->getJson('/api/labs/999999');
 
         $response->assertNotFound();
+    }
+
+    public function test_system_admin_can_create_lab_with_manager_account(): void
+    {
+        $this->authenticateAsRole('system_admin');
+
+        $response = $this->postJson('/api/admin/labs', [
+            'lab_name' => 'Admin Created Lab',
+            'manager_name' => 'Lab Manager One',
+            'phone' => '0500000000',
+            'location' => 'Damascus Al-Mazzeh',
+            'email' => 'manager1@example.com',
+            'password' => 'secret12345',
+            'password_confirmation' => 'secret12345',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('status', 201)
+            ->assertJsonPath('data.lab.lab_name', 'Admin Created Lab')
+            ->assertJsonPath('data.lab.location', 'Damascus Al-Mazzeh')
+            ->assertJsonPath('data.manager.email', 'manager1@example.com');
+
+        $this->assertDatabaseHas('labs', [
+            'name' => 'Admin Created Lab',
+            'phone' => '0500000000',
+            'address' => 'Damascus Al-Mazzeh',
+        ]);
+
+        $manager = User::query()->where('email', 'manager1@example.com')->firstOrFail();
+        $this->assertTrue(Hash::check('secret12345', (string) $manager->password));
+        $this->assertSame('Admin Created Lab', $manager->lab_name);
+    }
+
+    public function test_non_system_admin_cannot_create_admin_lab(): void
+    {
+        $this->authenticateAsRole('doctor');
+
+        $response = $this->postJson('/api/admin/labs', [
+            'lab_name' => 'Unauthorized Lab',
+            'manager_name' => 'No Access',
+            'phone' => '0500000000',
+            'location' => 'Damascus',
+            'email' => 'unauthorized@example.com',
+            'password' => 'secret12345',
+            'password_confirmation' => 'secret12345',
+        ]);
+
+        $response->assertForbidden();
+    }
+
+    public function test_system_admin_can_update_lab_and_manager_information(): void
+    {
+        $this->authenticateAsRole('system_admin');
+
+        $lab = Lab::query()->create([
+            'name' => 'Old Lab Name',
+            'phone' => '0111111111',
+            'address' => 'Old Address',
+            'latitude' => 33.5000000,
+            'longitude' => 36.2000000,
+            'rating' => 4.10,
+        ]);
+
+        $manager = User::query()->create([
+            'name' => 'Old Manager',
+            'email' => 'old.manager@example.com',
+            'phone' => '0111111111',
+            'lab_name' => 'Old Lab Name',
+            'password' => 'secret12345',
+        ]);
+
+        $labManagerRole = Role::query()
+            ->where('name', 'lab_manager')
+            ->where('guard_name', 'sanctum')
+            ->firstOrFail();
+
+        $manager->roles()->sync([$labManagerRole->id]);
+
+        $response = $this->putJson('/api/admin/labs/'.$lab->id, [
+            'lab_name' => 'Updated Lab Name',
+            'manager_name' => 'Updated Manager',
+            'phone' => '0999999999',
+            'location' => 'Updated Address',
+            'email' => 'updated.manager@example.com',
+            'password' => 'newsecret12345',
+            'password_confirmation' => 'newsecret12345',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('status', 200)
+            ->assertJsonPath('data.lab.lab_name', 'Updated Lab Name')
+            ->assertJsonPath('data.lab.location', 'Updated Address')
+            ->assertJsonPath('data.manager.name', 'Updated Manager')
+            ->assertJsonPath('data.manager.email', 'updated.manager@example.com');
+
+        $this->assertDatabaseHas('labs', [
+            'id' => $lab->id,
+            'name' => 'Updated Lab Name',
+            'phone' => '0999999999',
+            'address' => 'Updated Address',
+        ]);
+
+        $updatedManager = User::query()->where('email', 'updated.manager@example.com')->firstOrFail();
+        $this->assertSame('Updated Lab Name', $updatedManager->lab_name);
+        $this->assertTrue(Hash::check('newsecret12345', (string) $updatedManager->password));
+    }
+
+    public function test_system_admin_can_delete_lab(): void
+    {
+        $this->authenticateAsRole('system_admin');
+
+        $lab = Lab::query()->create([
+            'name' => 'Delete Me Lab',
+            'phone' => '0222222222',
+            'address' => 'Delete Address',
+            'latitude' => 33.5000000,
+            'longitude' => 36.2500000,
+            'rating' => 3.90,
+        ]);
+
+        $response = $this->deleteJson('/api/admin/labs/'.$lab->id);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('status', 200);
+
+        $this->assertDatabaseMissing('labs', [
+            'id' => $lab->id,
+        ]);
+    }
+
+    private function authenticateAsRole(string $roleName): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $user = User::factory()->create();
+        $role = Role::query()->where('name', $roleName)->where('guard_name', 'sanctum')->firstOrFail();
+        $user->roles()->sync([$role->id]);
+
+        Sanctum::actingAs($user);
     }
 
     private function createOrdersForLab(User $user, Lab $lab, int $count): void
