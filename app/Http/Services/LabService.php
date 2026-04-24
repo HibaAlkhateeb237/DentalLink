@@ -7,6 +7,7 @@ use App\Models\Department;
 use App\Models\DepartmentUserRole;
 use App\Models\Lab;
 use App\Models\Role;
+use App\Models\Task;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
@@ -210,7 +211,7 @@ class LabService
 
             return [
                 'lab' => $this->buildLabPayload($lab->fresh(), $manager?->fresh()),
-                'manager' => $this->buildManagerPayload($manager?->fresh()),
+                
             ];
         });
     }
@@ -218,6 +219,10 @@ class LabService
     public function deleteLab(Lab $lab): void
     {
         DB::transaction(function () use ($lab): void {
+            $departmentIds = Department::query()
+                ->where('lab_id', $lab->id)
+                ->pluck('id');
+
             $managerIds = User::query()
                 ->where('lab_id', $lab->id)
                 ->whereHas('roles', function ($query): void {
@@ -235,6 +240,16 @@ class LabService
                     ->where('model_type', User::class)
                     ->where('role_id', $labManagerRoleId)
                     ->whereIn('model_id', $managerIds)
+                    ->delete();
+            }
+
+            if ($departmentIds->isNotEmpty()) {
+                Task::query()
+                    ->whereIn('department_id', $departmentIds)
+                    ->delete();
+
+                Department::query()
+                    ->whereIn('id', $departmentIds)
                     ->delete();
             }
 
@@ -301,6 +316,6 @@ class LabService
 
     private function generateLabLicenseNumber(int $labId): string
     {
-        return 'LAB-' . now()->format('Ymd') . '-' . str_pad((string) $labId, 6, '0', STR_PAD_LEFT);
+        return 'LAB-'.now()->format('Ymd').'-'.str_pad((string) $labId, 6, '0', STR_PAD_LEFT);
     }
 }

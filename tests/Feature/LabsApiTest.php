@@ -639,6 +639,12 @@ class LabsApiTest extends TestCase
             'rating' => 3.90,
         ]);
 
+        $department = Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'Management',
+            'is_management' => true,
+        ]);
+
         $response = $this->deleteJson('/api/admin/labs/'.$lab->id);
 
         $response->assertOk()
@@ -647,6 +653,10 @@ class LabsApiTest extends TestCase
 
         $this->assertDatabaseMissing('labs', [
             'id' => $lab->id,
+        ]);
+
+        $this->assertDatabaseMissing('departments', [
+            'id' => $department->id,
         ]);
     }
 
