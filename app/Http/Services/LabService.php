@@ -113,7 +113,7 @@ class LabService
 
     /**
      * @param  array{lab_name:string,manager_name:string,phone:string,location:string,latitude:numeric-string|int|float,longitude:numeric-string|int|float,email:string,password:string}  $validated
-     * @return array{lab:array<string,mixed>,manager:array<string,mixed>|null}
+     * @return array{lab:array<string,mixed>}
      */
     public function createLabWithManager(array $validated): array
     {
@@ -165,7 +165,7 @@ class LabService
 
     /**
      * @param  array{lab_name:string,phone:string,location:string,latitude:numeric-string|int|float,longitude:numeric-string|int|float,manager_name?:string|null,email?:string|null,password?:string|null}  $validated
-     * @return array{lab:array<string,mixed>,manager:array<string,mixed>|null}
+     * @return array{lab:array<string,mixed>}
      */
     public function updateLabWithManager(Lab $lab, array $validated): array
     {
@@ -181,8 +181,14 @@ class LabService
 
             $manager = User::query()
                 ->where('lab_id', $lab->id)
-                ->whereHas('roles', function ($query): void {
-                    $query->where('name', 'lab_manager')->where('guard_name', 'sanctum');
+                ->where(function ($query): void {
+                    $query
+                        ->whereHas('roles', function ($rolesQuery): void {
+                            $rolesQuery->where('name', 'lab_manager')->where('guard_name', 'sanctum');
+                        })
+                        ->orWhereHas('departmentUserRoles.role', function ($rolesQuery): void {
+                            $rolesQuery->where('name', 'lab_manager')->where('guard_name', 'sanctum');
+                        });
                 })
                 ->orderBy('id')
                 ->first();
@@ -211,7 +217,7 @@ class LabService
 
             return [
                 'lab' => $this->buildLabPayload($lab->fresh(), $manager?->fresh()),
-                
+
             ];
         });
     }
@@ -316,6 +322,6 @@ class LabService
 
     private function generateLabLicenseNumber(int $labId): string
     {
-        return 'LAB-'.now()->format('Ymd').'-'.str_pad((string) $labId, 6, '0', STR_PAD_LEFT);
+        return 'LAB-' . now()->format('Ymd') . '-' . str_pad((string) $labId, 6, '0', STR_PAD_LEFT);
     }
 }
