@@ -19,6 +19,7 @@ return new class extends Migration
                 ->restrictOnDelete();
             $table->string('name');
             $table->text('description')->nullable();
+            $table->boolean('is_management')->default(false);
             $table->timestamps();
 
             $table->index('lab_id');

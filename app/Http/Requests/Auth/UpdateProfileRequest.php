@@ -27,7 +27,7 @@ class UpdateProfileRequest extends FormRequest
             'location' => ['sometimes', 'nullable', 'string', 'max:255'],
             'location_lat' => ['sometimes', 'nullable', 'numeric', 'between:-90,90'],
             'location_lng' => ['sometimes', 'nullable', 'numeric', 'between:-180,180'],
-            'lab_name' => ['sometimes', 'nullable', 'string', 'max:255', Rule::prohibitedIf($this->user()?->hasRole('doctor') === true)],
+            'lab_id' => ['prohibited'],
             'remove_profile_image' => ['sometimes', 'boolean'],
             'profile_image' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048', Rule::prohibitedIf($this->boolean('remove_profile_image'))],
         ];

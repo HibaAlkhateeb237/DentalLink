@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table): void {
-            $table->decimal('location_lat', 10, 7)->nullable()->after('lab_name');
+            $table->decimal('location_lat', 10, 7)->nullable()->after('location');
             $table->decimal('location_lng', 10, 7)->nullable()->after('location_lat');
         });
     }

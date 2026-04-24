@@ -25,7 +25,7 @@ class LabUpdateRequest extends FormRequest
 
         $manager = User::query()
             ->select(['id'])
-            ->where('lab_name', $lab->name)
+            ->where('lab_id', $lab->id)
             ->whereHas('roles', function ($query): void {
                 $query->where('name', 'lab_manager')->where('guard_name', 'sanctum');
             })
@@ -37,6 +37,8 @@ class LabUpdateRequest extends FormRequest
             'manager_name' => ['nullable', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:30'],
             'location' => ['required', 'string', 'max:1000'],
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
             'email' => [
                 'nullable',
                 'string',

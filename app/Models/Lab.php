@@ -12,6 +12,7 @@ class Lab extends Model
 
     protected $fillable = [
         'name',
+        'license_number',
         'phone',
         'address',
         'latitude',
@@ -46,5 +47,10 @@ class Lab extends Model
     public function favorites(): HasMany
     {
         return $this->hasMany(Favorite::class);
+    }
+
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
     }
 }

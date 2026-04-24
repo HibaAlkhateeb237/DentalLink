@@ -32,7 +32,7 @@ class AuthUserResource extends JsonResource
             'location' => $this->location,
             'location_lat' => $this->location_lat,
             'location_lng' => $this->location_lng,
-            'lab_name' => $this->lab_name,
+            'lab_id' => $this->lab_id,
         ];
     }
 }

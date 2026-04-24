@@ -414,7 +414,7 @@ class AuthApiTest extends TestCase
         $response->assertUnauthorized();
     }
 
-    public function test_doctor_cannot_update_lab_name(): void
+    public function test_doctor_cannot_update_lab_id(): void
     {
         $user = User::factory()->create();
 
@@ -428,14 +428,14 @@ class AuthApiTest extends TestCase
         Sanctum::actingAs($user);
 
         $response = $this->postJson('/api/auth/me', [
-            'lab_name' => 'My Lab',
+            'lab_id' => 999,
         ]);
 
         $response
             ->assertStatus(400)
-            ->assertJsonValidationErrors(['lab_name']);
+            ->assertJsonValidationErrors(['lab_id']);
 
-        $this->assertNull($user->fresh()?->lab_name);
+        $this->assertNull($user->fresh()?->lab_id);
     }
 
     public function test_authenticated_user_can_change_password(): void

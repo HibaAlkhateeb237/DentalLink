@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -29,7 +30,7 @@ class User extends Authenticatable
         'profile_image',
         'birthdate',
         'location',
-        'lab_name',
+        'lab_id',
         'location_lat',
         'location_lng',
         'password',
@@ -66,6 +67,11 @@ class User extends Authenticatable
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
+    }
+
+    public function lab(): BelongsTo
+    {
+        return $this->belongsTo(Lab::class);
     }
 
     public function payments(): HasMany

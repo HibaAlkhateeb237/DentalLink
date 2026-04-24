@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Department;
 use App\Models\Lab;
 use App\Models\Order;
 use App\Models\Role;
@@ -353,6 +354,8 @@ class LabsApiTest extends TestCase
             'manager_name' => 'Lab Manager One',
             'phone' => '0500000000',
             'location' => 'Damascus Al-Mazzeh',
+            'latitude' => 33.5138070,
+            'longitude' => 36.2765279,
             'email' => 'manager1@example.com',
             'password' => 'secret12345',
             'password_confirmation' => 'secret12345',
@@ -363,17 +366,38 @@ class LabsApiTest extends TestCase
             ->assertJsonPath('status', 201)
             ->assertJsonPath('data.lab.lab_name', 'Admin Created Lab')
             ->assertJsonPath('data.lab.location', 'Damascus Al-Mazzeh')
+            ->assertJsonPath('data.lab.latitude', '33.5138070')
+            ->assertJsonPath('data.lab.longitude', '36.2765279')
             ->assertJsonPath('data.manager.email', 'manager1@example.com');
+
+        $createdLab = Lab::query()->where('name', 'Admin Created Lab')->firstOrFail();
+        $this->assertNotNull($createdLab->license_number);
+        $this->assertMatchesRegularExpression('/^LAB-\\d{8}-\\d{6}$/', (string) $createdLab->license_number);
+
+        $response->assertJsonPath('data.lab.license_number', $createdLab->license_number);
 
         $this->assertDatabaseHas('labs', [
             'name' => 'Admin Created Lab',
             'phone' => '0500000000',
             'address' => 'Damascus Al-Mazzeh',
+            'latitude' => 33.5138070,
+            'longitude' => 36.2765279,
         ]);
 
         $manager = User::query()->where('email', 'manager1@example.com')->firstOrFail();
         $this->assertTrue(Hash::check('secret12345', (string) $manager->password));
-        $this->assertSame('Admin Created Lab', $manager->lab_name);
+        $this->assertSame($createdLab->id, $manager->lab_id);
+
+        $managementDepartment = Department::query()
+            ->where('lab_id', $createdLab->id)
+            ->where('is_management', true)
+            ->firstOrFail();
+
+        $this->assertDatabaseHas('department_user_roles', [
+            'user_id' => $manager->id,
+            'role_id' => Role::query()->where('name', 'lab_manager')->where('guard_name', 'sanctum')->firstOrFail()->id,
+            'department_id' => $managementDepartment->id,
+        ]);
     }
 
     public function test_non_system_admin_cannot_create_admin_lab(): void
@@ -410,7 +434,7 @@ class LabsApiTest extends TestCase
             'name' => 'Old Manager',
             'email' => 'old.manager@example.com',
             'phone' => '0111111111',
-            'lab_name' => 'Old Lab Name',
+            'lab_id' => $lab->id,
             'password' => 'secret12345',
         ]);
 
@@ -426,6 +450,8 @@ class LabsApiTest extends TestCase
             'manager_name' => 'Updated Manager',
             'phone' => '0999999999',
             'location' => 'Updated Address',
+            'latitude' => 35.1200000,
+            'longitude' => 37.3300000,
             'email' => 'updated.manager@example.com',
             'password' => 'newsecret12345',
             'password_confirmation' => 'newsecret12345',
@@ -436,6 +462,8 @@ class LabsApiTest extends TestCase
             ->assertJsonPath('status', 200)
             ->assertJsonPath('data.lab.lab_name', 'Updated Lab Name')
             ->assertJsonPath('data.lab.location', 'Updated Address')
+            ->assertJsonPath('data.lab.latitude', '35.1200000')
+            ->assertJsonPath('data.lab.longitude', '37.3300000')
             ->assertJsonPath('data.manager.name', 'Updated Manager')
             ->assertJsonPath('data.manager.email', 'updated.manager@example.com');
 
@@ -444,10 +472,12 @@ class LabsApiTest extends TestCase
             'name' => 'Updated Lab Name',
             'phone' => '0999999999',
             'address' => 'Updated Address',
+            'latitude' => 35.1200000,
+            'longitude' => 37.3300000,
         ]);
 
         $updatedManager = User::query()->where('email', 'updated.manager@example.com')->firstOrFail();
-        $this->assertSame('Updated Lab Name', $updatedManager->lab_name);
+        $this->assertSame($lab->id, $updatedManager->lab_id);
         $this->assertTrue(Hash::check('newsecret12345', (string) $updatedManager->password));
     }
 
