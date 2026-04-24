@@ -5,57 +5,113 @@ namespace App\Http\Repositories;
 use App\Models\Lab;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 
 class LabRepository
 {
+    private function queryWithReviewStats(): Builder
+    {
+        $avgRatingSubQuery = '(SELECT AVG(reviews.rating) FROM reviews INNER JOIN orders ON orders.id = reviews.order_id WHERE orders.lab_id = labs.id)';
+        $reviewsCountSubQuery = '(SELECT COUNT(*) FROM reviews INNER JOIN orders ON orders.id = reviews.order_id WHERE orders.lab_id = labs.id)';
+
+        return Lab::query()
+            ->select('labs.*')
+            ->selectRaw('COALESCE('.$avgRatingSubQuery.', 0) as rating')
+            ->selectRaw('COALESCE('.$reviewsCountSubQuery.', 0) as reviews_count');
+    }
+
     public function paginateAll(int $perPage = 15): LengthAwarePaginator
     {
-        return Lab::query()
-            ->orderByDesc('rating')
+        return $this->queryWithReviewStats()
+           // ->orderByDesc('rating')
             ->orderByDesc('created_at')
             ->paginate($perPage);
     }
 
-    public function paginateTopRated(int $perPage = 15): LengthAwarePaginator
+    public function getTopRated(?int $limit = null): Collection
     {
-        return Lab::query()
-            ->orderByDesc('rating')
-            ->orderByDesc('created_at')
-            ->paginate($perPage);
-    }
+        $confidenceBoost = 2;
+        $confidenceScale = 10;
 
-    public function paginateNearby(float $latitude, float $longitude, int $perPage = 15): LengthAwarePaginator
-    {
-        return Lab::query()
+        $query = $this->queryWithReviewStats()
             ->orderByRaw(
-                '((latitude - ?)*(latitude - ?) + (longitude - ?)*(longitude - ?)) asc',
-                [$latitude, $latitude, $longitude, $longitude]
+                '(rating + ((reviews_count * ? * 1.0) / (reviews_count + ?))) DESC',
+                [$confidenceBoost, $confidenceScale]
             )
             ->orderByDesc('rating')
-            ->paginate($perPage);
+            ->orderByDesc('created_at');
+
+        if ($limit !== null) {
+            $query->limit($limit);
+        }
+
+        return $query->get();
     }
 
-    public function paginateSuggested(int $perPage = 15): LengthAwarePaginator
+    public function getNearby(float $latitude, float $longitude, ?int $limit = null): Collection
     {
-        return Lab::query()
-            ->inRandomOrder()
-            ->paginate($perPage);
+        $radiusKm = 10.0;
+        $kmPerDegree = 111.045;
+        $latDelta = $radiusKm / $kmPerDegree;
+        $lngKmPerDegree = $kmPerDegree * max(cos(deg2rad($latitude)), 0.000001);
+        $lngDelta = $radiusKm / $lngKmPerDegree;
+
+        $distanceSql = '((latitude - ?)*(latitude - ?) * ? * ? + (longitude - ?)*(longitude - ?) * ? * ?)';
+        $distanceBindings = [
+            $latitude,
+            $latitude,
+            $kmPerDegree,
+            $kmPerDegree,
+            $longitude,
+            $longitude,
+            $lngKmPerDegree,
+            $lngKmPerDegree,
+        ];
+
+        $query = $this->queryWithReviewStats()
+            ->whereBetween('latitude', [$latitude - $latDelta, $latitude + $latDelta])
+            ->whereBetween('longitude', [$longitude - $lngDelta, $longitude + $lngDelta])
+            ->whereRaw($distanceSql.' <= ?', [...$distanceBindings, $radiusKm * $radiusKm])
+            ->orderByRaw($distanceSql.' asc', $distanceBindings)
+            ->orderByDesc('rating');
+
+        if ($limit !== null) {
+            $query->limit($limit);
+        }
+
+        return $query->get();
     }
 
-    public function paginateMostOrdered(int $perPage = 15): LengthAwarePaginator
+    public function getSuggested(?int $limit = null): Collection
     {
-        return Lab::query()
+        $query = $this->queryWithReviewStats()->inRandomOrder();
+
+        if ($limit !== null) {
+            $query->limit($limit);
+        }
+
+        return $query->get();
+    }
+
+    public function getMostOrdered(?int $limit = null): Collection
+    {
+        $query = $this->queryWithReviewStats()
             ->withCount('orders')
             ->orderByDesc('orders_count')
-            ->orderByDesc('rating')
-            ->paginate($perPage);
+            ->orderByDesc('rating');
+
+        if ($limit !== null) {
+            $query->limit($limit);
+        }
+
+        return $query->get();
     }
 
     public function searchPaginated(string $search, int $perPage = 15): LengthAwarePaginator
     {
         $term = trim($search);
 
-        return Lab::query()
+        return $this->queryWithReviewStats()
             ->where(function (Builder $query) use ($term): void {
                 $query->where('name', 'like', '%'.$term.'%')
                     ->orWhere('address', 'like', '%'.$term.'%');

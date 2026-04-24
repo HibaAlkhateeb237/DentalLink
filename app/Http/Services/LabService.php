@@ -9,7 +9,9 @@ use App\Models\Lab;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class LabService
 {
@@ -27,46 +29,57 @@ class LabService
         return $this->labRepository->searchPaginated($search, $perPage);
     }
 
-    public function getTopRatedLabs(int $perPage = 15): LengthAwarePaginator
+    public function getTopRatedLabs(?int $limit = null): Collection
     {
-        return $this->labRepository->paginateTopRated($perPage);
+        return $this->labRepository->getTopRated($limit);
     }
 
-    public function getNearbyLabs(int $doctorId, int $perPage = 15): LengthAwarePaginator
+    public function getNearbyLabs(int $doctorId, ?int $limit = null): Collection
     {
         $doctor = User::query()
             ->select(['id', 'location_lat', 'location_lng'])
             ->findOrFail($doctorId);
 
-        return $this->labRepository->paginateNearby(
+        if ($doctor->location_lat === null || $doctor->location_lng === null) {
+            throw ValidationException::withMessages([
+                'doctor_id' => ['The selected doctor must have a location.'],
+            ]);
+        }
+
+        return $this->labRepository->getNearby(
             (float) $doctor->location_lat,
             (float) $doctor->location_lng,
-            $perPage
+            $limit
         );
     }
 
-    public function getSuggestedLabs(int $perPage = 15): LengthAwarePaginator
+    public function getSuggestedLabs(?int $limit = null): Collection
     {
-        return $this->labRepository->paginateSuggested($perPage);
+        return $this->labRepository->getSuggested($limit);
     }
 
-    public function getMostOrderedLabs(int $perPage = 15): LengthAwarePaginator
+    public function getMostOrderedLabs(?int $limit = null): Collection
     {
-        return $this->labRepository->paginateMostOrdered($perPage);
+        return $this->labRepository->getMostOrdered($limit);
     }
 
     public function getLabDetails(Lab $lab): array
     {
-        return $lab->only([
-            'id',
-            'license_number',
-            'name',
-            'phone',
-            'address',
-            'latitude',
-            'longitude',
-            'rating',
-        ]);
+        $averageRating = Lab::query()
+            ->whereKey($lab->id)
+            ->selectRaw('COALESCE((SELECT AVG(reviews.rating) FROM reviews INNER JOIN orders ON orders.id = reviews.order_id WHERE orders.lab_id = labs.id), 0) as rating')
+            ->value('rating');
+
+        return [
+            'id' => $lab->id,
+            'name' => $lab->name,
+            'license_number' => $lab->license_number,
+            'phone' => $lab->phone,
+            'address' => $lab->address,
+            'latitude' => $lab->latitude,
+            'longitude' => $lab->longitude,
+            'rating' => number_format((float) $averageRating, 2, '.', ''),
+        ];
     }
 
     public function getAdminLabs(int $perPage = 15): LengthAwarePaginator

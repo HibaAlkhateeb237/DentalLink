@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\LabIndexRequest;
-use App\Http\Requests\LabNearbyRequest;
 use App\Http\Requests\LabSearchRequest;
 use App\Http\Requests\LabStoreRequest;
 use App\Http\Requests\LabUpdateRequest;
@@ -11,6 +10,8 @@ use App\Http\Responses\ApiResponse;
 use App\Http\Services\LabService;
 use App\Models\Lab;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class LabController extends Controller
 {
@@ -41,43 +42,49 @@ class LabController extends Controller
 
     public function topRated(LabIndexRequest $request): JsonResponse
     {
-        $validated = $request->validated();
-        $perPage = (int) ($validated['per_page'] ?? 15);
+        $limit = $this->resolveHomeLimit($request);
 
         return $this->apiResponse->success(
-            $this->labService->getTopRatedLabs($perPage),
+            $this->labService->getTopRatedLabs($limit),
             __('labs.top_rated_retrieved_successfully')
         );
     }
 
-    public function nearby(LabNearbyRequest $request): JsonResponse
+    public function nearby(LabIndexRequest $request): JsonResponse
     {
-        $validated = $request->validated();
+        $limit = $this->resolveHomeLimit($request);
+
+        $doctorId = Auth::id();
+
+        if ($doctorId === null) {
+            return $this->apiResponse->error(
+                __('auth.unauthenticated'),
+                401
+            );
+        }
 
         return $this->apiResponse->success(
-            $this->labService->getNearbyLabs((int) $validated['doctor_id'], (int) ($validated['per_page'] ?? 15)),
+            $this->labService->getNearbyLabs((int) $doctorId, $limit),
             __('labs.nearby_retrieved_successfully')
         );
     }
 
     public function suggested(LabIndexRequest $request): JsonResponse
     {
-        $validated = $request->validated();
-        $perPage = (int) ($validated['per_page'] ?? 15);
+        $limit = $this->resolveHomeLimit($request);
 
         return $this->apiResponse->success(
-            $this->labService->getSuggestedLabs($perPage),
+            $this->labService->getSuggestedLabs($limit),
             __('labs.suggested_retrieved_successfully')
         );
     }
 
     public function mostOrdered(LabIndexRequest $request): JsonResponse
     {
-        $validated = $request->validated();
-        $perPage = (int) ($validated['per_page'] ?? 15);
+        $limit = $this->resolveHomeLimit($request);
 
         return $this->apiResponse->success(
-            $this->labService->getMostOrderedLabs($perPage),
+            $this->labService->getMostOrderedLabs($limit),
             __('labs.most_ordered_retrieved_successfully')
         );
     }
@@ -88,6 +95,11 @@ class LabController extends Controller
             $this->labService->getLabDetails($lab),
             __('labs.details_retrieved_successfully')
         );
+    }
+
+    private function resolveHomeLimit(Request $request): ?int
+    {
+        return $request->query('context') === 'home' ? 4 : null;
     }
 
     public function adminIndex(LabIndexRequest $request): JsonResponse
