@@ -75,4 +75,9 @@ class Order extends Model
             ->withPivot('amount')
             ->withTimestamps();
     }
+
+    public function portfolioCase(): HasOne
+    {
+        return $this->hasOne(PortfolioCase::class);
+    }
 }
