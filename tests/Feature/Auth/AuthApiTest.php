@@ -273,7 +273,7 @@ class AuthApiTest extends TestCase
 
         $token = $login->json('data.token');
 
-        $logout = $this->withHeader('Authorization', 'Bearer '.$token)
+        $logout = $this->withHeader('Authorization', 'Bearer ' . $token)
             ->postJson('/api/auth/logout');
 
         $logout->assertOk();
@@ -374,6 +374,40 @@ class AuthApiTest extends TestCase
         $this->assertTrue(Storage::disk('public')->exists((string) $user->profile_image));
     }
 
+    public function test_authenticated_user_can_remove_profile_image(): void
+    {
+        Storage::fake('public');
+
+        $imagePath = UploadedFile::fake()->image('avatar.jpg')->store('users/profile-images', 'public');
+
+        $user = User::factory()->create([
+            'profile_image' => $imagePath,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->deleteJson('/api/auth/me/profile-image');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('status', 200)
+            ->assertJsonPath('message', __('auth.profile_image_removed_successfully'))
+            ->assertJsonPath('data.user.profile_image', null);
+
+        $user->refresh();
+
+        $this->assertNull($user->profile_image);
+        $this->assertFalse(Storage::disk('public')->exists($imagePath));
+    }
+
+    public function test_remove_profile_image_requires_authentication(): void
+    {
+        $response = $this->deleteJson('/api/auth/me/profile-image');
+
+        $response->assertUnauthorized();
+    }
+
     public function test_authenticated_user_can_update_profile_with_multipart_post_body(): void
     {
         Storage::fake('public');
@@ -414,7 +448,7 @@ class AuthApiTest extends TestCase
         $response->assertUnauthorized();
     }
 
-    public function test_doctor_cannot_update_lab_name(): void
+    public function test_doctor_cannot_update_lab_id(): void
     {
         $user = User::factory()->create();
 
@@ -428,14 +462,14 @@ class AuthApiTest extends TestCase
         Sanctum::actingAs($user);
 
         $response = $this->postJson('/api/auth/me', [
-            'lab_name' => 'My Lab',
+            'lab_id' => 999,
         ]);
 
         $response
             ->assertStatus(400)
-            ->assertJsonValidationErrors(['lab_name']);
+            ->assertJsonValidationErrors(['lab_id']);
 
-        $this->assertNull($user->fresh()?->lab_name);
+        $this->assertNull($user->fresh()?->lab_id);
     }
 
     public function test_authenticated_user_can_change_password(): void

@@ -276,6 +276,30 @@ class AuthController extends Controller
         );
     }
 
+    public function removeProfileImage(Request $request): JsonResponse
+    {
+        $this->applyLocale($request);
+
+        /** @var User|null $user */
+        $user = $request->user();
+
+        if ($user === null) {
+            return $this->apiResponse->error(__('auth.unauthenticated'), 401);
+        }
+
+        $updatedUser = $this->authService->updateProfile($user, [
+            'remove_profile_image' => true,
+        ]);
+
+        return $this->apiResponse->success(
+            [
+                'user' => AuthUserResource::make($updatedUser)->resolve(),
+            ],
+            __('auth.profile_image_removed_successfully'),
+            200,
+        );
+    }
+
     public function assignRole(AssignRoleRequest $request): JsonResponse
     {
         $this->applyLocale($request);
@@ -303,17 +327,17 @@ class AuthController extends Controller
 
     private function throttleKey(Request $request): string
     {
-        return Str::transliterate(Str::lower($request->string('email')->toString()).'|'.$request->ip());
+        return Str::transliterate(Str::lower($request->string('email')->toString()) . '|' . $request->ip());
     }
 
     private function registerOtpThrottleKey(Request $request): string
     {
-        return Str::transliterate('register-otp-send|'.Str::lower($request->string('email')->toString()).'|'.$request->ip());
+        return Str::transliterate('register-otp-send|' . Str::lower($request->string('email')->toString()) . '|' . $request->ip());
     }
 
     private function verifyOtpThrottleKey(Request $request): string
     {
-        return Str::transliterate('register-otp-verify|'.Str::lower($request->string('email')->toString()).'|'.$request->ip());
+        return Str::transliterate('register-otp-verify|' . Str::lower($request->string('email')->toString()) . '|' . $request->ip());
     }
 
     private function applyLocale(Request $request): void

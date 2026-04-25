@@ -7,6 +7,7 @@ return [
     'logged_in_successfully' => 'تم تسجيل الدخول بنجاح.',
     'logged_out_successfully' => 'تم تسجيل الخروج بنجاح.',
     'profile_updated_successfully' => 'تم تحديث الملف الشخصي بنجاح.',
+    'profile_image_removed_successfully' => 'تم حذف صورة الملف الشخصي بنجاح.',
     'password_updated_successfully' => 'تم تحديث كلمة المرور بنجاح.',
     'role_assigned_successfully' => 'تم إسناد الدور بنجاح.',
     'invalid_credentials' => 'بيانات الدخول غير صحيحة.',

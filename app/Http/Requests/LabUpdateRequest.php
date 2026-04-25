@@ -20,23 +20,31 @@ class LabUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        /** @var Lab $lab */
-        $lab = $this->route('lab');
+        $labRouteParameter = $this->route('lab');
+        $labId = $labRouteParameter instanceof Lab ? $labRouteParameter->id : (int) $labRouteParameter;
 
         $manager = User::query()
             ->select(['id'])
-            ->where('lab_name', $lab->name)
-            ->whereHas('roles', function ($query): void {
-                $query->where('name', 'lab_manager')->where('guard_name', 'sanctum');
+            ->where('lab_id', $labId)
+            ->where(function ($query): void {
+                $query
+                    ->whereHas('roles', function ($rolesQuery): void {
+                        $rolesQuery->where('name', 'lab_manager')->where('guard_name', 'sanctum');
+                    })
+                    ->orWhereHas('departmentUserRoles.role', function ($rolesQuery): void {
+                        $rolesQuery->where('name', 'lab_manager')->where('guard_name', 'sanctum');
+                    });
             })
             ->orderBy('id')
             ->first();
 
         return [
-            'lab_name' => ['required', 'string', 'max:255', Rule::unique('labs', 'name')->ignore($lab->id)],
+            'lab_name' => ['required', 'string', 'max:255', Rule::unique('labs', 'name')->ignore($labId)],
             'manager_name' => ['nullable', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:30'],
             'location' => ['required', 'string', 'max:1000'],
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
             'email' => [
                 'nullable',
                 'string',

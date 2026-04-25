@@ -21,7 +21,6 @@ return new class extends Migration
             $table->string('profile_image')->nullable();
             $table->date('birthdate')->nullable();
             $table->string('location')->nullable();
-            $table->string('lab_name')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

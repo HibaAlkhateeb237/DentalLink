@@ -38,6 +38,7 @@ Route::prefix('auth')->group(function (): void {
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/me', [AuthController::class, 'updateProfile']);
+        Route::delete('/me/profile-image', [AuthController::class, 'removeProfileImage']);
         Route::post('/change-password', [AuthController::class, 'changePassword']);
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::post('/assign-role', [AuthController::class, 'assignRole'])
@@ -52,10 +53,10 @@ Route::prefix('auth')->group(function (): void {
         Route::get('/labs/most-ordered', [LabController::class, 'mostOrdered'])->name('labs.most-ordered');
         Route::get('/labs/{lab}', [LabController::class, 'show'])->name('labs.show');
 
+
         Route::get('/labs/{lab}/portfolio', [LabPortfolioController::class, 'index'])->name('labs.portfolio.index');
         Route::post('/labs/{lab}/portfolio', [LabPortfolioController::class, 'store'])->name('labs.portfolio.store');
 
 
     });
-
 });

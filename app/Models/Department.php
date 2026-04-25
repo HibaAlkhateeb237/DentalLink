@@ -15,6 +15,7 @@ class Department extends Model
         'lab_id',
         'name',
         'description',
+        'is_management',
     ];
 
     public function lab(): BelongsTo

@@ -3,8 +3,11 @@
 namespace App\Http\Services;
 
 use App\Http\Repositories\LabRepository;
+use App\Models\Department;
+use App\Models\DepartmentUserRole;
 use App\Models\Lab;
 use App\Models\Role;
+use App\Models\Task;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
@@ -71,6 +74,7 @@ class LabService
         return [
             'id' => $lab->id,
             'name' => $lab->name,
+            'license_number' => $lab->license_number,
             'phone' => $lab->phone,
             'address' => $lab->address,
             'latitude' => $lab->latitude,
@@ -83,24 +87,24 @@ class LabService
     {
         $labs = $this->labRepository->paginateAll($perPage);
 
-        $labNames = $labs->getCollection()
-            ->pluck('name')
+        $labIds = $labs->getCollection()
+            ->pluck('id')
             ->filter()
             ->values();
 
-        $managersByLabName = User::query()
-            ->select(['id', 'name', 'email', 'phone', 'lab_name'])
-            ->whereIn('lab_name', $labNames)
+        $managersByLabId = User::query()
+            ->select(['id', 'name', 'email', 'phone', 'lab_id'])
+            ->whereIn('lab_id', $labIds)
             ->whereHas('roles', function ($query): void {
                 $query->where('name', 'lab_manager')->where('guard_name', 'sanctum');
             })
             ->orderBy('id')
             ->get()
-            ->keyBy('lab_name');
+            ->keyBy('lab_id');
 
         $labs->setCollection(
-            $labs->getCollection()->map(function (Lab $lab) use ($managersByLabName): array {
-                return $this->buildLabPayload($lab, $managersByLabName->get($lab->name));
+            $labs->getCollection()->map(function (Lab $lab) use ($managersByLabId): array {
+                return $this->buildLabPayload($lab, $managersByLabId->get($lab->id));
             })
         );
 
@@ -108,8 +112,8 @@ class LabService
     }
 
     /**
-     * @param  array{lab_name:string,manager_name:string,phone:string,location:string,email:string,password:string}  $validated
-     * @return array{lab:array<string,mixed>,manager:array<string,mixed>|null}
+     * @param  array{lab_name:string,manager_name:string,phone:string,location:string,latitude:numeric-string|int|float,longitude:numeric-string|int|float,email:string,password:string}  $validated
+     * @return array{lab:array<string,mixed>}
      */
     public function createLabWithManager(array $validated): array
     {
@@ -118,55 +122,73 @@ class LabService
                 'name' => $validated['lab_name'],
                 'phone' => $validated['phone'],
                 'address' => $validated['location'],
-                'latitude' => 0,
-                'longitude' => 0,
+                'latitude' => $validated['latitude'],
+                'longitude' => $validated['longitude'],
                 'rating' => 0,
+            ]);
+
+            $lab->license_number = $this->generateLabLicenseNumber($lab->id);
+            $lab->save();
+
+            $managementDepartment = Department::query()->create([
+                'lab_id' => $lab->id,
+                'name' => 'Management',
+                'is_management' => true,
             ]);
 
             $manager = User::query()->create([
                 'name' => $validated['manager_name'],
                 'email' => $validated['email'],
                 'phone' => $validated['phone'],
-                'lab_name' => $lab->name,
+                'lab_id' => $lab->id,
                 'password' => $validated['password'],
             ]);
 
-            $labManagerRoleId = Role::query()
+            $labManagerRole = Role::query()
                 ->where('name', 'lab_manager')
                 ->where('guard_name', 'sanctum')
-                ->value('id');
+                ->firstOrFail();
 
-            if ($labManagerRoleId !== null) {
-                $manager->roles()->syncWithoutDetaching([$labManagerRoleId]);
-            }
+            DepartmentUserRole::query()->firstOrCreate([
+                'user_id' => $manager->id,
+                'role_id' => $labManagerRole->id,
+                'department_id' => $managementDepartment->id,
+            ]);
+
+            $manager->roles()->syncWithoutDetaching([$labManagerRole->id]);
 
             return [
                 'lab' => $this->buildLabPayload($lab, $manager),
-                'manager' => $this->buildManagerPayload($manager),
             ];
         });
     }
 
     /**
-     * @param  array{lab_name:string,phone:string,location:string,manager_name?:string|null,email?:string|null,password?:string|null}  $validated
-     * @return array{lab:array<string,mixed>,manager:array<string,mixed>|null}
+     * @param  array{lab_name:string,phone:string,location:string,latitude:numeric-string|int|float,longitude:numeric-string|int|float,manager_name?:string|null,email?:string|null,password?:string|null}  $validated
+     * @return array{lab:array<string,mixed>}
      */
     public function updateLabWithManager(Lab $lab, array $validated): array
     {
         return DB::transaction(function () use ($lab, $validated): array {
-            $currentLabName = $lab->name;
-
             $lab->fill([
                 'name' => $validated['lab_name'],
                 'phone' => $validated['phone'],
                 'address' => $validated['location'],
+                'latitude' => $validated['latitude'],
+                'longitude' => $validated['longitude'],
             ]);
             $lab->save();
 
             $manager = User::query()
-                ->where('lab_name', $currentLabName)
-                ->whereHas('roles', function ($query): void {
-                    $query->where('name', 'lab_manager')->where('guard_name', 'sanctum');
+                ->where('lab_id', $lab->id)
+                ->where(function ($query): void {
+                    $query
+                        ->whereHas('roles', function ($rolesQuery): void {
+                            $rolesQuery->where('name', 'lab_manager')->where('guard_name', 'sanctum');
+                        })
+                        ->orWhereHas('departmentUserRoles.role', function ($rolesQuery): void {
+                            $rolesQuery->where('name', 'lab_manager')->where('guard_name', 'sanctum');
+                        });
                 })
                 ->orderBy('id')
                 ->first();
@@ -174,7 +196,7 @@ class LabService
             if ($manager !== null) {
                 $managerUpdates = [
                     'phone' => $validated['phone'],
-                    'lab_name' => $lab->name,
+                    'lab_id' => $lab->id,
                 ];
 
                 if (isset($validated['manager_name'])) {
@@ -193,17 +215,9 @@ class LabService
                 $manager->save();
             }
 
-            $otherUsersInLab = User::query()->where('lab_name', $currentLabName);
-
-            if ($manager !== null) {
-                $otherUsersInLab->where('id', '!=', $manager->id);
-            }
-
-            $otherUsersInLab->update(['lab_name' => $lab->name]);
-
             return [
                 'lab' => $this->buildLabPayload($lab->fresh(), $manager?->fresh()),
-                'manager' => $this->buildManagerPayload($manager?->fresh()),
+
             ];
         });
     }
@@ -211,8 +225,12 @@ class LabService
     public function deleteLab(Lab $lab): void
     {
         DB::transaction(function () use ($lab): void {
+            $departmentIds = Department::query()
+                ->where('lab_id', $lab->id)
+                ->pluck('id');
+
             $managerIds = User::query()
-                ->where('lab_name', $lab->name)
+                ->where('lab_id', $lab->id)
                 ->whereHas('roles', function ($query): void {
                     $query->where('name', 'lab_manager')->where('guard_name', 'sanctum');
                 })
@@ -231,9 +249,19 @@ class LabService
                     ->delete();
             }
 
+            if ($departmentIds->isNotEmpty()) {
+                Task::query()
+                    ->whereIn('department_id', $departmentIds)
+                    ->delete();
+
+                Department::query()
+                    ->whereIn('id', $departmentIds)
+                    ->delete();
+            }
+
             User::query()
-                ->where('lab_name', $lab->name)
-                ->update(['lab_name' => null]);
+                ->where('lab_id', $lab->id)
+                ->update(['lab_id' => null]);
 
             $lab->delete();
         });
@@ -242,8 +270,8 @@ class LabService
     public function getAdminLabDetails(Lab $lab): array
     {
         $manager = User::query()
-            ->select(['id', 'name', 'email', 'phone', 'lab_name'])
-            ->where('lab_name', $lab->name)
+            ->select(['id', 'name', 'email', 'phone', 'lab_id'])
+            ->where('lab_id', $lab->id)
             ->whereHas('roles', function ($query): void {
                 $query->where('name', 'lab_manager')->where('guard_name', 'sanctum');
             })
@@ -261,7 +289,10 @@ class LabService
         return [
             'id' => $lab->id,
             'lab_name' => $lab->name,
+            'license_number' => $lab->license_number,
             'location' => $lab->address,
+            'latitude' => $lab->latitude,
+            'longitude' => $lab->longitude,
             'name' => $lab->name,
             'phone' => $lab->phone,
             'address' => $lab->address,
@@ -287,5 +318,10 @@ class LabService
             'email' => $manager->email,
             'phone' => $manager->phone,
         ];
+    }
+
+    private function generateLabLicenseNumber(int $labId): string
+    {
+        return 'LAB-' . now()->format('Ymd') . '-' . str_pad((string) $labId, 6, '0', STR_PAD_LEFT);
     }
 }

@@ -18,8 +18,8 @@ class AuthUserResource extends JsonResource
         if (filled($profileImage) && ! Str::startsWith((string) $profileImage, ['http://', 'https://'])) {
             $publicDiskUrl = rtrim((string) config('filesystems.disks.public.url', ''), '/');
             $profileImage = $publicDiskUrl !== ''
-                ? $publicDiskUrl.'/'.ltrim((string) $profileImage, '/')
-                : '/storage/'.ltrim((string) $profileImage, '/');
+                ? $publicDiskUrl . '/' . ltrim((string) $profileImage, '/')
+                : '/storage/' . ltrim((string) $profileImage, '/');
         }
 
         return [
@@ -29,10 +29,11 @@ class AuthUserResource extends JsonResource
             'phone' => $this->phone,
             'profile_image' => $profileImage,
             'birthdate' => $this->birthdate,
+            'joined_at' => $this->created_at,
             'location' => $this->location,
             'location_lat' => $this->location_lat,
             'location_lng' => $this->location_lng,
-            'lab_name' => $this->lab_name,
+            //'lab_id' => $this->lab_id,
         ];
     }
 }
