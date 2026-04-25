@@ -47,8 +47,8 @@ class Lab extends Model
         return $this->hasMany(Favorite::class);
     }
 
-    public function users(): HasMany
-    {
-        return $this->hasMany(User::class);
-    }
+    // public function users(): HasMany
+    // {
+    //     return $this->hasMany(User::class);
+    // }
 }

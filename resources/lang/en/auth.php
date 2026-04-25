@@ -7,6 +7,7 @@ return [
     'logged_in_successfully' => 'Logged in successfully.',
     'logged_out_successfully' => 'Logged out successfully.',
     'profile_updated_successfully' => 'Profile updated successfully.',
+    'profile_image_removed_successfully' => 'Profile image removed successfully.',
     'password_updated_successfully' => 'Password updated successfully.',
     'role_assigned_successfully' => 'Role assigned successfully.',
     'invalid_credentials' => 'Invalid credentials.',

@@ -30,7 +30,8 @@ class User extends Authenticatable
         'profile_image',
         'birthdate',
         'location',
-        'lab_id',
+        //
+        //'lab_id',
         'location_lat',
         'location_lng',
         'password',
@@ -69,10 +70,10 @@ class User extends Authenticatable
         return $this->hasMany(Order::class);
     }
 
-    public function lab(): BelongsTo
-    {
-        return $this->belongsTo(Lab::class);
-    }
+    // public function lab(): BelongsTo
+    // {
+    //     return $this->belongsTo(Lab::class);
+    // }
 
     public function payments(): HasMany
     {
