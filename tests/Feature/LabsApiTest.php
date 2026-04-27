@@ -118,9 +118,9 @@ class LabsApiTest extends TestCase
     {
         for ($index = 1; $index <= 12; $index++) {
             Lab::query()->create([
-                'name' => 'Gamma Lab ' . $index,
-                'phone' => '100000' . $index,
-                'address' => 'Damascus Block ' . $index,
+                'name' => 'Gamma Lab '.$index,
+                'phone' => '100000'.$index,
+                'address' => 'Damascus Block '.$index,
                 'latitude' => 33.5138070,
                 'longitude' => 36.2765279,
                 'rating' => 4.20,
@@ -307,7 +307,7 @@ class LabsApiTest extends TestCase
 
         $returnedNames = collect($response->json('data'))->pluck('name');
 
-        $this->assertTrue($returnedNames->every(fn(string $name): bool => in_array($name, [
+        $this->assertTrue($returnedNames->every(fn (string $name): bool => in_array($name, [
             'Suggested Lab 1',
             'Suggested Lab 2',
             'Suggested Lab 3',
@@ -367,9 +367,9 @@ class LabsApiTest extends TestCase
 
         for ($index = 1; $index <= 6; $index++) {
             Lab::query()->create([
-                'name' => 'Top Lab ' . $index,
-                'phone' => '100000' . $index,
-                'address' => 'Address ' . $index,
+                'name' => 'Top Lab '.$index,
+                'phone' => '100000'.$index,
+                'address' => 'Address '.$index,
                 'latitude' => 33.5000000 + ($index * 0.00001),
                 'longitude' => 36.2500000 + ($index * 0.00001),
                 'rating' => 4.00 + ($index * 0.10),
@@ -393,9 +393,9 @@ class LabsApiTest extends TestCase
 
         for ($index = 1; $index <= 6; $index++) {
             Lab::query()->create([
-                'name' => 'Near Home Lab ' . $index,
-                'phone' => '200000' . $index,
-                'address' => 'Address ' . $index,
+                'name' => 'Near Home Lab '.$index,
+                'phone' => '200000'.$index,
+                'address' => 'Address '.$index,
                 'latitude' => 33.5000000 + ($index * 0.001),
                 'longitude' => 36.2500000 + ($index * 0.001),
                 'rating' => 4.00,
@@ -415,9 +415,9 @@ class LabsApiTest extends TestCase
 
         for ($index = 1; $index <= 6; $index++) {
             Lab::query()->create([
-                'name' => 'Suggested Home Lab ' . $index,
-                'phone' => '300000' . $index,
-                'address' => 'Address ' . $index,
+                'name' => 'Suggested Home Lab '.$index,
+                'phone' => '300000'.$index,
+                'address' => 'Address '.$index,
                 'latitude' => 33.6000000 + ($index * 0.00001),
                 'longitude' => 36.3500000 + ($index * 0.00001),
                 'rating' => 4.00,
@@ -439,9 +439,9 @@ class LabsApiTest extends TestCase
 
         for ($index = 1; $index <= 6; $index++) {
             $lab = Lab::query()->create([
-                'name' => 'Most Ordered Home Lab ' . $index,
-                'phone' => '400000' . $index,
-                'address' => 'Address ' . $index,
+                'name' => 'Most Ordered Home Lab '.$index,
+                'phone' => '400000'.$index,
+                'address' => 'Address '.$index,
                 'latitude' => 33.7000000 + ($index * 0.00001),
                 'longitude' => 36.4500000 + ($index * 0.00001),
                 'rating' => 4.00,
@@ -467,7 +467,7 @@ class LabsApiTest extends TestCase
             'rating' => 4.75,
         ]);
 
-        $response = $this->getJson('/api/labs/' . $lab->id);
+        $response = $this->getJson('/api/labs/'.$lab->id);
 
         $response->assertOk()
             ->assertJsonPath('success', true)
@@ -546,6 +546,42 @@ class LabsApiTest extends TestCase
         ]);
     }
 
+    public function test_system_admin_gets_conflict_when_creating_lab_with_duplicate_name_or_email(): void
+    {
+        $this->authenticateAsRole('system_admin');
+
+        Lab::query()->create([
+            'name' => 'Existing Lab',
+            'phone' => '0400000000',
+            'address' => 'Damascus',
+            'latitude' => 33.5000000,
+            'longitude' => 36.2000000,
+            'rating' => 4.00,
+        ]);
+
+        User::factory()->create([
+            'email' => 'existing-manager@example.com',
+        ]);
+
+        $response = $this->postJson('/api/admin/labs', [
+            'lab_name' => 'Existing Lab',
+            'manager_name' => 'Duplicate Manager',
+            'phone' => '0500000000',
+            'location' => 'Damascus Al-Mazzeh',
+            'latitude' => 33.5138070,
+            'longitude' => 36.2765279,
+            'email' => 'existing-manager@example.com',
+            'password' => 'secret12345',
+            'password_confirmation' => 'secret12345',
+        ]);
+
+        $response->assertConflict()
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('status', 409)
+            ->assertJsonPath('message', __('messages.validation_failed'))
+            ->assertJsonValidationErrors(['lab_name', 'email']);
+    }
+
     public function test_non_system_admin_cannot_create_admin_lab(): void
     {
         $this->authenticateAsRole('doctor');
@@ -591,7 +627,7 @@ class LabsApiTest extends TestCase
 
         $manager->roles()->sync([$labManagerRole->id]);
 
-        $response = $this->putJson('/api/admin/labs/' . $lab->id, [
+        $response = $this->putJson('/api/admin/labs/'.$lab->id, [
             'lab_name' => 'Updated Lab Name',
             'manager_name' => 'Updated Manager',
             'phone' => '0999999999',
@@ -665,7 +701,7 @@ class LabsApiTest extends TestCase
             'department_id' => $managementDepartment->id,
         ]);
 
-        $response = $this->putJson('/api/admin/labs/' . $lab->id, [
+        $response = $this->putJson('/api/admin/labs/'.$lab->id, [
             'lab_name' => 'Scoped Role Lab',
             'manager_name' => 'Ahmad K',
             'phone' => '0988888888',
@@ -708,7 +744,7 @@ class LabsApiTest extends TestCase
             'is_management' => true,
         ]);
 
-        $response = $this->deleteJson('/api/admin/labs/' . $lab->id);
+        $response = $this->deleteJson('/api/admin/labs/'.$lab->id);
 
         $response->assertOk()
             ->assertJsonPath('success', true)
