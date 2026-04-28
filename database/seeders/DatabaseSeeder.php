@@ -56,9 +56,9 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             LabSeeder::class,
+            DepartmentSeeder::class,
             RolesAndPermissionsSeeder::class,
             SystemAdminUserSeeder::class,
         ]);
-
     }
 }

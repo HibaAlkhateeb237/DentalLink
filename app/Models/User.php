@@ -28,6 +28,7 @@ class User extends Authenticatable
         'phone',
         'profile_image',
         'birthdate',
+        'joined_at',
         'location',
         'location_lat',
         'location_lng',
@@ -54,6 +55,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'birthdate' => 'date',
+            'joined_at' => 'date',
             'location_lat' => 'decimal:7',
             'location_lng' => 'decimal:7',
             'failed_login_attempts' => 'integer',

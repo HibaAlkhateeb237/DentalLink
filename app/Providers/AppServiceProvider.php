@@ -7,8 +7,10 @@ use App\Models\Department;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Task;
+use App\Models\User;
 use App\Policies\DeliveryTaskPolicy;
 use App\Policies\DepartmentPolicy;
+use App\Policies\EmployeePolicy;
 use App\Policies\OrderPolicy;
 use App\Policies\PaymentPolicy;
 use App\Policies\TaskPolicy;
@@ -38,6 +40,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(DeliveryTask::class, DeliveryTaskPolicy::class);
         Gate::policy(Payment::class, PaymentPolicy::class);
         Gate::policy(Department::class, DepartmentPolicy::class);
+        Gate::policy(User::class, EmployeePolicy::class);
 
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());

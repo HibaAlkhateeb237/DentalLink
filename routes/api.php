@@ -4,6 +4,7 @@
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\LabController;
+use App\Http\Controllers\LabEmployeeController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/ping', function () {
@@ -60,5 +61,13 @@ Route::prefix('auth')->group(function (): void {
         Route::get('/labs/suggested', [LabController::class, 'suggested'])->name('labs.suggested');
         Route::get('/labs/most-ordered', [LabController::class, 'mostOrdered'])->name('labs.most-ordered');
         Route::get('/labs/{lab}', [LabController::class, 'show'])->name('labs.show');
+
+        Route::middleware(['role:lab_manager'])->prefix('lab/employees')->group(function (): void {
+            Route::get('/', [LabEmployeeController::class, 'index'])->name('lab.employees.index');
+            Route::post('/', [LabEmployeeController::class, 'store'])->name('lab.employees.store');
+            Route::get('/{employee}', [LabEmployeeController::class, 'show'])->name('lab.employees.show');
+            Route::put('/{employee}', [LabEmployeeController::class, 'update'])->name('lab.employees.update');
+            Route::delete('/{employee}', [LabEmployeeController::class, 'destroy'])->name('lab.employees.destroy');
+        });
     });
 });
