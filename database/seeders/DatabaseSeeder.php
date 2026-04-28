@@ -29,10 +29,10 @@ class DatabaseSeeder extends Seeder
         Department::query()->delete();
 
         $this->call([
-            LabSeeder::class,
+            // LabSeeder::class,
             RolesAndPermissionsSeeder::class,
-            OrderSeeder::class,
-            ReviewSeeder::class,
+            // OrderSeeder::class,
+            // ReviewSeeder::class,
 
         ]);
 

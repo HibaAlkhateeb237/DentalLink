@@ -24,18 +24,14 @@ class LabUpdateRequest extends FormRequest
         $labId = $labRouteParameter instanceof Lab ? $labRouteParameter->id : (int) $labRouteParameter;
 
         $manager = User::query()
-            ->select(['id'])
-            ->where('lab_id', $labId)
-            ->where(function ($query): void {
-                $query
-                    ->whereHas('roles', function ($rolesQuery): void {
-                        $rolesQuery->where('name', 'lab_manager')->where('guard_name', 'sanctum');
-                    })
-                    ->orWhereHas('departmentUserRoles.role', function ($rolesQuery): void {
-                        $rolesQuery->where('name', 'lab_manager')->where('guard_name', 'sanctum');
-                    });
-            })
-            ->orderBy('id')
+            ->select(['users.id'])
+            ->join('department_user_roles', 'department_user_roles.user_id', '=', 'users.id')
+            ->join('roles', 'roles.id', '=', 'department_user_roles.role_id')
+            ->join('departments', 'departments.id', '=', 'department_user_roles.department_id')
+            ->where('departments.lab_id', $labId)
+            ->where('roles.name', 'lab_manager')
+            ->where('roles.guard_name', 'sanctum')
+            ->orderBy('users.id')
             ->first();
 
         return [

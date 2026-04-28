@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Models\Role;
 use App\Models\User;
 use App\Notifications\Auth\RegisterOtpNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -273,7 +272,7 @@ class AuthApiTest extends TestCase
 
         $token = $login->json('data.token');
 
-        $logout = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $logout = $this->withHeader('Authorization', 'Bearer '.$token)
             ->postJson('/api/auth/logout');
 
         $logout->assertOk();
@@ -446,30 +445,6 @@ class AuthApiTest extends TestCase
         ]);
 
         $response->assertUnauthorized();
-    }
-
-    public function test_doctor_cannot_update_lab_id(): void
-    {
-        $user = User::factory()->create();
-
-        $doctorRole = Role::query()->create([
-            'name' => 'doctor',
-            'guard_name' => 'sanctum',
-        ]);
-
-        $user->roles()->syncWithoutDetaching([$doctorRole->id]);
-
-        Sanctum::actingAs($user);
-
-        $response = $this->postJson('/api/auth/me', [
-            'lab_id' => 999,
-        ]);
-
-        $response
-            ->assertStatus(400)
-            ->assertJsonValidationErrors(['lab_id']);
-
-        $this->assertNull($user->fresh()?->lab_id);
     }
 
     public function test_authenticated_user_can_change_password(): void

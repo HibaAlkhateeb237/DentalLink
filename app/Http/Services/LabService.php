@@ -92,15 +92,7 @@ class LabService
             ->filter()
             ->values();
 
-        $managersByLabId = User::query()
-            ->select(['id', 'name', 'email', 'phone', 'lab_id'])
-            ->whereIn('lab_id', $labIds)
-            ->whereHas('roles', function ($query): void {
-                $query->where('name', 'lab_manager')->where('guard_name', 'sanctum');
-            })
-            ->orderBy('id')
-            ->get()
-            ->keyBy('lab_id');
+        $managersByLabId = $this->resolveManagersByLabIds($labIds->all());
 
         $labs->setCollection(
             $labs->getCollection()->map(function (Lab $lab) use ($managersByLabId): array {
@@ -140,7 +132,6 @@ class LabService
                 'name' => $validated['manager_name'],
                 'email' => $validated['email'],
                 'phone' => $validated['phone'],
-                'lab_id' => $lab->id,
                 'password' => $validated['password'],
             ]);
 
@@ -180,23 +171,19 @@ class LabService
             $lab->save();
 
             $manager = User::query()
-                ->where('lab_id', $lab->id)
-                ->where(function ($query): void {
-                    $query
-                        ->whereHas('roles', function ($rolesQuery): void {
-                            $rolesQuery->where('name', 'lab_manager')->where('guard_name', 'sanctum');
-                        })
-                        ->orWhereHas('departmentUserRoles.role', function ($rolesQuery): void {
-                            $rolesQuery->where('name', 'lab_manager')->where('guard_name', 'sanctum');
-                        });
-                })
-                ->orderBy('id')
+                ->select(['users.id', 'users.name', 'users.email', 'users.phone'])
+                ->join('department_user_roles', 'department_user_roles.user_id', '=', 'users.id')
+                ->join('roles', 'roles.id', '=', 'department_user_roles.role_id')
+                ->join('departments', 'departments.id', '=', 'department_user_roles.department_id')
+                ->where('departments.lab_id', $lab->id)
+                ->where('roles.name', 'lab_manager')
+                ->where('roles.guard_name', 'sanctum')
+                ->orderBy('users.id')
                 ->first();
 
             if ($manager !== null) {
                 $managerUpdates = [
                     'phone' => $validated['phone'],
-                    'lab_id' => $lab->id,
                 ];
 
                 if (isset($validated['manager_name'])) {
@@ -230,11 +217,13 @@ class LabService
                 ->pluck('id');
 
             $managerIds = User::query()
-                ->where('lab_id', $lab->id)
-                ->whereHas('roles', function ($query): void {
-                    $query->where('name', 'lab_manager')->where('guard_name', 'sanctum');
-                })
-                ->pluck('id');
+                ->join('department_user_roles', 'department_user_roles.user_id', '=', 'users.id')
+                ->join('roles', 'roles.id', '=', 'department_user_roles.role_id')
+                ->join('departments', 'departments.id', '=', 'department_user_roles.department_id')
+                ->where('departments.lab_id', $lab->id)
+                ->where('roles.name', 'lab_manager')
+                ->where('roles.guard_name', 'sanctum')
+                ->pluck('users.id');
 
             $labManagerRoleId = Role::query()
                 ->where('name', 'lab_manager')
@@ -259,26 +248,47 @@ class LabService
                     ->delete();
             }
 
-            User::query()
-                ->where('lab_id', $lab->id)
-                ->update(['lab_id' => null]);
-
             $lab->delete();
         });
     }
 
     public function getAdminLabDetails(Lab $lab): array
     {
-        $manager = User::query()
-            ->select(['id', 'name', 'email', 'phone', 'lab_id'])
-            ->where('lab_id', $lab->id)
-            ->whereHas('roles', function ($query): void {
-                $query->where('name', 'lab_manager')->where('guard_name', 'sanctum');
-            })
-            ->orderBy('id')
-            ->first();
+        $manager = $this->resolveManagersByLabIds([$lab->id])->get($lab->id);
 
         return $this->buildLabPayload($lab, $manager);
+    }
+
+    /**
+     * @param  array<int, int>  $labIds
+     * @return \Illuminate\Support\Collection<int, User>
+     */
+    private function resolveManagersByLabIds(array $labIds): \Illuminate\Support\Collection
+    {
+        if ($labIds === []) {
+            return collect();
+        }
+
+        $departmentManagersByLabId = User::query()
+            ->select([
+                'users.id',
+                'users.name',
+                'users.email',
+                'users.phone',
+                DB::raw('departments.lab_id as lab_id'),
+            ])
+            ->join('department_user_roles', 'department_user_roles.user_id', '=', 'users.id')
+            ->join('roles', 'roles.id', '=', 'department_user_roles.role_id')
+            ->join('departments', 'departments.id', '=', 'department_user_roles.department_id')
+            ->whereIn('departments.lab_id', $labIds)
+            ->where('roles.name', 'lab_manager')
+            ->where('roles.guard_name', 'sanctum')
+            ->orderBy('users.id')
+            ->get()
+            ->unique('lab_id')
+            ->keyBy('lab_id');
+
+        return $departmentManagersByLabId;
     }
 
     /**
