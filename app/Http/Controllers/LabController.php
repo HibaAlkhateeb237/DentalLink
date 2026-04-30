@@ -89,6 +89,16 @@ class LabController extends Controller
         );
     }
 
+    public function inactiveLabs(LabIndexRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+        $perPage = (int) ($validated['per_page'] ?? 15);
+
+        $labs = $this->labService->getInactiveLabs($perPage);
+
+        return $this->apiResponse->success($labs, __('labs.inactive_retrieved_successfully'));
+    }
+
     public function show(Lab $lab): JsonResponse
     {
         return $this->apiResponse->success(

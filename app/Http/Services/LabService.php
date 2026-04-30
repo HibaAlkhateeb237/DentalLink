@@ -22,12 +22,17 @@ class LabService
 
     public function getLabs(int $perPage = 15): LengthAwarePaginator
     {
-        return $this->labRepository->paginateAll($perPage);
+        return $this->labRepository->paginateActive($perPage);
     }
 
     public function searchLabs(string $search, int $perPage = 15): LengthAwarePaginator
     {
         return $this->labRepository->searchPaginated($search, $perPage);
+    }
+
+    public function getInactiveLabs(int $perPage = 15): LengthAwarePaginator
+    {
+        return $this->labRepository->getInactiveLabs($perPage);
     }
 
     public function getTopRatedLabs(?int $limit = null): Collection
@@ -332,6 +337,6 @@ class LabService
 
     private function generateLabLicenseNumber(int $labId): string
     {
-        return 'LAB-' . now()->format('Ymd') . '-' . str_pad((string) $labId, 6, '0', STR_PAD_LEFT);
+        return 'LAB-'.now()->format('Ymd').'-'.str_pad((string) $labId, 6, '0', STR_PAD_LEFT);
     }
 }

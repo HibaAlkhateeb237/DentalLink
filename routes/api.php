@@ -51,7 +51,8 @@ Route::prefix('auth')->group(function (): void {
         Route::get('/labs/top-rated', [LabController::class, 'topRated'])->name('labs.top-rated');
         Route::get('/labs/nearby', [LabController::class, 'nearby'])->name('labs.nearby');
         Route::get('/labs/suggested', [LabController::class, 'suggested'])->name('labs.suggested');
-        Route::get('/labs/most-ordered', [LabController::class, 'most-ordered'])->name('labs.most-ordered');
+        Route::get('/labs/most-ordered', [LabController::class, 'mostOrdered'])->name('labs.most-ordered');
+        Route::get('/labs/inactive', [LabController::class, 'inactiveLabs'])->name('labs.inactive');
         Route::get('/labs/{lab}', [LabController::class, 'show'])->name('labs.show');
 
         Route::middleware(['role:lab_manager'])->prefix('lab/employees')->group(function (): void {

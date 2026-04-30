@@ -20,10 +20,22 @@ class LabRepository
             ->selectRaw('COALESCE('.$reviewsCountSubQuery.', 0) as reviews_count');
     }
 
+    private function queryActiveWithReviewStats(): Builder
+    {
+        return $this->queryWithReviewStats()->where('is_active', true);
+    }
+
     public function paginateAll(int $perPage = 15): LengthAwarePaginator
     {
         return $this->queryWithReviewStats()
-           // ->orderByDesc('rating')
+            // ->orderByDesc('rating')
+            ->orderByDesc('created_at')
+            ->paginate($perPage);
+    }
+
+    public function paginateActive(int $perPage = 15): LengthAwarePaginator
+    {
+        return $this->queryActiveWithReviewStats()
             ->orderByDesc('created_at')
             ->paginate($perPage);
     }
@@ -33,7 +45,7 @@ class LabRepository
         $confidenceBoost = 2;
         $confidenceScale = 10;
 
-        $query = $this->queryWithReviewStats()
+        $query = $this->queryActiveWithReviewStats()
             ->orderByRaw(
                 '(rating + ((reviews_count * ? * 1.0) / (reviews_count + ?))) DESC',
                 [$confidenceBoost, $confidenceScale]
@@ -68,7 +80,7 @@ class LabRepository
             $lngKmPerDegree,
         ];
 
-        $query = $this->queryWithReviewStats()
+        $query = $this->queryActiveWithReviewStats()
             ->whereBetween('latitude', [$latitude - $latDelta, $latitude + $latDelta])
             ->whereBetween('longitude', [$longitude - $lngDelta, $longitude + $lngDelta])
             ->whereRaw($distanceSql.' <= ?', [...$distanceBindings, $radiusKm * $radiusKm])
@@ -84,7 +96,7 @@ class LabRepository
 
     public function getSuggested(?int $limit = null): Collection
     {
-        $query = $this->queryWithReviewStats()->inRandomOrder();
+        $query = $this->queryActiveWithReviewStats()->inRandomOrder();
 
         if ($limit !== null) {
             $query->limit($limit);
@@ -95,7 +107,7 @@ class LabRepository
 
     public function getMostOrdered(?int $limit = null): Collection
     {
-        $query = $this->queryWithReviewStats()
+        $query = $this->queryActiveWithReviewStats()
             ->withCount('orders')
             ->orderByDesc('orders_count')
             ->orderByDesc('rating');
@@ -111,13 +123,24 @@ class LabRepository
     {
         $term = trim($search);
 
-        return $this->queryWithReviewStats()
+        return $this->queryActiveWithReviewStats()
             ->where(function (Builder $query) use ($term): void {
                 $query->where('name', 'like', '%'.$term.'%')
                     ->orWhere('address', 'like', '%'.$term.'%');
             })
             ->orderByDesc('rating')
             ->orderBy('name')
+            ->paginate($perPage);
+    }
+
+    public function getInactiveLabs(int $perPage = 15): LengthAwarePaginator
+    {
+        $avgRatingSubQuery = '(SELECT AVG(reviews.rating) FROM reviews INNER JOIN orders ON orders.id = reviews.order_id WHERE orders.lab_id = labs.id)';
+        $reviewsCountSubQuery = '(SELECT COUNT(*) FROM reviews INNER JOIN orders ON orders.id = reviews.order_id WHERE orders.lab_id = labs.id)';
+
+        return $this->queryWithReviewStats()
+            ->where('is_active', false)
+            ->orderByDesc('created_at')
             ->paginate($perPage);
     }
 }
