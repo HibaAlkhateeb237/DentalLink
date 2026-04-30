@@ -4,7 +4,6 @@ namespace App\Http\Repositories;
 
 use App\Models\DentalCompensationTypePrice;
 use App\Models\Lab;
-use App\Models\LabPricingRule;
 use App\Models\LabPricingSetting;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
@@ -58,40 +57,5 @@ class LabPricingRepository
             ->orderByDesc('dental_compensation_type_prices.id')
             ->with('dentalCompensationType')
             ->first();
-    }
-
-    /**
-     * Returns the latest active rule per `code` whose `effective_from` is <= $at.
-     *
-     * @return Collection<int, LabPricingRule>
-     */
-    public function getActiveRulesForLab(Lab $lab, ?CarbonImmutable $at = null): Collection
-    {
-        $at ??= CarbonImmutable::now();
-
-        $all = LabPricingRule::query()
-            ->where('lab_id', $lab->id)
-            ->where('is_active', true)
-            ->whereDate('effective_from', '<=', $at->toDateString())
-            ->orderByDesc('effective_from')
-            ->orderByDesc('id')
-            ->get();
-
-        $byCode = [];
-        foreach ($all as $rule) {
-            if (! array_key_exists($rule->code, $byCode)) {
-                $byCode[$rule->code] = $rule;
-            }
-        }
-
-        $sorted = collect(array_values($byCode))
-            ->sortBy([
-                ['sort_order', 'asc'],
-                ['id', 'asc'],
-            ])
-            ->values()
-            ->all();
-
-        return new Collection($sorted);
     }
 }

@@ -4,7 +4,6 @@ namespace App\Http\Services;
 
 use App\Http\Repositories\LabPricingRepository;
 use App\Models\Order;
-use App\Support\Pricing\JsonLogicEvaluator;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -27,9 +26,6 @@ class OrderPricingService
         $lab = $order->lab;
 
         $settings = $this->labPricingRepository->getActiveSettingForLab($lab, $effectiveAt);
-        $rules = $this->labPricingRepository->getActiveRulesForLab($lab, $effectiveAt);
-        $ruleCodes = $rules->pluck('code')->all();
-        $evaluator = new JsonLogicEvaluator;
         $priceItem = $this->labPricingRepository->findActivePriceByCode($lab, $validated['compensation_code'], $effectiveAt);
 
         if ($priceItem === null) {
@@ -48,26 +44,8 @@ class OrderPricingService
         $addons = [];
         $addonsTotal = 0.0;
 
-        $context = [
-            'order' => [
-                'id' => $order->id,
-                'priority' => $order->priority,
-                'status' => $order->status,
-            ],
-            'type' => [
-                'code' => $type?->code,
-                'category' => $type?->category,
-            ],
-            'units' => $units,
-            'is_vip' => (bool) ($validated['is_vip'] ?? false),
-            'is_implant' => (bool) ($validated['is_implant'] ?? false),
-            'is_long_bridge_or_high' => (bool) ($validated['is_long_bridge_or_high'] ?? false),
-            'include_lisi_connect_etching' => (bool) ($validated['include_lisi_connect_etching'] ?? false),
-            'include_intraoral_print_examples' => (bool) ($validated['include_intraoral_print_examples'] ?? false),
-        ];
-
         $includeLisi = (bool) ($validated['include_lisi_connect_etching'] ?? false);
-        if ($includeLisi && ! in_array('lisi_connect_etching_addon', $ruleCodes, true)) {
+        if ($includeLisi) {
             $lisiAddon = (float) ($settings?->lisi_connect_etching_addon ?? 2.00);
             $amount = round($lisiAddon * $units, 2);
             $addons[] = [
@@ -78,7 +56,7 @@ class OrderPricingService
         }
 
         $isImplant = (bool) ($validated['is_implant'] ?? false);
-        if ($isImplant && ! in_array('implant_addon', $ruleCodes, true)) {
+        if ($isImplant) {
             $implantAddon = (float) ($settings?->implant_addon ?? 2.50);
             $amount = round($implantAddon * $units, 2);
             $addons[] = [
@@ -89,7 +67,7 @@ class OrderPricingService
         }
 
         $isLongBridgeOrHigh = (bool) ($validated['is_long_bridge_or_high'] ?? false);
-        if ($isLongBridgeOrHigh && ! in_array('long_bridge_or_high_addon', $ruleCodes, true)) {
+        if ($isLongBridgeOrHigh) {
             $longBridgeAddon = (float) ($settings?->long_bridge_or_high_addon ?? 3.50);
             $amount = round($longBridgeAddon * $units, 2);
             $addons[] = [
@@ -100,39 +78,11 @@ class OrderPricingService
         }
 
         $includeIntraoral = (bool) ($validated['include_intraoral_print_examples'] ?? false);
-        if ($includeIntraoral && ! in_array('intraoral_print_fee', $ruleCodes, true)) {
+        if ($includeIntraoral) {
             $fee = (float) ($settings?->intraoral_print_fee ?? 8.00);
             $amount = round($fee, 2);
             $addons[] = [
                 'code' => 'intraoral_print_fee',
-                'amount' => $amount,
-            ];
-            $addonsTotal += $amount;
-        }
-
-        // Apply dynamic addons defined by lab manager.
-        foreach ($rules as $rule) {
-            if ($rule->kind !== 'fixed_addon') {
-                continue;
-            }
-
-            if (! in_array($rule->applies_to, ['order', 'item'], true)) {
-                continue;
-            }
-
-            $matches = $evaluator->evaluate($rule->condition, $context);
-            if (! $matches) {
-                continue;
-            }
-
-            $mult = $rule->per_unit ? $units : 1;
-            $amount = round(((float) $rule->value) * $mult, 2);
-            if ($amount <= 0) {
-                continue;
-            }
-
-            $addons[] = [
-                'code' => $rule->code,
                 'amount' => $amount,
             ];
             $addonsTotal += $amount;
@@ -143,62 +93,14 @@ class OrderPricingService
         $isVip = (bool) ($validated['is_vip'] ?? false);
         $applyVipUrgent = $isVip || $order->priority === 'urgent';
 
-        $multiplier = (! in_array('vip_urgent_multiplier', $ruleCodes, true) && $applyVipUrgent)
+        $multiplier = $applyVipUrgent
             ? (float) ($settings?->vip_urgent_multiplier ?? 1.25)
             : 1.0;
-
-        // Apply dynamic multipliers.
-        foreach ($rules as $rule) {
-            if ($rule->kind !== 'multiplier') {
-                continue;
-            }
-
-            if ($rule->applies_to !== 'order') {
-                continue;
-            }
-
-            $matches = $evaluator->evaluate($rule->condition, $context);
-            if (! $matches) {
-                continue;
-            }
-
-            $factor = (float) $rule->value;
-            if ($factor <= 0) {
-                continue;
-            }
-
-            $multiplier *= $factor;
-        }
 
         $subtotalAfterMultiplier = round($subtotalBeforeMultiplier * $multiplier, 2);
 
         $discountAmount = 0.0;
         $finalTotal = $subtotalAfterMultiplier;
-
-        // Apply dynamic percent discounts after multiplier.
-        foreach ($rules as $rule) {
-            if ($rule->kind !== 'percent_discount') {
-                continue;
-            }
-
-            if ($rule->applies_to !== 'order') {
-                continue;
-            }
-
-            $matches = $evaluator->evaluate($rule->condition, $context);
-            if (! $matches) {
-                continue;
-            }
-
-            $percent = max(0.0, min(100.0, (float) $rule->value));
-            if ($percent <= 0) {
-                continue;
-            }
-
-            $amount = round($finalTotal * ($percent / 100.0), 2);
-            $discountAmount += $amount;
-            $finalTotal = round($finalTotal - $amount, 2);
-        }
 
         $applyStudent = (bool) ($validated['apply_student_discount'] ?? false);
         $studentPercent = $validated['student_discount_percent'] ?? null;
