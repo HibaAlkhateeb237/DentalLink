@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Validation\Rules\Password;
 
 class LabStoreRequest extends FormRequest
@@ -27,5 +29,23 @@ class LabStoreRequest extends FormRequest
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'confirmed', Password::min(8)],
         ];
+    }
+
+    protected function failedValidation(Validator $validator): void
+    {
+        $failedRules = $validator->failed();
+        $hasUniqueConflict = collect($failedRules)
+            ->flatMap(fn (array $rules): array => array_keys($rules))
+            ->contains(fn (string $rule): bool => $rule === 'Unique');
+
+        $status = $hasUniqueConflict ? 409 : 400;
+
+        throw new HttpResponseException(response()->json([
+            'success' => false,
+            'status' => $status,
+            'message' => __('messages.validation_failed'),
+            'data' => null,
+            'errors' => $validator->errors(),
+        ], $status));
     }
 }

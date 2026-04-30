@@ -532,7 +532,6 @@ class LabsApiTest extends TestCase
 
         $manager = User::query()->where('email', 'manager1@example.com')->firstOrFail();
         $this->assertTrue(Hash::check('secret12345', (string) $manager->password));
-        $this->assertSame($createdLab->id, $manager->lab_id);
 
         $managementDepartment = Department::query()
             ->where('lab_id', $createdLab->id)
@@ -544,6 +543,96 @@ class LabsApiTest extends TestCase
             'role_id' => Role::query()->where('name', 'lab_manager')->where('guard_name', 'sanctum')->firstOrFail()->id,
             'department_id' => $managementDepartment->id,
         ]);
+    }
+
+    public function test_system_admin_gets_conflict_when_creating_lab_with_duplicate_name_or_email(): void
+    {
+        $this->authenticateAsRole('system_admin');
+
+        Lab::query()->create([
+            'name' => 'Existing Lab',
+            'phone' => '0400000000',
+            'address' => 'Damascus',
+            'latitude' => 33.5000000,
+            'longitude' => 36.2000000,
+            'rating' => 4.00,
+        ]);
+
+        User::factory()->create([
+            'email' => 'existing-manager@example.com',
+        ]);
+
+        $response = $this->postJson('/api/admin/labs', [
+            'lab_name' => 'Existing Lab',
+            'manager_name' => 'Duplicate Manager',
+            'phone' => '0500000000',
+            'location' => 'Damascus Al-Mazzeh',
+            'latitude' => 33.5138070,
+            'longitude' => 36.2765279,
+            'email' => 'existing-manager@example.com',
+            'password' => 'secret12345',
+            'password_confirmation' => 'secret12345',
+        ]);
+
+        $response->assertConflict()
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('status', 409)
+            ->assertJsonPath('message', __('messages.validation_failed'))
+            ->assertJsonValidationErrors(['lab_name', 'email']);
+    }
+
+    public function test_system_admin_admin_labs_endpoints_resolve_manager_from_department_role(): void
+    {
+        $this->authenticateAsRole('system_admin');
+
+        $lab = Lab::query()->create([
+            'name' => 'Fallback Manager Lab',
+            'phone' => '0333333333',
+            'address' => 'Damascus - Kafr Sousa',
+            'latitude' => 33.5000000,
+            'longitude' => 36.2900000,
+            'rating' => 4.00,
+        ]);
+
+        $managementDepartment = Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'Management',
+            'is_management' => true,
+        ]);
+
+        $manager = User::query()->create([
+            'name' => 'Fallback Manager',
+            'email' => 'fallback.manager@example.com',
+            'phone' => '0333333333',
+            'password' => 'secret12345',
+        ]);
+
+        $labManagerRole = Role::query()
+            ->where('name', 'lab_manager')
+            ->where('guard_name', 'sanctum')
+            ->firstOrFail();
+
+        DepartmentUserRole::query()->create([
+            'user_id' => $manager->id,
+            'role_id' => $labManagerRole->id,
+            'department_id' => $managementDepartment->id,
+        ]);
+
+        $indexResponse = $this->getJson('/api/admin/labs?per_page=15');
+
+        $indexResponse->assertOk();
+
+        $indexedLab = collect($indexResponse->json('data.data'))->firstWhere('id', $lab->id);
+
+        $this->assertNotNull($indexedLab);
+        $this->assertSame($manager->id, data_get($indexedLab, 'manager.id'));
+        $this->assertSame('fallback.manager@example.com', data_get($indexedLab, 'manager.email'));
+
+        $showResponse = $this->getJson('/api/admin/labs/' . $lab->id);
+
+        $showResponse->assertOk()
+            ->assertJsonPath('data.manager.id', $manager->id)
+            ->assertJsonPath('data.manager.email', 'fallback.manager@example.com');
     }
 
     public function test_non_system_admin_cannot_create_admin_lab(): void
@@ -580,8 +669,13 @@ class LabsApiTest extends TestCase
             'name' => 'Old Manager',
             'email' => 'old.manager@example.com',
             'phone' => '0111111111',
-            'lab_id' => $lab->id,
             'password' => 'secret12345',
+        ]);
+
+        $managementDepartment = Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'Management',
+            'is_management' => true,
         ]);
 
         $labManagerRole = Role::query()
@@ -589,7 +683,11 @@ class LabsApiTest extends TestCase
             ->where('guard_name', 'sanctum')
             ->firstOrFail();
 
-        $manager->roles()->sync([$labManagerRole->id]);
+        DepartmentUserRole::query()->create([
+            'user_id' => $manager->id,
+            'role_id' => $labManagerRole->id,
+            'department_id' => $managementDepartment->id,
+        ]);
 
         $response = $this->putJson('/api/admin/labs/' . $lab->id, [
             'lab_name' => 'Updated Lab Name',
@@ -623,7 +721,6 @@ class LabsApiTest extends TestCase
         ]);
 
         $updatedManager = User::query()->where('email', 'updated.manager@example.com')->firstOrFail();
-        $this->assertSame($lab->id, $updatedManager->lab_id);
         $this->assertTrue(Hash::check('newsecret12345', (string) $updatedManager->password));
     }
 
@@ -650,7 +747,6 @@ class LabsApiTest extends TestCase
             'name' => 'Scoped Manager',
             'email' => 'manager.updated@brightsmile.com',
             'phone' => '0211111111',
-            'lab_id' => $lab->id,
             'password' => 'secret12345',
         ]);
 
