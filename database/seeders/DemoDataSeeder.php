@@ -38,6 +38,7 @@ class DemoDataSeeder extends Seeder
         $this->clearTables();
 
         $labs = $this->seedLabs();
+        $this->call([LabPricingBulletinSeeder::class]);
         $usersByRole = $this->seedUsers($labs);
         $departmentsByLab = $this->seedDepartmentsAndCompensationTypes($labs);
         $this->seedDepartmentAssignments($usersByRole, $departmentsByLab);
@@ -135,7 +136,7 @@ class DemoDataSeeder extends Seeder
                 'email' => 'lab.manager'.($index + 1).'@demo.local',
                 'phone' => '09991'.str_pad((string) ($index + 1), 5, '0', STR_PAD_LEFT),
                 'password' => 'Password@123',
-                'lab_name' => $lab->name,
+                'lab_id' => $lab->id,
                 'location' => $lab->address,
                 'location_lat' => $lab->latitude,
                 'location_lng' => $lab->longitude,
@@ -241,12 +242,19 @@ class DemoDataSeeder extends Seeder
             }
 
             foreach ($compensationTypes as $index => $typeName) {
-                DentalCompensationType::query()->create([
-                    'lab_id' => $lab->id,
-                    'name' => $typeName,
-                    'reference_price' => 80 + ($index * 35),
-                    'description' => $typeName.' reference pricing',
-                ]);
+                $code = Str::slug($typeName, '_');
+
+                DentalCompensationType::query()->updateOrCreate(
+                    [
+                        'lab_id' => $lab->id,
+                        'code' => $code,
+                    ],
+                    [
+                        'name' => $typeName,
+                        'category' => null,
+                        'description' => $typeName.' reference pricing',
+                    ],
+                );
             }
         }
 

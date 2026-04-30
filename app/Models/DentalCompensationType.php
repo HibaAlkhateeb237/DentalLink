@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class DentalCompensationType extends Model
 {
@@ -12,20 +13,25 @@ class DentalCompensationType extends Model
 
     protected $fillable = [
         'lab_id',
+        'code',
         'name',
-        'reference_price',
+        'category',
         'description',
     ];
 
     protected function casts(): array
     {
         return [
-            'reference_price' => 'decimal:2',
         ];
     }
 
     public function lab(): BelongsTo
     {
         return $this->belongsTo(Lab::class);
+    }
+
+    public function prices(): HasMany
+    {
+        return $this->hasMany(DentalCompensationTypePrice::class);
     }
 }

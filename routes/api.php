@@ -5,6 +5,9 @@
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\LabController;
 use App\Http\Controllers\LabPortfolioController;
+use App\Http\Controllers\LabPricingController;
+use App\Http\Controllers\LabPricingRuleController;
+use App\Http\Controllers\OrderPricingController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/ping', function () {
@@ -53,10 +56,23 @@ Route::prefix('auth')->group(function (): void {
         Route::get('/labs/most-ordered', [LabController::class, 'mostOrdered'])->name('labs.most-ordered');
         Route::get('/labs/{lab}', [LabController::class, 'show'])->name('labs.show');
 
-
         Route::get('/labs/{lab}/portfolio', [LabPortfolioController::class, 'index'])->name('labs.portfolio.index');
         Route::post('/labs/{lab}/portfolio', [LabPortfolioController::class, 'store'])->name('labs.portfolio.store');
 
+        Route::get('/labs/{lab}/pricing', [LabPricingController::class, 'show'])->name('labs.pricing.show');
+
+
+
+
+        Route::get('/labs/{lab}/pricing/rules', [LabPricingRuleController::class, 'index'])->name('labs.pricing.rules.index');
+        Route::post('/labs/{lab}/pricing/rules', [LabPricingRuleController::class, 'store'])->name('labs.pricing.rules.store');
+        Route::put('/labs/{lab}/pricing/rules/{labPricingRule}', [LabPricingRuleController::class, 'update'])->name('labs.pricing.rules.update');
+        Route::delete('/labs/{lab}/pricing/rules/{labPricingRule}', [LabPricingRuleController::class, 'destroy'])->name('labs.pricing.rules.destroy');
+
+
+
+
+        Route::post('/orders/{order}/pricing/calculate', [OrderPricingController::class, 'calculate'])->name('orders.pricing.calculate');
 
     });
 });

@@ -44,6 +44,11 @@ class OrderPolicy
         return $user->hasPermission('orders.update-own') && $order->user_id === $user->id;
     }
 
+    public function price(User $user, Order $order): bool
+    {
+        return $user->hasPermission('orders.price');
+    }
+
     public function delete(User $user, Order $order): bool
     {
         return $user->hasPermission('orders.delete') || ($user->hasPermission('orders.update-own') && $order->user_id === $user->id);
