@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\DeliveryTask;
 use App\Models\Department;
+use App\Models\LabPricingSetting;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\PortfolioCase;
@@ -12,6 +13,7 @@ use App\Models\User;
 use App\Policies\DeliveryTaskPolicy;
 use App\Policies\DepartmentPolicy;
 use App\Policies\EmployeePolicy;
+use App\Policies\LabPricingSettingPolicy;
 use App\Policies\OrderPolicy;
 use App\Policies\PaymentPolicy;
 use App\Policies\PortfolioCasePolicy;
@@ -46,7 +48,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(User::class, EmployeePolicy::class);
 
         Gate::policy(PortfolioCase::class, PortfolioCasePolicy::class);
- 
+
+        Gate::policy(LabPricingSetting::class, LabPricingSettingPolicy::class);
 
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());

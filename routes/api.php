@@ -6,6 +6,8 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\LabController;
 use App\Http\Controllers\LabEmployeeController;
 use App\Http\Controllers\LabPortfolioController;
+use App\Http\Controllers\LabPricingController;
+use App\Http\Controllers\OrderPricingController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/ping', function () {
@@ -55,6 +57,13 @@ Route::prefix('auth')->group(function (): void {
         Route::get('/labs/inactive', [LabController::class, 'inactiveLabs'])->name('labs.inactive');
         Route::get('/labs/{lab}', [LabController::class, 'show'])->name('labs.show');
 
+        Route::get('/labs/{lab}/portfolio', [LabPortfolioController::class, 'index'])->name('labs.portfolio.index');
+        Route::post('/labs/{lab}/portfolio', [LabPortfolioController::class, 'store'])->name('labs.portfolio.store');
+
+        Route::get('/labs/{lab}/pricing', [LabPricingController::class, 'show'])->name('labs.pricing.show');
+
+        Route::post('/orders/{order}/pricing/calculate', [OrderPricingController::class, 'calculate'])->name('orders.pricing.calculate');
+
         Route::middleware(['role:lab_manager'])->prefix('lab/employees')->group(function (): void {
             Route::get('/', [LabEmployeeController::class, 'index'])->name('lab.employees.index');
             Route::post('/', [LabEmployeeController::class, 'store'])->name('lab.employees.store');
@@ -63,7 +72,5 @@ Route::prefix('auth')->group(function (): void {
             Route::delete('/{employee}', [LabEmployeeController::class, 'destroy'])->name('lab.employees.destroy');
         });
 
-        Route::get('/labs/{lab}/portfolio', [LabPortfolioController::class, 'index'])->name('labs.portfolio.index');
-        Route::post('/labs/{lab}/portfolio', [LabPortfolioController::class, 'store'])->name('labs.portfolio.store');
     });
 });

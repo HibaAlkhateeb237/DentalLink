@@ -30,6 +30,8 @@ class User extends Authenticatable
         'birthdate',
         'joined_at',
         'location',
+
+        'lab_id',
         'location_lat',
         'location_lng',
         'password',
@@ -55,7 +57,11 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'birthdate' => 'date',
+
+            'lab_id' => 'integer',
+
             'joined_at' => 'date',
+
             'location_lat' => 'decimal:7',
             'location_lng' => 'decimal:7',
             'failed_login_attempts' => 'integer',
@@ -68,6 +74,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(Order::class);
     }
+
+
+    public function lab(): BelongsTo
+    {
+        return $this->belongsTo(Lab::class);
+    }
+
+
 
     public function payments(): HasMany
     {
