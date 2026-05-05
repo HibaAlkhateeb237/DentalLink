@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Rules\ValidEmailDomain;
 use Illuminate\Foundation\Http\FormRequest;
 
 class VerifyRegisterOtpRequest extends FormRequest
@@ -17,7 +18,7 @@ class VerifyRegisterOtpRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'email', 'max:255'],
+            'email' => ['required', 'email:rfc', new ValidEmailDomain(), 'max:255'],
             'code' => ['required', 'digits:6'],
         ];
     }
