@@ -17,6 +17,7 @@ class Lab extends Model
         'address',
         'latitude',
         'longitude',
+        'rating',
     ];
 
     protected function casts(): array
@@ -24,6 +25,7 @@ class Lab extends Model
         return [
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
+            'rating' => 'decimal:2',
         ];
     }
 

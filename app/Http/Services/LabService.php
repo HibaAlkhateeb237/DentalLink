@@ -71,6 +71,8 @@ class LabService
             ->selectRaw('COALESCE((SELECT AVG(reviews.rating) FROM reviews INNER JOIN orders ON orders.id = reviews.order_id WHERE orders.lab_id = labs.id), 0) as rating')
             ->value('rating');
 
+        $ratingToShow = (float) $averageRating > 0 ? (float) $averageRating : (float) $lab->rating;
+
         return [
             'id' => $lab->id,
             'name' => $lab->name,
@@ -79,7 +81,7 @@ class LabService
             'address' => $lab->address,
             'latitude' => $lab->latitude,
             'longitude' => $lab->longitude,
-            'rating' => number_format((float) $averageRating, 2, '.', ''),
+            'rating' => number_format($ratingToShow, 2, '.', ''),
         ];
     }
 
@@ -332,6 +334,6 @@ class LabService
 
     private function generateLabLicenseNumber(int $labId): string
     {
-        return 'LAB-' . now()->format('Ymd') . '-' . str_pad((string) $labId, 6, '0', STR_PAD_LEFT);
+        return 'LAB-'.now()->format('Ymd').'-'.str_pad((string) $labId, 6, '0', STR_PAD_LEFT);
     }
 }

@@ -17,12 +17,15 @@ class Order extends Model
         'user_id',
         'lab_id',
         'qr_code',
+        'qr_image_path',
         'priority',
         'status',
         'order_type',
         'notes',
         'price',
         'remaining_amount',
+        'tooth_shade_id',
+        'dental_compensation_type_price_id',
     ];
 
     protected function casts(): array
@@ -30,6 +33,7 @@ class Order extends Model
         return [
             'price' => 'decimal:2',
             'remaining_amount' => 'decimal:2',
+            'qr_image_path' => 'string',
         ];
     }
 
@@ -41,6 +45,16 @@ class Order extends Model
     public function lab(): BelongsTo
     {
         return $this->belongsTo(Lab::class);
+    }
+
+    public function toothShade(): BelongsTo
+    {
+        return $this->belongsTo(ToothShade::class);
+    }
+
+    public function dentalCompensationTypePrice(): BelongsTo
+    {
+        return $this->belongsTo(DentalCompensationTypePrice::class);
     }
 
     public function tasks(): HasMany
