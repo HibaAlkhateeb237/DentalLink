@@ -23,6 +23,10 @@ class Order extends Model
         'notes',
         'price',
         'remaining_amount',
+        'requires_resubmission',
+        'resubmission_reason',
+        'resubmission_requested_at',
+        'resubmission_requested_by',
     ];
 
     protected function casts(): array
@@ -30,6 +34,8 @@ class Order extends Model
         return [
             'price' => 'decimal:2',
             'remaining_amount' => 'decimal:2',
+            'requires_resubmission' => 'boolean',
+            'resubmission_requested_at' => 'datetime',
         ];
     }
 

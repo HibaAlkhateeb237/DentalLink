@@ -9,8 +9,8 @@ use App\Models\Lab;
 use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -32,7 +32,18 @@ class LabService
 
     public function getInactiveLabs(int $perPage = 15): LengthAwarePaginator
     {
-        return $this->labRepository->getInactiveLabs($perPage);
+        $labs = $this->labRepository->getInactiveLabs($perPage);
+
+        $labIds = collect($labs->items())
+            ->pluck('id')
+            ->filter()
+            ->values();
+
+        $managersByLabId = $this->resolveManagersByLabIds($labIds->all());
+
+        return $labs->through(function (Lab $lab) use ($managersByLabId): array {
+            return $this->buildLabPayload($lab, $managersByLabId->get($lab->id));
+        });
     }
 
     public function getTopRatedLabs(?int $limit = null): Collection
@@ -92,20 +103,16 @@ class LabService
     {
         $labs = $this->labRepository->paginateAll($perPage);
 
-        $labIds = $labs->getCollection()
+        $labIds = collect($labs->items())
             ->pluck('id')
             ->filter()
             ->values();
 
         $managersByLabId = $this->resolveManagersByLabIds($labIds->all());
 
-        $labs->setCollection(
-            $labs->getCollection()->map(function (Lab $lab) use ($managersByLabId): array {
-                return $this->buildLabPayload($lab, $managersByLabId->get($lab->id));
-            })
-        );
-
-        return $labs;
+        return $labs->through(function (Lab $lab) use ($managersByLabId): array {
+            return $this->buildLabPayload($lab, $managersByLabId->get($lab->id));
+        });
     }
 
     /**

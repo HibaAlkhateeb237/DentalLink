@@ -49,6 +49,15 @@ class OrderPolicy
         return $user->hasPermission('orders.price');
     }
 
+    public function markForResubmission(User $user, Order $order): bool
+    {
+        if ($user->hasPermission(['orders.price', 'orders.update'])) {
+            return true;
+        }
+
+        return $user->hasPermission('orders.update-own') && $order->user_id === $user->id;
+    }
+
     public function delete(User $user, Order $order): bool
     {
         return $user->hasPermission('orders.delete') || ($user->hasPermission('orders.update-own') && $order->user_id === $user->id);

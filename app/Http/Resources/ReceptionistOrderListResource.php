@@ -1,0 +1,44 @@
+<?php
+
+namespace App\Http\Resources;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class ReceptionistOrderListResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            'qr_code' => $this->qr_code,
+            'priority' => $this->priority,
+            'status' => $this->status,
+            'order_type' => $this->order_type,
+            'price' => $this->price,
+            'remaining_amount' => $this->remaining_amount,
+            'paid_amount' => number_format((float) ($this->paid_amount ?? 0), 2, '.', ''),
+            'order_teeth_count' => $this->order_teeth_count,
+            'requires_resubmission' => (bool) $this->requires_resubmission,
+            'resubmission_reason' => $this->resubmission_reason,
+            'resubmission_requested_at' => $this->resubmission_requested_at,
+            'created_at' => $this->created_at,
+            'doctor' => $this->user === null
+                ? null
+                : [
+                    'id' => $this->user->id,
+                    'name' => $this->user->name,
+                    'email' => $this->user->email,
+                    'phone' => $this->user->phone,
+                ],
+            'lab' => $this->lab === null
+                ? null
+                : [
+                    'id' => $this->lab->id,
+                    'name' => $this->lab->name,
+                    'phone' => $this->lab->phone,
+                    'address' => $this->lab->address,
+                ],
+        ];
+    }
+}
