@@ -66,7 +66,7 @@ class AuthApiTest extends TestCase
 
         $response
             ->assertCreated()
-            ->assertJsonStructure(['success', 'status', 'message', 'data' => ['token', 'user' => ['id', 'name', 'email']]])
+            ->assertJsonStructure(['success', 'status', 'message', 'data' => ['token', 'user' => ['id', 'name', 'email'], 'roles']])
             ->assertJsonPath('data.user.location', 'Cairo');
 
         $this->assertStringStartsWith('1990-05-10', (string) $response->json('data.user.birthdate'));
@@ -268,7 +268,7 @@ class AuthApiTest extends TestCase
             'password' => 'password123',
         ]);
 
-        $login->assertOk()->assertJsonStructure(['success', 'status', 'message', 'data' => ['token']]);
+        $login->assertOk()->assertJsonStructure(['success', 'status', 'message', 'data' => ['token', 'user', 'roles']]);
 
         $token = $login->json('data.token');
 

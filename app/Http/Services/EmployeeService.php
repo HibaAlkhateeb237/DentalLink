@@ -118,7 +118,7 @@ class EmployeeService
         $newProfileImagePath = $profileImage?->store('users/profile-images', 'public');
 
         try {
-            $assignment = DB::transaction(function () use ($validated, $employee, $managerLabId, $newProfileImagePath): DepartmentUserRole {
+            $assignment = DB::transaction(function () use ($validated, $employee, $manager, $managerLabId, $newProfileImagePath): DepartmentUserRole {
                 $updates = collect($validated)
                     ->only(['name', 'email', 'birthdate', 'joined_at'])
                     ->all();

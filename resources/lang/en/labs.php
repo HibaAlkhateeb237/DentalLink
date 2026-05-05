@@ -2,6 +2,7 @@
 
 return [
     'retrieved_successfully' => 'Labs retrieved successfully',
+    'inactive_retrieved_successfully' => 'Inactive labs retrieved successfully',
     'search_results_retrieved_successfully' => 'Labs search results retrieved successfully',
     'top_rated_retrieved_successfully' => 'Top rated labs retrieved successfully',
     'nearby_retrieved_successfully' => 'Nearby labs retrieved successfully',

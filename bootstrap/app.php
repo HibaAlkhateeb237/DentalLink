@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureUserHasPermission;
 use App\Http\Middleware\EnsureUserHasRole;
+use App\Http\Responses\ApiResponse;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -15,10 +16,10 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        web: __DIR__.'/../routes/web.php',
-        commands: __DIR__.'/../routes/console.php',
+        web: __DIR__ . '/../routes/web.php',
+        commands: __DIR__ . '/../routes/console.php',
         health: '/up',
-        api: __DIR__.'/../routes/api.php',
+        api: __DIR__ . '/../routes/api.php',
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->redirectGuestsTo(function (Request $request): ?string {
@@ -96,13 +97,19 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function (Throwable $exception, Request $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'status' => Response::HTTP_INTERNAL_SERVER_ERROR,
-                    'message' => __('messages.error'),
-                    'data' => null,
-                    'errors' => null,
-                ], Response::HTTP_INTERNAL_SERVER_ERROR);
+                $reason = $exception->getMessage();
+
+                if ($reason === '') {
+                    $reason = Response::$statusTexts[Response::HTTP_INTERNAL_SERVER_ERROR] ?? __('messages.error');
+                }
+
+                return app(ApiResponse::class)->error(
+                    message: __('messages.error'),
+                    status: Response::HTTP_INTERNAL_SERVER_ERROR,
+                    errors: [
+                        'reason' => $reason,
+                    ],
+                );
             }
 
             return null;

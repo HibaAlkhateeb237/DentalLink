@@ -155,6 +155,7 @@ class AuthController extends Controller
             [
                 'token' => $result['token'],
                 'user' => AuthUserResource::make($user)->resolve(),
+                'roles' => $user->effectiveRoleNames(),
             ],
             __('auth.registered_successfully'),
             201,
@@ -207,6 +208,7 @@ class AuthController extends Controller
             [
                 'token' => $result['token'],
                 'user' => AuthUserResource::make($user)->resolve(),
+                'roles' => $user->effectiveRoleNames(),
             ],
             __('auth.logged_in_successfully'),
             200,
@@ -327,17 +329,17 @@ class AuthController extends Controller
 
     private function throttleKey(Request $request): string
     {
-        return Str::transliterate(Str::lower($request->string('email')->toString()) . '|' . $request->ip());
+        return Str::transliterate(Str::lower($request->string('email')->toString()).'|'.$request->ip());
     }
 
     private function registerOtpThrottleKey(Request $request): string
     {
-        return Str::transliterate('register-otp-send|' . Str::lower($request->string('email')->toString()) . '|' . $request->ip());
+        return Str::transliterate('register-otp-send|'.Str::lower($request->string('email')->toString()).'|'.$request->ip());
     }
 
     private function verifyOtpThrottleKey(Request $request): string
     {
-        return Str::transliterate('register-otp-verify|' . Str::lower($request->string('email')->toString()) . '|' . $request->ip());
+        return Str::transliterate('register-otp-verify|'.Str::lower($request->string('email')->toString()).'|'.$request->ip());
     }
 
     private function applyLocale(Request $request): void

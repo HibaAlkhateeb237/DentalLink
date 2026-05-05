@@ -2,6 +2,7 @@
 
 return [
     'retrieved_successfully' => 'تم جلب المخابر بنجاح.',
+    'inactive_retrieved_successfully' => 'تم جلب المخابر غير النشطة بنجاح.',
     'search_results_retrieved_successfully' => 'تم جلب نتائج البحث عن المخابر بنجاح.',
     'top_rated_retrieved_successfully' => 'تم جلب المخابر الأعلى تقييمًا بنجاح.',
     'nearby_retrieved_successfully' => 'تم جلب المخابر القريبة بنجاح.',
