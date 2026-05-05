@@ -293,6 +293,41 @@ class AuthApiTest extends TestCase
             ->assertJsonValidationErrors(['email']);
     }
 
+    public function test_login_returns_email_error_when_email_is_not_registered(): void
+    {
+        $response = $this->postJson('/api/auth/login', [
+            'email' => 'missing@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response
+            ->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('status', 422)
+            ->assertJsonPath('message', __('auth.login_email_not_found'))
+            ->assertJsonPath('errors.email.0', __('auth.login_email_not_found'));
+    }
+
+    public function test_login_returns_password_error_when_password_is_wrong(): void
+    {
+        User::factory()->create([
+            'email' => 'password-check@example.com',
+            'password' => 'correct-password-123',
+        ]);
+
+        $response = $this->postJson('/api/auth/login', [
+            'email' => 'password-check@example.com',
+            'password' => 'wrong-password-123',
+        ]);
+
+        $response
+            ->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('status', 422)
+            ->assertJsonPath('message', __('auth.login_password_incorrect'))
+            ->assertJsonPath('errors.password.0', __('auth.login_password_incorrect'));
+    }
+
     public function test_me_requires_authentication(): void
     {
         $response = $this->getJson('/api/auth/me');
