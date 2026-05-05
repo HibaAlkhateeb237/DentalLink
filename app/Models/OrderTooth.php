@@ -15,8 +15,6 @@ class OrderTooth extends Model
     protected $fillable = [
         'order_id',
         'tooth_number',
-        'tooth_type',
-        'tooth_color',
         'notes',
     ];
 

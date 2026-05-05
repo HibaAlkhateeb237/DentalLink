@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\DeliveryTask;
 use App\Models\DentalCompensationType;
+use App\Models\DentalCompensationTypePrice;
 use App\Models\Department;
 use App\Models\DepartmentUserRole;
 use App\Models\Favorite;
@@ -18,10 +19,15 @@ use App\Models\Review;
 use App\Models\Role;
 use App\Models\Task;
 use App\Models\TaskWorkSession;
+use App\Models\ToothShade;
 use App\Models\User;
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class DemoDataSeeder extends Seeder
@@ -39,6 +45,7 @@ class DemoDataSeeder extends Seeder
 
         $labs = $this->seedLabs();
         $this->call([LabPricingBulletinSeeder::class]);
+        $this->call([ToothShadeSeeder::class]);
         $usersByRole = $this->seedUsers($labs);
         $departmentsByLab = $this->seedDepartmentsAndCompensationTypes($labs);
         $this->seedDepartmentAssignments($usersByRole, $departmentsByLab);
@@ -57,6 +64,9 @@ class DemoDataSeeder extends Seeder
 
     private function clearTables(): void
     {
+        // Disable foreign key checks to allow clean deletes across DB drivers
+        Schema::disableForeignKeyConstraints();
+
         DB::table('personal_access_tokens')->delete();
         DB::table('notifications')->delete();
         RegistrationOtp::query()->delete();
@@ -76,8 +86,11 @@ class DemoDataSeeder extends Seeder
         Department::query()->delete();
         DB::table('model_has_permissions')->delete();
         DB::table('model_has_roles')->delete();
-        Lab::query()->delete();
+        // delete users before labs to avoid FK issues when users reference labs
         User::query()->delete();
+        Lab::query()->delete();
+
+        Schema::enableForeignKeyConstraints();
     }
 
     /**
@@ -121,7 +134,7 @@ class DemoDataSeeder extends Seeder
 
         $admin = User::query()->create([
             'name' => 'System Admin',
-            'email' => 'system.admin@demo.local',
+            'email' => 'system.admin@dentalink.local',
             'phone' => '0999000000',
             'password' => 'Admin@123456',
             'location' => 'Damascus',
@@ -324,7 +337,7 @@ class DemoDataSeeder extends Seeder
                     ? ($index % 3 === 0 ? 0 : 35)
                     : $price;
 
-                $orders[] = Order::query()->create([
+                $order = Order::query()->create([
                     'user_id' => $doctor->id,
                     'lab_id' => $lab->id,
                     'qr_code' => (string) Str::uuid(),
@@ -336,6 +349,9 @@ class DemoDataSeeder extends Seeder
                     'remaining_amount' => $remainingAmount,
                 ]);
 
+                $this->seedOrderQrImage($order);
+                $orders[] = $order->fresh();
+
                 $index++;
             }
         }
@@ -343,12 +359,49 @@ class DemoDataSeeder extends Seeder
         return $orders;
     }
 
+    private function seedOrderQrImage(Order $order): void
+    {
+        try {
+            $result = Builder::create()
+                ->writer(new PngWriter)
+                ->data(route('orders.show-qr', ['order' => $order->qr_code]))
+                ->size(300)
+                ->build();
+
+            $path = 'orders/'.$order->qr_code.'/qr.png';
+            Storage::disk('public')->put($path, $result->getString());
+
+            $order->forceFill([
+                'qr_image_path' => $path,
+            ])->save();
+        } catch (\Throwable $throwable) {
+        }
+    }
+
     /**
      * @param  array<int, Order>  $orders
      */
     private function seedOrderDetails(array $orders): void
     {
+        $shadeIds = ToothShade::query()
+            ->whereIn('code', ['A2', 'B1'])
+            ->pluck('id', 'code');
+
         foreach ($orders as $index => $order) {
+            $priceIds = DentalCompensationTypePrice::query()
+                ->select('dental_compensation_type_prices.id')
+                ->join('dental_compensation_types', 'dental_compensation_types.id', '=', 'dental_compensation_type_prices.dental_compensation_type_id')
+                ->where('dental_compensation_types.lab_id', $order->lab_id)
+                ->orderBy('dental_compensation_type_prices.id')
+                ->pluck('dental_compensation_type_prices.id')
+                ->values();
+
+            // Update order with shade and price
+            $order->update([
+                'tooth_shade_id' => $shadeIds->get('A2'),
+                'dental_compensation_type_price_id' => $priceIds->get(0),
+            ]);
+
             OrderFile::query()->create([
                 'order_id' => $order->id,
                 'file_path' => 'orders/'.$order->id.'/scan-before.jpg',
@@ -369,16 +422,12 @@ class DemoDataSeeder extends Seeder
             OrderTooth::query()->create([
                 'order_id' => $order->id,
                 'tooth_number' => $firstTooth,
-                'tooth_type' => 'crown',
-                'tooth_color' => 'A2',
                 'notes' => 'Main treatment tooth',
             ]);
 
             OrderTooth::query()->create([
                 'order_id' => $order->id,
                 'tooth_number' => $secondTooth,
-                'tooth_type' => 'veneer',
-                'tooth_color' => 'B1',
                 'notes' => 'Companion treatment tooth',
             ]);
         }

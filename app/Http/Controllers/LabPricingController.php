@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\DentalCompensationTypePriceResource;
 use App\Http\Resources\LabPricingSettingResource;
+use App\Http\Resources\ToothShadeResource;
 use App\Http\Responses\ApiResponse;
 use App\Http\Services\LabPricingService;
 use App\Models\Lab;
@@ -26,8 +27,9 @@ class LabPricingController extends Controller
 
         return $this->apiResponse->success(
             [
-              //  'settings' => $payload['settings'] === null ? null : LabPricingSettingResource::make($payload['settings']),
+                //  'settings' => $payload['settings'] === null ? null : LabPricingSettingResource::make($payload['settings']),
                 'items' => DentalCompensationTypePriceResource::collection($payload['items']),
+                'tooth_shades' => ToothShadeResource::collection($payload['tooth_shades']),
             ],
             __('pricing.retrieved_successfully'),
             200,

@@ -5,7 +5,10 @@ namespace Database\Seeders;
 use App\Models\Lab;
 use App\Models\Order;
 use App\Models\User;
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class OrderSeeder extends Seeder
@@ -35,7 +38,6 @@ class OrderSeeder extends Seeder
         Order::query()->delete();
 
         $distribution = [14, 12, 10, 8, 6];
-        $records = [];
         $createdAt = now();
         $userCount = $userIds->count();
         $globalIndex = 0;
@@ -44,7 +46,7 @@ class OrderSeeder extends Seeder
             $ordersForCurrentLab = $distribution[$labIndex] ?? 0;
 
             for ($index = 0; $index < $ordersForCurrentLab; $index++) {
-                $records[] = [
+                $order = Order::query()->create([
                     'user_id' => $userIds[$globalIndex % $userCount],
                     'lab_id' => $labId,
                     'qr_code' => (string) Str::uuid(),
@@ -56,21 +58,19 @@ class OrderSeeder extends Seeder
                     'remaining_amount' => 0,
                     'created_at' => $createdAt,
                     'updated_at' => $createdAt,
-                ];
+                ]);
+
+                $this->seedOrderQrImage($order);
 
                 $globalIndex++;
             }
-        }
-
-        foreach (array_chunk($records, 50) as $chunk) {
-            Order::query()->insert($chunk);
         }
 
         if ($globalIndex < $targetOrderCount) {
             $fallbackLabId = $labIds->last();
 
             while ($globalIndex < $targetOrderCount) {
-                Order::query()->create([
+                $order = Order::query()->create([
                     'user_id' => $userIds[$globalIndex % $userCount],
                     'lab_id' => $fallbackLabId,
                     'qr_code' => (string) Str::uuid(),
@@ -82,8 +82,29 @@ class OrderSeeder extends Seeder
                     'remaining_amount' => 0,
                 ]);
 
+                $this->seedOrderQrImage($order);
+
                 $globalIndex++;
             }
+        }
+    }
+
+    private function seedOrderQrImage(Order $order): void
+    {
+        try {
+            $result = Builder::create()
+                ->writer(new PngWriter)
+                ->data(route('orders.show-qr', ['order' => $order->qr_code]))
+                ->size(300)
+                ->build();
+
+            $path = 'orders/'.$order->qr_code.'/qr.png';
+            Storage::disk('public')->put($path, $result->getString());
+
+            $order->forceFill([
+                'qr_image_path' => $path,
+            ])->save();
+        } catch (\Throwable $throwable) {
         }
     }
 }

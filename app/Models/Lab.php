@@ -17,7 +17,11 @@ class Lab extends Model
         'address',
         'latitude',
         'longitude',
+
+        'rating',
+
         'is_active',
+
     ];
 
     protected function casts(): array
@@ -25,7 +29,11 @@ class Lab extends Model
         return [
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
+
+            'rating' => 'decimal:2',
+
             'is_active' => 'boolean',
+
         ];
     }
 
