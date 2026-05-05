@@ -11,6 +11,8 @@ return [
     'password_updated_successfully' => 'Password updated successfully.',
     'role_assigned_successfully' => 'Role assigned successfully.',
     'invalid_credentials' => 'Invalid credentials.',
+    'login_email_not_found' => 'The email address is not registered.',
+    'login_password_incorrect' => 'The password is incorrect.',
     'too_many_attempts' => 'Too many failed login attempts. Try again later.',
     'otp_too_many_send_attempts' => 'Too many OTP send requests. Try again later.',
     'otp_too_many_verify_attempts' => 'Too many OTP verification attempts. Try again later.',
