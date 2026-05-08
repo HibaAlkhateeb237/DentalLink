@@ -5,6 +5,7 @@ namespace App\Http\Services;
 use App\Models\Department;
 use App\Models\DepartmentUserRole;
 use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -28,6 +29,30 @@ class DepartmentService
 
             return $department->load('lab:id,name');
         });
+    }
+
+    public function listDepartments(User $manager, int $perPage = 15): LengthAwarePaginator
+    {
+        $managerLabId = $this->resolveManagerLabId($manager);
+
+        return Department::query()
+            ->where('lab_id', $managerLabId)
+            ->with('lab:id,name')
+            ->orderByDesc('id')
+            ->paginate($perPage);
+    }
+
+    public function getDepartment(User $manager, Department $department): Department
+    {
+        $managerLabId = $this->resolveManagerLabId($manager);
+
+        if ($department->lab_id !== $managerLabId) {
+            throw ValidationException::withMessages([
+                'department_id' => [__('messages.not_found')],
+            ]);
+        }
+
+        return $department->load('lab:id,name');
     }
 
     /**
