@@ -193,10 +193,19 @@ class AuthController extends Controller
             );
         }
 
-        if ($result['status'] === 'invalid') {
+        if ($result['status'] === 'invalid_email' || $result['status'] === 'invalid_password') {
             RateLimiter::hit($throttleKey, 60);
 
-            return $this->apiResponse->error(__('auth.invalid_credentials'), 422);
+            $failedField = $result['status'] === 'invalid_email' ? 'email' : 'password';
+            $messageKey = $result['status'] === 'invalid_email' ? 'auth.login_email_not_found' : 'auth.login_password_incorrect';
+
+            return $this->apiResponse->error(
+                __($messageKey),
+                422,
+                [
+                    $failedField => [__($messageKey)],
+                ],
+            );
         }
 
         RateLimiter::clear($throttleKey);

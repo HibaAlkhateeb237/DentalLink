@@ -1,11 +1,10 @@
 <?php
 
-namespace App\Http\Requests\Auth;
+namespace App\Http\Requests;
 
-use App\Rules\ValidEmailDomain;
 use Illuminate\Foundation\Http\FormRequest;
 
-class VerifyRegisterOtpRequest extends FormRequest
+class ReceptionistOrderResubmissionRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -18,8 +17,7 @@ class VerifyRegisterOtpRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'email:rfc', new ValidEmailDomain(), 'max:255'],
-            'code' => ['required', 'digits:6'],
+            'reason' => ['required', 'string', 'max:1000'],
         ];
     }
 }

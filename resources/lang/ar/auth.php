@@ -11,6 +11,8 @@ return [
     'password_updated_successfully' => 'تم تحديث كلمة المرور بنجاح.',
     'role_assigned_successfully' => 'تم إسناد الدور بنجاح.',
     'invalid_credentials' => 'بيانات الدخول غير صحيحة.',
+    'login_email_not_found' => 'البريد الإلكتروني غير مسجل.',
+    'login_password_incorrect' => 'كلمة المرور غير صحيحة.',
     'too_many_attempts' => 'عدد محاولات تسجيل الدخول الفاشلة كبير. حاول لاحقًا.',
     'otp_too_many_send_attempts' => 'عدد طلبات إرسال رمز التحقق كبير. حاول لاحقًا.',
     'otp_too_many_verify_attempts' => 'عدد محاولات التحقق كبير. حاول لاحقًا.',

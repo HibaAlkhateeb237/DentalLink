@@ -1,0 +1,118 @@
+<?php
+
+namespace App\Http\Services;
+
+use App\Models\Order;
+use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Auth;
+
+class ReceptionistOrderService
+{
+    /**
+     * @param  array{per_page?:int,status?:string,priority?:string,doctor_id?:int,lab_id?:int,search?:string,from_date?:string,to_date?:string,sort_by?:string,sort_direction?:string,requires_resubmission?:bool}  $validated
+     */
+    public function listOrders(array $validated): LengthAwarePaginator
+    {
+        $query = Order::query()
+            ->with([
+                'user:id,name,email,phone',
+                'lab:id,name,phone,address',
+            ])
+            ->withCount('orderTeeth')
+            ->withSum('payments as paid_amount', 'payment_order.amount');
+
+        if (isset($validated['status'])) {
+            $query->where('status', $validated['status']);
+        }
+
+        if (isset($validated['priority'])) {
+            $query->where('priority', $validated['priority']);
+        }
+
+        if (isset($validated['doctor_id'])) {
+            $query->where('user_id', $validated['doctor_id']);
+        }
+
+        if (isset($validated['lab_id'])) {
+            $query->where('lab_id', $validated['lab_id']);
+        } else {
+            $user = Auth::user();
+            if ($user && isset($user->lab_id)) {
+                $query->where('lab_id', $user->lab_id);
+            }
+        }
+
+        if (array_key_exists('requires_resubmission', $validated)) {
+            $query->where('requires_resubmission', (bool) $validated['requires_resubmission']);
+        }
+
+        if (isset($validated['from_date'])) {
+            $query->whereDate('created_at', '>=', $validated['from_date']);
+        }
+
+        if (isset($validated['to_date'])) {
+            $query->whereDate('created_at', '<=', $validated['to_date']);
+        }
+
+        if (isset($validated['search'])) {
+            $search = trim($validated['search']);
+
+            $query->where(function (Builder $builder) use ($search): void {
+                $builder->where('qr_code', 'like', '%' . $search . '%')
+                    ->orWhereHas('user', function (Builder $userQuery) use ($search): void {
+                        $userQuery->where('name', 'like', '%' . $search . '%')
+                            ->orWhere('email', 'like', '%' . $search . '%')
+                            ->orWhere('phone', 'like', '%' . $search . '%');
+                    })
+                    ->orWhereHas('lab', function (Builder $labQuery) use ($search): void {
+                        $labQuery->where('name', 'like', '%' . $search . '%');
+                    });
+            });
+        }
+
+        $sortBy = $validated['sort_by'] ?? 'created_at';
+        $sortDirection = $validated['sort_direction'] ?? 'desc';
+
+        return $query
+            ->orderBy($sortBy, $sortDirection)
+            ->paginate((int) ($validated['per_page'] ?? 15))
+            ->withQueryString();
+    }
+
+    public function getOrderDetails(Order $order): Order
+    {
+        return $order->load([
+            'user:id,name,email,phone',
+            'lab:id,name,phone,address',
+            'orderTeeth:id,order_id,tooth_number,tooth_type,tooth_color,notes',
+            'orderFiles:id,order_id,file_path,file_type,uploaded_at',
+            'tasks:id,order_id,department_id,user_id,approved_at,status',
+            'tasks.department:id,name,lab_id',
+            'tasks.user:id,name,email',
+            'payments:id,user_id,amount,payment_method,paid_at',
+            'payments.user:id,name,email',
+        ])->loadSum('payments as paid_amount', 'payment_order.amount');
+    }
+
+    public function markForResubmission(Order $order, string $reason, User $actor): Order
+    {
+        if (in_array($order->status, ['delivered', 'cancelled'], true)) {
+            throw ValidationException::withMessages([
+                'status' => [__('orders.resubmission_not_allowed_for_status')],
+            ]);
+        }
+
+        $order->fill([
+            'requires_resubmission' => true,
+            'resubmission_reason' => $reason,
+            'resubmission_requested_at' => now(),
+            'resubmission_requested_by' => $actor->id,
+        ]);
+        $order->save();
+
+        return $this->getOrderDetails($order->fresh());
+    }
+}

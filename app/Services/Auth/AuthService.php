@@ -223,7 +223,7 @@ class AuthService
 
     /**
      * @param  array{email:string,password:string}  $credentials
-     * @return array{status:'authenticated',user:User,token:string}|array{status:'invalid'}|array{status:'locked',retry_after_seconds:int}
+     * @return array{status:'authenticated',user:User,token:string}|array{status:'invalid_email'|'invalid_password'}|array{status:'locked',retry_after_seconds:int}
      */
     public function login(array $credentials): array
     {
@@ -231,32 +231,35 @@ class AuthService
             ->where('email', $credentials['email'])
             ->first();
 
-        if ($user !== null && $user->locked_until !== null && $user->locked_until->isFuture()) {
+        if ($user === null) {
+            return [
+                'status' => 'invalid_email',
+            ];
+        }
+
+        if ($user->locked_until !== null && $user->locked_until->isFuture()) {
             return [
                 'status' => 'locked',
                 'retry_after_seconds' => max(now()->diffInSeconds($user->locked_until), 1),
             ];
         }
 
-        if (! Auth::attempt($credentials)) {
-            if ($user !== null) {
-                $failedAttempts = $user->failed_login_attempts + 1;
+        if (! Hash::check($credentials['password'], (string) $user->password)) {
+            $failedAttempts = $user->failed_login_attempts + 1;
 
-                $user->forceFill([
-                    'failed_login_attempts' => $failedAttempts,
-                    'locked_until' => $failedAttempts >= self::LOGIN_MAX_FAILED_ATTEMPTS
-                        ? now()->addSeconds(self::LOGIN_LOCK_SECONDS)
-                        : null,
-                ])->save();
-            }
+            $user->forceFill([
+                'failed_login_attempts' => $failedAttempts,
+                'locked_until' => $failedAttempts >= self::LOGIN_MAX_FAILED_ATTEMPTS
+                    ? now()->addSeconds(self::LOGIN_LOCK_SECONDS)
+                    : null,
+            ])->save();
 
             return [
-                'status' => 'invalid',
+                'status' => 'invalid_password',
             ];
         }
 
-        /** @var User $user */
-        $user = Auth::user();
+        Auth::login($user);
 
         if ($user->failed_login_attempts > 0 || $user->locked_until !== null) {
             $user->forceFill([

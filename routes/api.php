@@ -9,7 +9,11 @@ use App\Http\Controllers\LabPortfolioController;
 use App\Http\Controllers\LabPricingController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OrderPricingController;
+
 use App\Http\Controllers\ToothShadeController;
+
+use App\Http\Controllers\ReceptionistOrderController;
+
 use Illuminate\Support\Facades\Route;
 
 Route::get('/ping', function () {
@@ -75,6 +79,13 @@ Route::prefix('auth')->group(function (): void {
         Route::get('/orders/qr/{order:qr_code}', [OrderController::class, 'show'])->name('orders.show-qr');
 
         //  Route::post('/orders/{order}/pricing/calculate', [OrderPricingController::class, 'calculate'])->name('orders.pricing.calculate');
+
+        Route::middleware(['role:receptionist'])->prefix('orders')->group(function (): void {
+            Route::get('/', [ReceptionistOrderController::class, 'index'])->name('orders.index');
+            Route::get('/{order}', [ReceptionistOrderController::class, 'show'])->name('orders.show');
+            Route::post('/{order}/resubmission', [ReceptionistOrderController::class, 'markForResubmission'])
+                ->name('orders.resubmission.store');
+        });
 
         Route::middleware(['role:lab_manager'])->prefix('lab/employees')->group(function (): void {
             Route::get('/', [LabEmployeeController::class, 'index'])->name('lab.employees.index');

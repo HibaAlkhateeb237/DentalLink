@@ -244,6 +244,7 @@ class DemoDataSeeder extends Seeder
         foreach ($labs as $lab) {
             $departmentsByLab[$lab->id] = [];
 
+            // Create operational departments
             foreach ($departmentNames as $name) {
                 $departmentsByLab[$lab->id][] = Department::query()->create([
                     'lab_id' => $lab->id,
@@ -251,6 +252,13 @@ class DemoDataSeeder extends Seeder
                     'description' => $name.' department for '.$lab->name,
                 ]);
             }
+
+            // Create Management department for lab manager
+            Department::query()->create([
+                'lab_id' => $lab->id,
+                'name' => 'Management',
+                'is_management' => true,
+            ]);
 
             foreach ($compensationTypes as $index => $typeName) {
                 $code = Str::slug($typeName, '_');
@@ -308,6 +316,26 @@ class DemoDataSeeder extends Seeder
                 }
 
                 $departmentCounter++;
+            }
+        }
+
+        // Assign lab managers to Management departments
+        $labManagerRoleId = Role::query()->where('name', 'lab_manager')->where('guard_name', 'sanctum')->value('id');
+        if ($labManagerRoleId !== null && ! empty($usersByRole['lab_manager'])) {
+            $managementDepartments = Department::query()
+                ->where('is_management', true)
+                ->get()
+                ->keyBy('lab_id');
+
+            foreach ($usersByRole['lab_manager'] as $labManager) {
+                if ($labManager->lab_id !== null && isset($managementDepartments[$labManager->lab_id])) {
+                    $managementDept = $managementDepartments[$labManager->lab_id];
+                    DepartmentUserRole::query()->firstOrCreate([
+                        'user_id' => $labManager->id,
+                        'role_id' => $labManagerRoleId,
+                        'department_id' => $managementDept->id,
+                    ]);
+                }
             }
         }
     }
