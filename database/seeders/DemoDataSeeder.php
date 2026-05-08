@@ -149,8 +149,6 @@ class DemoDataSeeder extends Seeder
                 'email' => 'lab.manager'.($index + 1).'@demo.local',
                 'phone' => '09991'.str_pad((string) ($index + 1), 5, '0', STR_PAD_LEFT),
                 'password' => 'Password@123',
-                'lab_id' => $lab->id,
-                'location' => $lab->address,
                 'location_lat' => $lab->latitude,
                 'location_lng' => $lab->longitude,
             ]);

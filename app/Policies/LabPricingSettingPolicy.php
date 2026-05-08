@@ -17,13 +17,26 @@ class LabPricingSettingPolicy
         return null;
     }
 
+    /**
+     * Check if user belongs to the lab through department roles
+     */
+    private function userBelongsToLab(User $user, Lab $lab): bool
+    {
+        return $user->departmentUserRoles()
+            ->whereHas('department', function ($q) use ($lab) {
+                $q->where('lab_id', $lab->id);
+            })
+            ->exists();
+    }
+
     public function viewAny(User $user, Lab $lab): bool
     {
         if (! $user->hasPermission(['orders.price', 'labs.manage', 'labs.view'])) {
             return false;
         }
 
-        return $user->lab_id === null || $user->lab_id === $lab->id;
+        // Allow if user has no department roles (admin/doctor) OR belongs to this lab
+        return ! $user->departmentUserRoles()->exists() || $this->userBelongsToLab($user, $lab);
     }
 
     public function update(User $user, Lab $lab): bool
@@ -32,7 +45,7 @@ class LabPricingSettingPolicy
             return false;
         }
 
-        return $user->lab_id !== null && $user->lab_id === $lab->id;
+        return $this->userBelongsToLab($user, $lab);
     }
 
     public function view(User $user, LabPricingSetting $labPricingSetting): bool
