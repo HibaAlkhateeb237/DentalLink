@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\DepartmentBulkStoreRequest;
+use App\Http\Requests\DepartmentIndexRequest;
 use App\Http\Requests\DepartmentStoreRequest;
 use App\Http\Requests\DepartmentUpdateRequest;
 use App\Http\Resources\DepartmentResource;
@@ -32,6 +33,35 @@ class DepartmentController extends Controller
             ],
             __('departments.created_successfully'),
             201,
+        );
+    }
+
+    public function index(DepartmentIndexRequest $request): JsonResponse
+    {
+        $perPage = (int) ($request->validated()['per_page'] ?? 15);
+
+        $departments = $this->departmentService->listDepartments($request->user(), $perPage);
+        $payload = DepartmentResource::collection($departments)->response()->getData(true);
+
+        return $this->apiResponse->success(
+            $payload,
+            __('departments.retrieved_successfully')
+        );
+    }
+
+    public function show(Request $request, Department $department): JsonResponse
+    {
+        if (! $request->user()?->can('view', $department)) {
+            return $this->apiResponse->error(__('auth.forbidden'), 403);
+        }
+
+        $department = $this->departmentService->getDepartment($request->user(), $department);
+
+        return $this->apiResponse->success(
+            [
+                'department' => DepartmentResource::make($department)->resolve(),
+            ],
+            __('departments.details_retrieved_successfully')
         );
     }
 

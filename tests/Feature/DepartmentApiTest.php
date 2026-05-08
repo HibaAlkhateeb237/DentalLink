@@ -39,6 +39,46 @@ class DepartmentApiTest extends TestCase
         ]);
     }
 
+    public function test_lab_manager_can_list_departments(): void
+    {
+        [$manager, $lab] = $this->authenticateLabManager();
+
+        Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'Design',
+            'description' => null,
+            'is_management' => false,
+        ]);
+
+        $response = $this->getJson('/api/auth/lab/departments?per_page=10');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message', __('departments.retrieved_successfully'))
+            ->assertJsonPath('data.data.0.name', 'Design')
+            ->assertJsonPath('data.data.0.lab_id', $lab->id);
+    }
+
+    public function test_lab_manager_can_show_department(): void
+    {
+        [$manager, $lab] = $this->authenticateLabManager();
+
+        $department = Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'Design',
+            'description' => null,
+            'is_management' => false,
+        ]);
+
+        $response = $this->getJson('/api/auth/lab/departments/'.$department->id);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message', __('departments.details_retrieved_successfully'))
+            ->assertJsonPath('data.department.id', $department->id)
+            ->assertJsonPath('data.department.lab_id', $lab->id);
+    }
+
     public function test_lab_manager_cannot_create_duplicate_department(): void
     {
         [$manager, $lab] = $this->authenticateLabManager();
@@ -130,7 +170,7 @@ class DepartmentApiTest extends TestCase
             'is_management' => false,
         ]);
 
-        $response = $this->deleteJson('/api/auth/lab/departments/' . $department->id);
+        $response = $this->deleteJson('/api/auth/lab/departments/'.$department->id);
 
         $response
             ->assertOk()
@@ -152,7 +192,7 @@ class DepartmentApiTest extends TestCase
             'is_management' => false,
         ]);
 
-        $response = $this->putJson('/api/auth/lab/departments/' . $department->id, [
+        $response = $this->putJson('/api/auth/lab/departments/'.$department->id, [
             'name' => 'Design Updated',
             'description' => 'Updated description',
         ]);
@@ -186,7 +226,7 @@ class DepartmentApiTest extends TestCase
             'is_management' => false,
         ]);
 
-        $response = $this->putJson('/api/auth/lab/departments/' . $department->id, [
+        $response = $this->putJson('/api/auth/lab/departments/'.$department->id, [
             'name' => 'Ceramics',
         ]);
 
@@ -219,7 +259,7 @@ class DepartmentApiTest extends TestCase
 
         Sanctum::actingAs($user);
 
-        $response = $this->putJson('/api/auth/lab/departments/' . $department->id, [
+        $response = $this->putJson('/api/auth/lab/departments/'.$department->id, [
             'name' => 'Design Updated',
         ]);
 
@@ -250,7 +290,51 @@ class DepartmentApiTest extends TestCase
 
         Sanctum::actingAs($user);
 
-        $response = $this->deleteJson('/api/auth/lab/departments/' . $department->id);
+        $response = $this->deleteJson('/api/auth/lab/departments/'.$department->id);
+
+        $response->assertForbidden();
+    }
+
+    public function test_non_lab_manager_cannot_list_departments(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $user = User::factory()->create();
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $user->roles()->sync([$role->id]);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->getJson('/api/auth/lab/departments');
+
+        $response->assertForbidden();
+    }
+
+    public function test_non_lab_manager_cannot_show_department(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $department = Department::query()->create([
+            'lab_id' => Lab::query()->create([
+                'name' => 'Lab A',
+                'phone' => '0111111111',
+                'address' => 'Damascus',
+                'latitude' => 33.5138070,
+                'longitude' => 36.2765279,
+                'rating' => 4.20,
+            ])->id,
+            'name' => 'Design',
+            'description' => null,
+            'is_management' => false,
+        ]);
+
+        $user = User::factory()->create();
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $user->roles()->sync([$role->id]);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->getJson('/api/auth/lab/departments/'.$department->id);
 
         $response->assertForbidden();
     }
