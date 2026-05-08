@@ -3,6 +3,7 @@
 // routes/api.php
 
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\LabController;
 use App\Http\Controllers\LabEmployeeController;
 use App\Http\Controllers\LabPortfolioController;
@@ -95,5 +96,11 @@ Route::prefix('auth')->group(function (): void {
             Route::delete('/{employee}', [LabEmployeeController::class, 'destroy'])->name('lab.employees.destroy');
         });
 
+        Route::middleware(['role:lab_manager'])->prefix('lab/departments')->group(function (): void {
+            Route::post('/', [DepartmentController::class, 'store'])->name('lab.departments.store');
+            Route::post('/bulk', [DepartmentController::class, 'bulkStore'])->name('lab.departments.bulk.store');
+            Route::put('/{department}', [DepartmentController::class, 'update'])->name('lab.departments.update');
+            Route::delete('/{department}', [DepartmentController::class, 'destroy'])->name('lab.departments.destroy');
+        });
     });
 });

@@ -1,0 +1,214 @@
+{
+    "info": {
+        "name": "DentaLink Departments API",
+        "_postman_id": "dentalink-departments",
+        "description": "Collection for lab manager department endpoints. Use the `{{baseUrl}}` and `{{token}}` variables.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Create Department",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    },
+                    {
+                        "key": "X-Locale",
+                        "value": "en",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"name\": \"Design\",\n  \"description\": \"Design team\"\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/api/auth/lab/departments",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "auth",
+                        "lab",
+                        "departments"
+                    ]
+                },
+                "description": "Creates a single department for the authenticated lab manager's lab."
+            },
+            "response": []
+        },
+        {
+            "name": "Bulk Create Departments",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    },
+                    {
+                        "key": "X-Locale",
+                        "value": "en",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"departments\": [\n    {\n      \"name\": \"Design\",\n      \"description\": \"Design team\"\n    },\n    {\n      \"name\": \"Ceramics\",\n      \"description\": \"Ceramics team\"\n    }\n  ]\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/api/auth/lab/departments/bulk",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "auth",
+                        "lab",
+                        "departments",
+                        "bulk"
+                    ]
+                },
+                "description": "Creates multiple departments for the authenticated lab manager's lab."
+            },
+            "response": []
+        },
+        {
+            "name": "Update Department",
+            "request": {
+                "method": "PUT",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    },
+                    {
+                        "key": "X-Locale",
+                        "value": "en",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"name\": \"Design Updated\",\n  \"description\": \"Updated description\"\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/api/auth/lab/departments/{{department_id}}",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "auth",
+                        "lab",
+                        "departments",
+                        "{{department_id}}"
+                    ]
+                },
+                "description": "Updates a department for the authenticated lab manager's lab."
+            },
+            "response": []
+        },
+        {
+            "name": "Delete Department",
+            "request": {
+                "method": "DELETE",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    },
+                    {
+                        "key": "X-Locale",
+                        "value": "en",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{baseUrl}}/api/auth/lab/departments/{{department_id}}",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "auth",
+                        "lab",
+                        "departments",
+                        "{{department_id}}"
+                    ]
+                },
+                "description": "Deletes a department for the authenticated lab manager's lab."
+            },
+            "response": []
+        }
+    ],
+    "event": [],
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:8000",
+            "type": "string"
+        },
+        {
+            "key": "token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "department_id",
+            "value": "",
+            "type": "string"
+        }
+    ]
+}
