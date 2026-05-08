@@ -18,5 +18,7 @@ class UsersTableColumnsTest extends TestCase
         $this->assertTrue(
             Schema::hasColumns('users', ['birthdate', 'location', 'location_lat', 'location_lng'])
         );
+
+        $this->assertFalse(Schema::hasColumn('users', 'lab_id'));
     }
 }

@@ -11,10 +11,10 @@ class ToothShadeResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'code' => $this->code,
+            // 'code' => $this->code,
             'name' => $this->name,
             'color_hex' => $this->color_hex,
-            'sort_order' => $this->sort_order,
+            // 'sort_order' => $this->sort_order,
         ];
     }
 }

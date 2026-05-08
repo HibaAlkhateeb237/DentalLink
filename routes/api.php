@@ -9,6 +9,7 @@ use App\Http\Controllers\LabPortfolioController;
 use App\Http\Controllers\LabPricingController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OrderPricingController;
+use App\Http\Controllers\ToothShadeController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/ping', function () {
@@ -25,15 +26,6 @@ Route::get('/ping', function () {
 
 // ?context=home
 
-// Public lab endpoints
-Route::get('/labs', [LabController::class, 'index'])->name('labs.index');
-Route::post('/labs/search', [LabController::class, 'search'])->name('labs.search');
-Route::get('/labs/top-rated', [LabController::class, 'topRated'])->name('labs.top-rated');
-Route::get('/labs/nearby', [LabController::class, 'nearby'])->name('labs.nearby');
-Route::get('/labs/suggested', [LabController::class, 'suggested'])->name('labs.suggested');
-Route::get('/labs/most-ordered', [LabController::class, 'mostOrdered'])->name('labs.most-ordered');
-Route::get('/labs/{lab}', [LabController::class, 'show'])->name('labs.show');
-
 Route::middleware(['auth:sanctum', 'role:system_admin'])->prefix('admin/labs')->group(function (): void {
     Route::get('/', [LabController::class, 'adminIndex'])->name('admin.labs.index');
     Route::get('/{lab}', [LabController::class, 'adminShow'])->name('admin.labs.show');
@@ -49,6 +41,8 @@ Route::prefix('auth')->group(function (): void {
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:api');
 
     Route::middleware('auth:sanctum')->group(function (): void {
+        Route::get('/tooth-shades', [ToothShadeController::class, 'index'])->name('auth.tooth-shades.index');
+
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/me', [AuthController::class, 'updateProfile']);
         Route::delete('/me/profile-image', [AuthController::class, 'removeProfileImage']);
@@ -74,10 +68,13 @@ Route::prefix('auth')->group(function (): void {
         Route::get('/labs/{lab}/pricing', [LabPricingController::class, 'show'])->name('labs.pricing.show');
 
         Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
+        Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+        Route::get('/tooth-shades', [ToothShadeController::class, 'index'])->name('tooth-shades.index');
+        // for QR
         Route::get('/orders/qr/{order:qr_code}', [OrderController::class, 'show'])->name('orders.show-qr');
 
-        Route::post('/orders/{order}/pricing/calculate', [OrderPricingController::class, 'calculate'])->name('orders.pricing.calculate');
+        //  Route::post('/orders/{order}/pricing/calculate', [OrderPricingController::class, 'calculate'])->name('orders.pricing.calculate');
 
         Route::middleware(['role:lab_manager'])->prefix('lab/employees')->group(function (): void {
             Route::get('/', [LabEmployeeController::class, 'index'])->name('lab.employees.index');
