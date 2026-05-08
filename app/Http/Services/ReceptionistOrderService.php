@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Auth;
 
 class ReceptionistOrderService
 {
@@ -37,6 +38,11 @@ class ReceptionistOrderService
 
         if (isset($validated['lab_id'])) {
             $query->where('lab_id', $validated['lab_id']);
+        } else {
+            $user = Auth::user();
+            if ($user && isset($user->lab_id)) {
+                $query->where('lab_id', $user->lab_id);
+            }
         }
 
         if (array_key_exists('requires_resubmission', $validated)) {
@@ -55,14 +61,14 @@ class ReceptionistOrderService
             $search = trim($validated['search']);
 
             $query->where(function (Builder $builder) use ($search): void {
-                $builder->where('qr_code', 'like', '%'.$search.'%')
+                $builder->where('qr_code', 'like', '%' . $search . '%')
                     ->orWhereHas('user', function (Builder $userQuery) use ($search): void {
-                        $userQuery->where('name', 'like', '%'.$search.'%')
-                            ->orWhere('email', 'like', '%'.$search.'%')
-                            ->orWhere('phone', 'like', '%'.$search.'%');
+                        $userQuery->where('name', 'like', '%' . $search . '%')
+                            ->orWhere('email', 'like', '%' . $search . '%')
+                            ->orWhere('phone', 'like', '%' . $search . '%');
                     })
                     ->orWhereHas('lab', function (Builder $labQuery) use ($search): void {
-                        $labQuery->where('name', 'like', '%'.$search.'%');
+                        $labQuery->where('name', 'like', '%' . $search . '%');
                     });
             });
         }
