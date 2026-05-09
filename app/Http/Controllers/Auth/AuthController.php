@@ -8,6 +8,7 @@ use App\Http\Requests\Auth\ChangePasswordRequest;
 use App\Http\Requests\Auth\CompleteRegisterRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RequestRegisterOtpRequest;
+use App\Http\Requests\Auth\RoleIndexRequest;
 use App\Http\Requests\Auth\UpdateProfileRequest;
 use App\Http\Requests\Auth\VerifyRegisterOtpRequest;
 use App\Http\Resources\Auth\AuthUserResource;
@@ -261,6 +262,54 @@ class AuthController extends Controller
         );
     }
 
+    public function roles(RoleIndexRequest $request): JsonResponse
+    {
+        $this->applyLocale($request);
+
+        /** @var User|null $user */
+        $user = $request->user();
+
+        if ($user === null) {
+            return $this->apiResponse->error(__('auth.unauthenticated'), 401);
+        }
+
+        $departmentId = $request->integer('department_id') ?: null;
+
+        $user->loadMissing(
+            'roles:id,name',
+            'departmentUserRoles:department_id,user_id,role_id',
+            'departmentUserRoles.role:id,name',
+        );
+
+        $globalRoles = $user->roles
+            ->map(static fn($role): array => [
+                'id' => $role->id,
+                'name' => $role->name,
+            ]);
+
+        $departmentRoles = $user->departmentUserRoles
+            ->when($departmentId !== null, static fn($roles) => $roles->where('department_id', $departmentId))
+            ->map(static fn($departmentUserRole) => $departmentUserRole->role)
+            ->filter()
+            ->map(static fn($role): array => [
+                'id' => $role->id,
+                'name' => $role->name,
+            ]);
+
+        $roles = $globalRoles
+            ->merge($departmentRoles)
+            ->unique('id')
+            ->values();
+
+        return $this->apiResponse->success(
+            [
+                'roles' => $roles,
+            ],
+            __('auth.roles_retrieved_successfully'),
+            200,
+        );
+    }
+
     public function updateProfile(UpdateProfileRequest $request): JsonResponse
     {
         $this->applyLocale($request);
@@ -338,17 +387,17 @@ class AuthController extends Controller
 
     private function throttleKey(Request $request): string
     {
-        return Str::transliterate(Str::lower($request->string('email')->toString()).'|'.$request->ip());
+        return Str::transliterate(Str::lower($request->string('email')->toString()) . '|' . $request->ip());
     }
 
     private function registerOtpThrottleKey(Request $request): string
     {
-        return Str::transliterate('register-otp-send|'.Str::lower($request->string('email')->toString()).'|'.$request->ip());
+        return Str::transliterate('register-otp-send|' . Str::lower($request->string('email')->toString()) . '|' . $request->ip());
     }
 
     private function verifyOtpThrottleKey(Request $request): string
     {
-        return Str::transliterate('register-otp-verify|'.Str::lower($request->string('email')->toString()).'|'.$request->ip());
+        return Str::transliterate('register-otp-verify|' . Str::lower($request->string('email')->toString()) . '|' . $request->ip());
     }
 
     private function applyLocale(Request $request): void

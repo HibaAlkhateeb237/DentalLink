@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Role;
 use App\Models\User;
 use App\Notifications\Auth\RegisterOtpNotification;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -272,7 +274,7 @@ class AuthApiTest extends TestCase
 
         $token = $login->json('data.token');
 
-        $logout = $this->withHeader('Authorization', 'Bearer '.$token)
+        $logout = $this->withHeader('Authorization', 'Bearer ' . $token)
             ->postJson('/api/auth/logout');
 
         $logout->assertOk();
@@ -340,6 +342,30 @@ class AuthApiTest extends TestCase
         $response = $this->get('/api/auth/me');
 
         $response->assertUnauthorized();
+    }
+
+    public function test_authenticated_user_can_fetch_roles(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $user = User::factory()->create([
+            'email' => 'roles-user@example.com',
+        ]);
+
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $user->roles()->sync([$role->id]);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->getJson('/api/auth/roles');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('status', 200)
+            ->assertJsonPath('message', __('auth.roles_retrieved_successfully'))
+            ->assertJsonPath('data.roles.0.id', $role->id)
+            ->assertJsonPath('data.roles.0.name', 'doctor');
     }
 
     public function test_authenticated_user_can_update_profile(): void

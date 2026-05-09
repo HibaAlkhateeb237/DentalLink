@@ -43,10 +43,10 @@ class EmployeeStoreRequest extends FormRequest
                     $query->whereRaw('1 = 0');
                 }),
             ],
-            'role' => [
+            'role_id' => [
                 'required',
-                'string',
-                Rule::exists('roles', 'name')->where(function ($query): void {
+                'integer',
+                Rule::exists('roles', 'id')->where(function ($query): void {
                     $query
                         ->where('guard_name', 'sanctum')
                         ->whereIn('name', EmployeeRoles::allowed());

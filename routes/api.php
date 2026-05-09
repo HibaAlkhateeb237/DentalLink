@@ -10,11 +10,8 @@ use App\Http\Controllers\LabPortfolioController;
 use App\Http\Controllers\LabPricingController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OrderPricingController;
-
-use App\Http\Controllers\ToothShadeController;
-
 use App\Http\Controllers\ReceptionistOrderController;
-
+use App\Http\Controllers\ToothShadeController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/ping', function () {
@@ -49,6 +46,7 @@ Route::prefix('auth')->group(function (): void {
         Route::get('/tooth-shades', [ToothShadeController::class, 'index'])->name('auth.tooth-shades.index');
 
         Route::get('/me', [AuthController::class, 'me']);
+        Route::get('/roles', [AuthController::class, 'roles']);
         Route::post('/me', [AuthController::class, 'updateProfile']);
         Route::delete('/me/profile-image', [AuthController::class, 'removeProfileImage']);
         Route::post('/change-password', [AuthController::class, 'changePassword']);
