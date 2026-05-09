@@ -255,3 +255,6 @@ Recommended:
 ## License
 
 This project is proprietary unless stated otherwise by repository owner.
+
+
+## Test Azure Deployment

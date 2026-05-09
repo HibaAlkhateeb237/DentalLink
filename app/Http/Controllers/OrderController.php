@@ -49,7 +49,9 @@ class OrderController extends Controller
 
     public function show(Request $request, Order $order): JsonResponse
     {
-        // Authorization: only the owner (doctor) can view their order
+
+
+       // Authorization: only the owner (doctor) can view their order
         if ($order->user_id !== $request->user()->id) {
             return $this->apiResponse->error(
                 __('messages.unauthorized'),
