@@ -2,9 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class RoleIndexRequest extends FormRequest
 {
@@ -19,19 +17,10 @@ class RoleIndexRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, ValidationRule|array<mixed>|string>
+     * @return array<string, array<int, string>|string>
      */
     public function rules(): array
     {
-        $user = $this->user();
-
-        return [
-            'department_id' => [
-                'sometimes',
-                'integer',
-                Rule::exists('department_user_roles', 'department_id')
-                    ->where('user_id', $user?->id ?? 0),
-            ],
-        ];
+        return [];
     }
 }

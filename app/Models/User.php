@@ -28,6 +28,7 @@ class User extends Authenticatable
         'phone',
         'profile_image',
         'birthdate',
+        'lab_name',
         'joined_at',
         'location',
 

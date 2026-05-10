@@ -119,6 +119,8 @@ class DemoDataSeeder extends Seeder
      */
     private function seedUsers(array $labs): array
     {
+        $firstLabName = $labs[0]->name ?? null;
+
         /** @var array<string, Role> $roles */
         $roles = Role::query()->where('guard_name', 'sanctum')->get()->keyBy('name')->all();
 
@@ -174,6 +176,7 @@ class DemoDataSeeder extends Seeder
                 'email' => 'receptionist'.$index.'@demo.local',
                 'phone' => '09993'.str_pad((string) $index, 5, '0', STR_PAD_LEFT),
                 'password' => 'Password@123',
+                'lab_name' => $firstLabName,
             ]);
         }
 
@@ -288,6 +291,7 @@ class DemoDataSeeder extends Seeder
     {
         $managerRoleId = Role::query()->where('name', 'department_manager')->where('guard_name', 'sanctum')->value('id');
         $technicianRoleId = Role::query()->where('name', 'lab_technician')->where('guard_name', 'sanctum')->value('id');
+        $receptionistRoleId = Role::query()->where('name', 'receptionist')->where('guard_name', 'sanctum')->value('id');
 
         if ($managerRoleId === null || $technicianRoleId === null) {
             return;
@@ -335,6 +339,29 @@ class DemoDataSeeder extends Seeder
                         'role_id' => $labManagerRoleId,
                         'department_id' => $managementDept->id,
                     ]);
+                }
+            }
+        }
+
+        if ($receptionistRoleId !== null && ! empty($usersByRole['receptionist'])) {
+            $labIds = array_keys($departmentsByLab);
+            sort($labIds);
+            $firstLabId = $labIds[0] ?? null;
+
+            if ($firstLabId !== null) {
+                $managementDepartment = Department::query()
+                    ->where('lab_id', $firstLabId)
+                    ->where('is_management', true)
+                    ->first();
+
+                if ($managementDepartment !== null) {
+                    foreach ($usersByRole['receptionist'] as $receptionist) {
+                        DepartmentUserRole::query()->firstOrCreate([
+                            'user_id' => $receptionist->id,
+                            'role_id' => $receptionistRoleId,
+                            'department_id' => $managementDepartment->id,
+                        ]);
+                    }
                 }
             }
         }

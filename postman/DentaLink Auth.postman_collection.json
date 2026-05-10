@@ -64,6 +64,43 @@
                     ]
                 }
             }
+        },
+        {
+            "name": "Roles (All)",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "X-Locale",
+                        "value": "ar"
+                    }
+                ],
+                "auth": {
+                    "type": "bearer",
+                    "bearer": [
+                        {
+                            "key": "token",
+                            "value": "{{token}}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "url": {
+                    "raw": "{{base_url}}/api/auth/roles",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "api",
+                        "auth",
+                        "roles"
+                    ]
+                }
+            }
         }
     ]
 }

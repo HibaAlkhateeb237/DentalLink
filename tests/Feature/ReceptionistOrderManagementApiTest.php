@@ -101,8 +101,6 @@ class ReceptionistOrderManagementApiTest extends TestCase
         OrderTooth::query()->create([
             'order_id' => $order->id,
             'tooth_number' => 11,
-            'tooth_type' => 'crown',
-            'tooth_color' => 'A2',
             'notes' => 'Anterior esthetic zone',
         ]);
 

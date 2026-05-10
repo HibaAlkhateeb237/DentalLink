@@ -12,7 +12,9 @@ use App\Http\Requests\Auth\RoleIndexRequest;
 use App\Http\Requests\Auth\UpdateProfileRequest;
 use App\Http\Requests\Auth\VerifyRegisterOtpRequest;
 use App\Http\Resources\Auth\AuthUserResource;
+use App\Http\Resources\RoleResource;
 use App\Http\Responses\ApiResponse;
+use App\Http\Services\RoleService;
 use App\Models\User;
 use App\Services\Auth\AuthService;
 use Illuminate\Http\JsonResponse;
@@ -24,6 +26,7 @@ class AuthController extends Controller
 {
     public function __construct(
         private readonly AuthService $authService,
+        private readonly RoleService $roleService,
         private readonly ApiResponse $apiResponse,
     ) {}
 
@@ -214,11 +217,21 @@ class AuthController extends Controller
         /** @var User $user */
         $user = $result['user'];
 
+        $user->loadMissing('departmentUserRoles.department.lab');
+
+        $labId = $user->departmentUserRoles
+            ->map(static fn ($departmentUserRole): ?int => $departmentUserRole->department?->lab_id ?? $departmentUserRole->department?->lab?->id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->first();
+
         return $this->apiResponse->success(
             [
                 'token' => $result['token'],
                 'user' => AuthUserResource::make($user)->resolve(),
                 'roles' => $user->effectiveRoleNames(),
+                'lab_id' => $labId,
             ],
             __('auth.logged_in_successfully'),
             200,
@@ -273,37 +286,11 @@ class AuthController extends Controller
             return $this->apiResponse->error(__('auth.unauthenticated'), 401);
         }
 
-        $departmentId = $request->integer('department_id') ?: null;
-
-        $user->loadMissing(
-            'roles:id,name',
-            'departmentUserRoles:department_id,user_id,role_id',
-            'departmentUserRoles.role:id,name',
-        );
-
-        $globalRoles = $user->roles
-            ->map(static fn($role): array => [
-                'id' => $role->id,
-                'name' => $role->name,
-            ]);
-
-        $departmentRoles = $user->departmentUserRoles
-            ->when($departmentId !== null, static fn($roles) => $roles->where('department_id', $departmentId))
-            ->map(static fn($departmentUserRole) => $departmentUserRole->role)
-            ->filter()
-            ->map(static fn($role): array => [
-                'id' => $role->id,
-                'name' => $role->name,
-            ]);
-
-        $roles = $globalRoles
-            ->merge($departmentRoles)
-            ->unique('id')
-            ->values();
+        $roles = $this->roleService->listRoles();
 
         return $this->apiResponse->success(
             [
-                'roles' => $roles,
+                'roles' => RoleResource::collection($roles)->resolve(),
             ],
             __('auth.roles_retrieved_successfully'),
             200,
@@ -387,17 +374,17 @@ class AuthController extends Controller
 
     private function throttleKey(Request $request): string
     {
-        return Str::transliterate(Str::lower($request->string('email')->toString()) . '|' . $request->ip());
+        return Str::transliterate(Str::lower($request->string('email')->toString()).'|'.$request->ip());
     }
 
     private function registerOtpThrottleKey(Request $request): string
     {
-        return Str::transliterate('register-otp-send|' . Str::lower($request->string('email')->toString()) . '|' . $request->ip());
+        return Str::transliterate('register-otp-send|'.Str::lower($request->string('email')->toString()).'|'.$request->ip());
     }
 
     private function verifyOtpThrottleKey(Request $request): string
     {
-        return Str::transliterate('register-otp-verify|' . Str::lower($request->string('email')->toString()) . '|' . $request->ip());
+        return Str::transliterate('register-otp-verify|'.Str::lower($request->string('email')->toString()).'|'.$request->ip());
     }
 
     private function applyLocale(Request $request): void
