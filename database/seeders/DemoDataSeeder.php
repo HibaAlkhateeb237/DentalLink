@@ -157,6 +157,26 @@ class DemoDataSeeder extends Seeder
                 'longitude' => 36.3387,
                 'photo' => 'labs/lab8.png',
             ],
+
+            // Labs inactive
+            [
+                'name' => 'Inactive Dental Lab 1',
+                'address' => 'Qudsaya, Damascus',
+                'latitude' => 33.5480,
+                'longitude' => 36.2145,
+                'photo' => 'labs/lab9.png',
+                'is_active' => 0,
+            ],
+            [
+                'name' => 'Inactive Dental Lab 2',
+                'address' => 'Harasta, Damascus',
+                'latitude' => 33.5583,
+                'longitude' => 36.3656,
+                'photo' => 'labs/lab10.png',
+                'is_active' => 0,
+            ],
+
+
         ];
 
         foreach ($labsData as $index => $labData) {
@@ -167,7 +187,7 @@ class DemoDataSeeder extends Seeder
                 'latitude' => $labData['latitude'],
                 'longitude' => $labData['longitude'],
                 'photo' => $labData['photo'],
-                'is_active' => 1,
+                'is_active' => $labData['is_active'] ?? 1,
             ]);
         }
 
