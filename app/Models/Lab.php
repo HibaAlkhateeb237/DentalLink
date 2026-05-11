@@ -18,6 +18,7 @@ class Lab extends Model
         'latitude',
         'longitude',
         'is_active',
+        'photo',
 
     ];
 

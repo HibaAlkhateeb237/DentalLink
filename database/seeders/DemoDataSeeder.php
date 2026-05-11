@@ -100,6 +100,17 @@ class DemoDataSeeder extends Seeder
     {
         $labs = [];
 
+        $photos = [
+            'labs/lab1.png',
+            'labs/lab2.png',
+            'labs/lab3.png',
+            'labs/lab4.png',
+            'labs/lab5.png',
+            'labs/lab6.png',
+            'labs/lab7.png',
+            'labs/lab8.png',
+        ];
+
         for ($index = 1; $index <= 8; $index++) {
             $labs[] = Lab::query()->create([
                 'name' => 'Demo Lab '.$index,
@@ -107,6 +118,8 @@ class DemoDataSeeder extends Seeder
                 'address' => 'Damascus District '.$index,
                 'latitude' => 33.5100000 + ($index * 0.0011000),
                 'longitude' => 36.2700000 + ($index * 0.0012000),
+                'is_active' => 1,
+                'photo' => $photos[$index - 1],
             ]);
         }
 
