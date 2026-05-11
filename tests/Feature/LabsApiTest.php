@@ -22,6 +22,13 @@ class LabsApiTest extends TestCase
 
     public function test_it_returns_all_labs_from_the_listing_endpoint(): void
     {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $doctor = User::factory()->create();
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $doctor->roles()->sync([$role->id]);
+        Sanctum::actingAs($doctor);
+
         Lab::query()->create([
             'name' => 'Alpha Lab',
             'phone' => '1111111',
@@ -29,6 +36,7 @@ class LabsApiTest extends TestCase
             'latitude' => 33.5138070,
             'longitude' => 36.2765279,
             'rating' => 4.50,
+            'is_active' => true,
         ]);
 
         Lab::query()->create([
@@ -38,9 +46,10 @@ class LabsApiTest extends TestCase
             'latitude' => 36.2021040,
             'longitude' => 37.1342600,
             'rating' => 4.70,
+            'is_active' => true,
         ]);
 
-        $response = $this->getJson('/api/labs?per_page=1');
+        $response = $this->getJson('/api/auth/labs?per_page=1');
 
         $response->assertOk()
             ->assertJsonPath('success', true)
@@ -51,6 +60,13 @@ class LabsApiTest extends TestCase
 
     public function test_it_searches_labs_by_name_contains_with_pagination(): void
     {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $doctor = User::factory()->create();
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $doctor->roles()->sync([$role->id]);
+        Sanctum::actingAs($doctor);
+
         Lab::query()->create([
             'name' => 'Alpha Lab',
             'phone' => '1111111',
@@ -58,6 +74,7 @@ class LabsApiTest extends TestCase
             'latitude' => 33.5138070,
             'longitude' => 36.2765279,
             'rating' => 4.50,
+            'is_active' => true,
         ]);
 
         Lab::query()->create([
@@ -67,9 +84,10 @@ class LabsApiTest extends TestCase
             'latitude' => 36.2021040,
             'longitude' => 37.1342600,
             'rating' => 4.70,
+            'is_active' => true,
         ]);
 
-        $response = $this->postJson('/api/labs/search', [
+        $response = $this->postJson('/api/auth/labs/search', [
             'search' => 'pha',
             'per_page' => 15,
         ]);
@@ -84,6 +102,13 @@ class LabsApiTest extends TestCase
 
     public function test_it_searches_labs_by_address_contains_with_pagination(): void
     {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $doctor = User::factory()->create();
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $doctor->roles()->sync([$role->id]);
+        Sanctum::actingAs($doctor);
+
         Lab::query()->create([
             'name' => 'Alpha Lab',
             'phone' => '1111111',
@@ -91,6 +116,7 @@ class LabsApiTest extends TestCase
             'latitude' => 33.5138070,
             'longitude' => 36.2765279,
             'rating' => 4.50,
+            'is_active' => true,
         ]);
 
         Lab::query()->create([
@@ -100,9 +126,10 @@ class LabsApiTest extends TestCase
             'latitude' => 36.2021040,
             'longitude' => 37.1342600,
             'rating' => 4.70,
+            'is_active' => true,
         ]);
 
-        $response = $this->postJson('/api/labs/search', [
+        $response = $this->postJson('/api/auth/labs/search', [
             'search' => 'Center',
             'per_page' => 1,
         ]);
@@ -116,18 +143,26 @@ class LabsApiTest extends TestCase
 
     public function test_it_does_not_limit_search_results_to_ten_records(): void
     {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $doctor = User::factory()->create();
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $doctor->roles()->sync([$role->id]);
+        Sanctum::actingAs($doctor);
+
         for ($index = 1; $index <= 12; $index++) {
             Lab::query()->create([
-                'name' => 'Gamma Lab ' . $index,
-                'phone' => '100000' . $index,
-                'address' => 'Damascus Block ' . $index,
+                'name' => 'Gamma Lab '.$index,
+                'phone' => '100000'.$index,
+                'address' => 'Damascus Block '.$index,
                 'latitude' => 33.5138070,
                 'longitude' => 36.2765279,
                 'rating' => 4.20,
+                'is_active' => true,
             ]);
         }
 
-        $response = $this->postJson('/api/labs/search', [
+        $response = $this->postJson('/api/auth/labs/search', [
             'search' => 'Damascus',
             'per_page' => 20,
         ]);
@@ -141,7 +176,14 @@ class LabsApiTest extends TestCase
 
     public function test_it_rejects_empty_search_terms(): void
     {
-        $response = $this->postJson('/api/labs/search', [
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $doctor = User::factory()->create();
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $doctor->roles()->sync([$role->id]);
+        Sanctum::actingAs($doctor);
+
+        $response = $this->postJson('/api/auth/labs/search', [
             'search' => '',
         ]);
 
@@ -151,7 +193,11 @@ class LabsApiTest extends TestCase
 
     public function test_it_returns_top_rated_labs_using_weighted_score(): void
     {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
         $user = User::factory()->create();
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $user->roles()->sync([$role->id]);
         Sanctum::actingAs($user);
 
         $lowConfidenceLab = Lab::query()->create([
@@ -161,6 +207,7 @@ class LabsApiTest extends TestCase
             'latitude' => 33.5138070,
             'longitude' => 36.2765279,
             'rating' => 5.00,
+            'is_active' => true,
         ]);
 
         $highConfidenceLab = Lab::query()->create([
@@ -170,12 +217,13 @@ class LabsApiTest extends TestCase
             'latitude' => 36.2021040,
             'longitude' => 37.1342600,
             'rating' => 4.00,
+            'is_active' => true,
         ]);
 
         $this->createReviewsForLab($user, $lowConfidenceLab, 1, 5);
         $this->createReviewsForLab($user, $highConfidenceLab, 200, 4);
 
-        $response = $this->getJson('/api/labs/top-rated');
+        $response = $this->getJson('/api/auth/labs/top-rated');
 
         $response->assertOk()
             ->assertJsonPath('success', true)
@@ -188,7 +236,11 @@ class LabsApiTest extends TestCase
 
     public function test_top_rated_falls_back_to_rating_when_no_reviews_exist(): void
     {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
         $user = User::factory()->create();
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $user->roles()->sync([$role->id]);
         Sanctum::actingAs($user);
 
         Lab::query()->create([
@@ -198,6 +250,7 @@ class LabsApiTest extends TestCase
             'latitude' => 33.6138070,
             'longitude' => 36.3765279,
             'rating' => 4.80,
+            'is_active' => true,
         ]);
 
         Lab::query()->create([
@@ -207,9 +260,10 @@ class LabsApiTest extends TestCase
             'latitude' => 33.7138070,
             'longitude' => 36.4765279,
             'rating' => 4.20,
+            'is_active' => true,
         ]);
 
-        $response = $this->getJson('/api/labs/top-rated');
+        $response = $this->getJson('/api/auth/labs/top-rated');
 
         $response->assertOk()
             ->assertJsonPath('data.0.name', 'No Reviews High Rating')
@@ -220,11 +274,15 @@ class LabsApiTest extends TestCase
 
     public function test_it_returns_nearby_labs_based_on_doctor_location(): void
     {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
         $doctor = User::factory()->create([
             'location_lat' => 33.5000000,
             'location_lng' => 36.2500000,
         ]);
 
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $doctor->roles()->sync([$role->id]);
         Sanctum::actingAs($doctor);
 
         Lab::query()->create([
@@ -234,6 +292,7 @@ class LabsApiTest extends TestCase
             'latitude' => 34.5000000,
             'longitude' => 37.2500000,
             'rating' => 4.20,
+            'is_active' => true,
         ]);
 
         Lab::query()->create([
@@ -243,6 +302,7 @@ class LabsApiTest extends TestCase
             'latitude' => 33.5100000,
             'longitude' => 36.2600000,
             'rating' => 4.10,
+            'is_active' => true,
         ]);
 
         $response = $this->getJson('/api/auth/labs/nearby');
@@ -256,8 +316,11 @@ class LabsApiTest extends TestCase
 
     public function test_it_rejects_nearby_requests_when_doctor_has_no_location(): void
     {
-        $doctor = User::factory()->create();
+        $this->seed(RolesAndPermissionsSeeder::class);
 
+        $doctor = User::factory()->create();
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $doctor->roles()->sync([$role->id]);
         Sanctum::actingAs($doctor);
 
         $response = $this->getJson('/api/auth/labs/nearby');
@@ -268,7 +331,11 @@ class LabsApiTest extends TestCase
 
     public function test_it_returns_suggested_labs_randomly(): void
     {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
         $user = User::factory()->create();
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $user->roles()->sync([$role->id]);
         Sanctum::actingAs($user);
 
         Lab::query()->create([
@@ -278,6 +345,7 @@ class LabsApiTest extends TestCase
             'latitude' => 33.5000000,
             'longitude' => 36.2500000,
             'rating' => 4.00,
+            'is_active' => true,
         ]);
 
         Lab::query()->create([
@@ -287,6 +355,7 @@ class LabsApiTest extends TestCase
             'latitude' => 33.6000000,
             'longitude' => 36.3500000,
             'rating' => 4.10,
+            'is_active' => true,
         ]);
 
         Lab::query()->create([
@@ -296,6 +365,7 @@ class LabsApiTest extends TestCase
             'latitude' => 33.7000000,
             'longitude' => 36.4500000,
             'rating' => 4.20,
+            'is_active' => true,
         ]);
 
         $response = $this->getJson('/api/auth/labs/suggested');
@@ -307,7 +377,7 @@ class LabsApiTest extends TestCase
 
         $returnedNames = collect($response->json('data'))->pluck('name');
 
-        $this->assertTrue($returnedNames->every(fn(string $name): bool => in_array($name, [
+        $this->assertTrue($returnedNames->every(fn (string $name): bool => in_array($name, [
             'Suggested Lab 1',
             'Suggested Lab 2',
             'Suggested Lab 3',
@@ -316,7 +386,11 @@ class LabsApiTest extends TestCase
 
     public function test_it_returns_most_ordered_labs_in_descending_order(): void
     {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
         $user = User::factory()->create();
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $user->roles()->sync([$role->id]);
         Sanctum::actingAs($user);
 
         $labOne = Lab::query()->create([
@@ -326,6 +400,7 @@ class LabsApiTest extends TestCase
             'latitude' => 33.5000000,
             'longitude' => 36.2500000,
             'rating' => 4.00,
+            'is_active' => true,
         ]);
 
         $labTwo = Lab::query()->create([
@@ -335,6 +410,7 @@ class LabsApiTest extends TestCase
             'latitude' => 33.6000000,
             'longitude' => 36.3500000,
             'rating' => 4.50,
+            'is_active' => true,
         ]);
 
         $labThree = Lab::query()->create([
@@ -344,6 +420,7 @@ class LabsApiTest extends TestCase
             'latitude' => 33.7000000,
             'longitude' => 36.4500000,
             'rating' => 4.20,
+            'is_active' => true,
         ]);
 
         $this->createOrdersForLab($user, $labOne, 1);
@@ -362,17 +439,22 @@ class LabsApiTest extends TestCase
 
     public function test_top_rated_returns_only_four_labs_when_context_home(): void
     {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
         $user = User::factory()->create();
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $user->roles()->sync([$role->id]);
         Sanctum::actingAs($user);
 
         for ($index = 1; $index <= 6; $index++) {
             Lab::query()->create([
-                'name' => 'Top Lab ' . $index,
-                'phone' => '100000' . $index,
-                'address' => 'Address ' . $index,
+                'name' => 'Top Lab '.$index,
+                'phone' => '100000'.$index,
+                'address' => 'Address '.$index,
                 'latitude' => 33.5000000 + ($index * 0.00001),
                 'longitude' => 36.2500000 + ($index * 0.00001),
                 'rating' => 4.00 + ($index * 0.10),
+                'is_active' => true,
             ]);
         }
 
@@ -384,21 +466,26 @@ class LabsApiTest extends TestCase
 
     public function test_nearby_returns_only_four_labs_when_context_home(): void
     {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
         $doctor = User::factory()->create([
             'location_lat' => 33.5000000,
             'location_lng' => 36.2500000,
         ]);
 
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $doctor->roles()->sync([$role->id]);
         Sanctum::actingAs($doctor);
 
         for ($index = 1; $index <= 6; $index++) {
             Lab::query()->create([
-                'name' => 'Near Home Lab ' . $index,
-                'phone' => '200000' . $index,
-                'address' => 'Address ' . $index,
+                'name' => 'Near Home Lab '.$index,
+                'phone' => '200000'.$index,
+                'address' => 'Address '.$index,
                 'latitude' => 33.5000000 + ($index * 0.001),
                 'longitude' => 36.2500000 + ($index * 0.001),
                 'rating' => 4.00,
+                'is_active' => true,
             ]);
         }
 
@@ -410,17 +497,22 @@ class LabsApiTest extends TestCase
 
     public function test_suggested_returns_only_four_labs_when_context_home(): void
     {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
         $user = User::factory()->create();
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $user->roles()->sync([$role->id]);
         Sanctum::actingAs($user);
 
         for ($index = 1; $index <= 6; $index++) {
             Lab::query()->create([
-                'name' => 'Suggested Home Lab ' . $index,
-                'phone' => '300000' . $index,
-                'address' => 'Address ' . $index,
+                'name' => 'Suggested Home Lab '.$index,
+                'phone' => '300000'.$index,
+                'address' => 'Address '.$index,
                 'latitude' => 33.6000000 + ($index * 0.00001),
                 'longitude' => 36.3500000 + ($index * 0.00001),
                 'rating' => 4.00,
+                'is_active' => true,
             ]);
         }
 
@@ -432,19 +524,26 @@ class LabsApiTest extends TestCase
 
     public function test_most_ordered_returns_only_four_labs_when_context_home(): void
     {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
         $user = User::factory()->create();
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $user->roles()->sync([$role->id]);
         Sanctum::actingAs($user);
 
         $orderingUser = User::factory()->create();
+        $orderingRole = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $orderingUser->roles()->sync([$orderingRole->id]);
 
         for ($index = 1; $index <= 6; $index++) {
             $lab = Lab::query()->create([
-                'name' => 'Most Ordered Home Lab ' . $index,
-                'phone' => '400000' . $index,
-                'address' => 'Address ' . $index,
+                'name' => 'Most Ordered Home Lab '.$index,
+                'phone' => '400000'.$index,
+                'address' => 'Address '.$index,
                 'latitude' => 33.7000000 + ($index * 0.00001),
                 'longitude' => 36.4500000 + ($index * 0.00001),
                 'rating' => 4.00,
+                'is_active' => true,
             ]);
 
             $this->createOrdersForLab($orderingUser, $lab, $index);
@@ -458,16 +557,23 @@ class LabsApiTest extends TestCase
 
     public function test_it_returns_lab_details_with_basic_fields_only(): void
     {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $doctor = User::factory()->create();
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $doctor->roles()->sync([$role->id]);
+        Sanctum::actingAs($doctor);
+
         $lab = Lab::query()->create([
             'name' => 'Detail Lab',
             'phone' => '4444444',
             'address' => 'Detail Address',
             'latitude' => 33.8000000,
             'longitude' => 36.5500000,
-            'rating' => 4.75,
+            'is_active' => true,
         ]);
 
-        $response = $this->getJson('/api/labs/' . $lab->id);
+        $response = $this->getJson('/api/auth/labs/'.$lab->id);
 
         $response->assertOk()
             ->assertJsonPath('success', true)
@@ -478,7 +584,7 @@ class LabsApiTest extends TestCase
             ->assertJsonPath('data.address', 'Detail Address')
             ->assertJsonPath('data.latitude', '33.8000000')
             ->assertJsonPath('data.longitude', '36.5500000')
-            ->assertJsonPath('data.rating', '4.75');
+            ->assertJsonPath('data.rating', null);
 
         $response->assertJsonMissingPath('data.created_at');
         $response->assertJsonMissingPath('data.updated_at');
@@ -628,7 +734,7 @@ class LabsApiTest extends TestCase
         $this->assertSame($manager->id, data_get($indexedLab, 'manager.id'));
         $this->assertSame('fallback.manager@example.com', data_get($indexedLab, 'manager.email'));
 
-        $showResponse = $this->getJson('/api/admin/labs/' . $lab->id);
+        $showResponse = $this->getJson('/api/admin/labs/'.$lab->id);
 
         $showResponse->assertOk()
             ->assertJsonPath('data.manager.id', $manager->id)
@@ -689,7 +795,7 @@ class LabsApiTest extends TestCase
             'department_id' => $managementDepartment->id,
         ]);
 
-        $response = $this->putJson('/api/admin/labs/' . $lab->id, [
+        $response = $this->putJson('/api/admin/labs/'.$lab->id, [
             'lab_name' => 'Updated Lab Name',
             'manager_name' => 'Updated Manager',
             'phone' => '0999999999',
@@ -761,7 +867,7 @@ class LabsApiTest extends TestCase
             'department_id' => $managementDepartment->id,
         ]);
 
-        $response = $this->putJson('/api/admin/labs/' . $lab->id, [
+        $response = $this->putJson('/api/admin/labs/'.$lab->id, [
             'lab_name' => 'Scoped Role Lab',
             'manager_name' => 'Ahmad K',
             'phone' => '0988888888',
@@ -804,7 +910,7 @@ class LabsApiTest extends TestCase
             'is_management' => true,
         ]);
 
-        $response = $this->deleteJson('/api/admin/labs/' . $lab->id);
+        $response = $this->deleteJson('/api/admin/labs/'.$lab->id);
 
         $response->assertOk()
             ->assertJsonPath('success', true)

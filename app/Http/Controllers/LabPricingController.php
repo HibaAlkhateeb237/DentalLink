@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\DentalCompensationTypePriceResource;
-use App\Http\Resources\LabPricingSettingResource;
 use App\Http\Resources\ToothShadeResource;
 use App\Http\Responses\ApiResponse;
 use App\Http\Services\LabPricingService;
@@ -23,13 +22,19 @@ class LabPricingController extends Controller
     {
         // Gate::authorize('viewAny', [LabPricingSetting::class, $lab]);
 
+        if (! data_get($lab, 'is_active', true)) {
+            return $this->apiResponse->error(__('messages.not_found'), 404);
+        }
+
         $payload = $this->labPricingService->getLabPricing($lab);
+
+        $items = DentalCompensationTypePriceResource::collection($payload['items'])->toArray(request());
+        $toothShades = ToothShadeResource::collection($payload['tooth_shades'])->toArray(request());
 
         return $this->apiResponse->success(
             [
-                //  'settings' => $payload['settings'] === null ? null : LabPricingSettingResource::make($payload['settings']),
-                'items' => DentalCompensationTypePriceResource::collection($payload['items']),
-                'tooth_shades' => ToothShadeResource::collection($payload['tooth_shades']),
+                'items' => $items,
+                'tooth_shades' => $toothShades,
             ],
             __('pricing.retrieved_successfully'),
             200,
