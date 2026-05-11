@@ -40,7 +40,7 @@ class EmployeeUpdateRequest extends FormRequest
             'profile_image' => ['sometimes', 'required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'department_id' => [
                 'sometimes',
-                Rule::requiredIf($this->filled('role')),
+                Rule::requiredIf($this->filled('role_id')),
                 'integer',
                 Rule::exists('departments', 'id')->where(function ($query) use ($managerLabId): void {
                     if ($managerLabId !== null) {
@@ -52,11 +52,11 @@ class EmployeeUpdateRequest extends FormRequest
                     $query->whereRaw('1 = 0');
                 }),
             ],
-            'role' => [
+            'role_id' => [
                 'sometimes',
                 Rule::requiredIf($this->filled('department_id')),
-                'string',
-                Rule::exists('roles', 'name')->where(function ($query): void {
+                'integer',
+                Rule::exists('roles', 'id')->where(function ($query): void {
                     $query
                         ->where('guard_name', 'sanctum')
                         ->whereIn('name', EmployeeRoles::allowed());

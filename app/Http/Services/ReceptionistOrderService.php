@@ -6,8 +6,8 @@ use App\Models\Order;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class ReceptionistOrderService
 {
@@ -61,14 +61,14 @@ class ReceptionistOrderService
             $search = trim($validated['search']);
 
             $query->where(function (Builder $builder) use ($search): void {
-                $builder->where('qr_code', 'like', '%' . $search . '%')
+                $builder->where('qr_code', 'like', '%'.$search.'%')
                     ->orWhereHas('user', function (Builder $userQuery) use ($search): void {
-                        $userQuery->where('name', 'like', '%' . $search . '%')
-                            ->orWhere('email', 'like', '%' . $search . '%')
-                            ->orWhere('phone', 'like', '%' . $search . '%');
+                        $userQuery->where('name', 'like', '%'.$search.'%')
+                            ->orWhere('email', 'like', '%'.$search.'%')
+                            ->orWhere('phone', 'like', '%'.$search.'%');
                     })
                     ->orWhereHas('lab', function (Builder $labQuery) use ($search): void {
-                        $labQuery->where('name', 'like', '%' . $search . '%');
+                        $labQuery->where('name', 'like', '%'.$search.'%');
                     });
             });
         }
@@ -87,7 +87,7 @@ class ReceptionistOrderService
         return $order->load([
             'user:id,name,email,phone',
             'lab:id,name,phone,address',
-            'orderTeeth:id,order_id,tooth_number,tooth_type,tooth_color,notes',
+            'orderTeeth:id,order_id,tooth_number,notes',
             'orderFiles:id,order_id,file_path,file_type,uploaded_at',
             'tasks:id,order_id,department_id,user_id,approved_at,status',
             'tasks.department:id,name,lab_id',

@@ -37,7 +37,7 @@ class EmployeeService
     }
 
     /**
-     * @param  array{name:string,email:string,password:string,birthdate:string,joined_at:string,department_id:int,role:string}  $validated
+     * @param  array{name:string,email:string,password:string,birthdate:string,joined_at:string,department_id:int,role_id:int}  $validated
      */
     public function createEmployee(User $manager, array $validated, ?UploadedFile $profileImage): DepartmentUserRole
     {
@@ -61,7 +61,7 @@ class EmployeeService
                     ->firstOrFail();
 
                 $role = Role::query()
-                    ->where('name', $validated['role'])
+                    ->where('id', $validated['role_id'])
                     ->where('guard_name', 'sanctum')
                     ->firstOrFail();
 
@@ -136,14 +136,14 @@ class EmployeeService
                     $employee->save();
                 }
 
-                if (array_key_exists('department_id', $validated) || array_key_exists('role', $validated)) {
+                if (array_key_exists('department_id', $validated) || array_key_exists('role_id', $validated)) {
                     $department = Department::query()
                         ->where('id', $validated['department_id'])
                         ->where('lab_id', $managerLabId)
                         ->firstOrFail();
 
                     $role = Role::query()
-                        ->where('name', $validated['role'])
+                        ->where('id', $validated['role_id'])
                         ->where('guard_name', 'sanctum')
                         ->firstOrFail();
 

@@ -30,6 +30,8 @@ class LabEmployeesApiTest extends TestCase
             'is_management' => false,
         ]);
 
+        $role = Role::query()->where('name', 'receptionist')->where('guard_name', 'sanctum')->firstOrFail();
+
         $response = $this->post('/api/auth/lab/employees', [
             'name' => 'Employee One',
             'email' => 'employee1@example.com',
@@ -38,7 +40,7 @@ class LabEmployeesApiTest extends TestCase
             'birthdate' => '1995-06-10',
             'joined_at' => '2026-04-01',
             'department_id' => $department->id,
-            'role' => 'receptionist',
+            'role_id' => $role->id,
             'profile_image' => UploadedFile::fake()->image('employee.jpg'),
         ], [
             'Accept' => 'application/json',
@@ -62,7 +64,7 @@ class LabEmployeesApiTest extends TestCase
         $this->assertDatabaseHas('department_user_roles', [
             'user_id' => $employee->id,
             'department_id' => $department->id,
-            'role_id' => Role::query()->where('name', 'receptionist')->where('guard_name', 'sanctum')->firstOrFail()->id,
+            'role_id' => $role->id,
         ]);
     }
 
@@ -129,6 +131,7 @@ class LabEmployeesApiTest extends TestCase
         ]);
 
         $role = Role::query()->where('name', 'receptionist')->where('guard_name', 'sanctum')->firstOrFail();
+        $updatedRole = Role::query()->where('name', 'department_manager')->where('guard_name', 'sanctum')->firstOrFail();
 
         DepartmentUserRole::query()->create([
             'user_id' => $employee->id,
@@ -140,7 +143,7 @@ class LabEmployeesApiTest extends TestCase
             'name' => 'Employee Three Updated',
             'joined_at' => '2026-02-10',
             'department_id' => $departmentTwo->id,
-            'role' => 'department_manager',
+            'role_id' => $updatedRole->id,
         ]);
 
         $response
@@ -211,7 +214,7 @@ class LabEmployeesApiTest extends TestCase
             'birthdate' => '1995-06-10',
             'joined_at' => '2026-04-01',
             'department_id' => 1,
-            'role' => 'receptionist',
+            'role_id' => Role::query()->where('name', 'receptionist')->where('guard_name', 'sanctum')->firstOrFail()->id,
         ]);
 
         $response->assertForbidden();

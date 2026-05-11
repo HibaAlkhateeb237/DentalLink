@@ -10,6 +10,7 @@ return [
     'profile_image_removed_successfully' => 'تم حذف صورة الملف الشخصي بنجاح.',
     'password_updated_successfully' => 'تم تحديث كلمة المرور بنجاح.',
     'role_assigned_successfully' => 'تم إسناد الدور بنجاح.',
+    'roles_retrieved_successfully' => 'تم جلب الأدوار بنجاح.',
     'invalid_credentials' => 'بيانات الدخول غير صحيحة.',
     'login_email_not_found' => 'البريد الإلكتروني غير مسجل.',
     'login_password_incorrect' => 'كلمة المرور غير صحيحة.',

@@ -8,10 +8,13 @@ use App\Http\Requests\Auth\ChangePasswordRequest;
 use App\Http\Requests\Auth\CompleteRegisterRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RequestRegisterOtpRequest;
+use App\Http\Requests\Auth\RoleIndexRequest;
 use App\Http\Requests\Auth\UpdateProfileRequest;
 use App\Http\Requests\Auth\VerifyRegisterOtpRequest;
 use App\Http\Resources\Auth\AuthUserResource;
+use App\Http\Resources\RoleResource;
 use App\Http\Responses\ApiResponse;
+use App\Http\Services\RoleService;
 use App\Models\User;
 use App\Services\Auth\AuthService;
 use Illuminate\Http\JsonResponse;
@@ -23,6 +26,7 @@ class AuthController extends Controller
 {
     public function __construct(
         private readonly AuthService $authService,
+        private readonly RoleService $roleService,
         private readonly ApiResponse $apiResponse,
     ) {}
 
@@ -213,11 +217,21 @@ class AuthController extends Controller
         /** @var User $user */
         $user = $result['user'];
 
+        $user->loadMissing('departmentUserRoles.department.lab');
+
+        $labId = $user->departmentUserRoles
+            ->map(static fn ($departmentUserRole): ?int => $departmentUserRole->department?->lab_id ?? $departmentUserRole->department?->lab?->id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->first();
+
         return $this->apiResponse->success(
             [
                 'token' => $result['token'],
                 'user' => AuthUserResource::make($user)->resolve(),
                 'roles' => $user->effectiveRoleNames(),
+                'lab_id' => $labId,
             ],
             __('auth.logged_in_successfully'),
             200,
@@ -257,6 +271,28 @@ class AuthController extends Controller
                 'permissions' => $user->effectivePermissionNames($departmentId),
             ],
             __('messages.success'),
+            200,
+        );
+    }
+
+    public function roles(RoleIndexRequest $request): JsonResponse
+    {
+        $this->applyLocale($request);
+
+        /** @var User|null $user */
+        $user = $request->user();
+
+        if ($user === null) {
+            return $this->apiResponse->error(__('auth.unauthenticated'), 401);
+        }
+
+        $roles = $this->roleService->listRoles();
+
+        return $this->apiResponse->success(
+            [
+                'roles' => RoleResource::collection($roles)->resolve(),
+            ],
+            __('auth.roles_retrieved_successfully'),
             200,
         );
     }

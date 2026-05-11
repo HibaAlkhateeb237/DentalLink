@@ -10,6 +10,7 @@ return [
     'profile_image_removed_successfully' => 'Profile image removed successfully.',
     'password_updated_successfully' => 'Password updated successfully.',
     'role_assigned_successfully' => 'Role assigned successfully.',
+    'roles_retrieved_successfully' => 'Roles retrieved successfully.',
     'invalid_credentials' => 'Invalid credentials.',
     'login_email_not_found' => 'The email address is not registered.',
     'login_password_incorrect' => 'The password is incorrect.',

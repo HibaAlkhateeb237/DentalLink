@@ -2,8 +2,13 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Department;
+use App\Models\DepartmentUserRole;
+use App\Models\Lab;
+use App\Models\Role;
 use App\Models\User;
 use App\Notifications\Auth\RegisterOtpNotification;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -263,12 +268,43 @@ class AuthApiTest extends TestCase
             'password' => 'password123',
         ]);
 
+        $lab = Lab::query()->create([
+            'name' => 'Smile Lab',
+            'license_number' => 'LAB-001',
+            'phone' => '+201234567890',
+            'address' => 'Cairo, Egypt',
+            'latitude' => 30.0444200,
+            'longitude' => 31.2357100,
+            'is_active' => true,
+        ]);
+
+        $department = Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'Prosthetics',
+            'description' => 'Fixed and removable prosthetics',
+            'is_management' => false,
+        ]);
+
+        $role = Role::query()->create([
+            'name' => 'lab_technician',
+            'guard_name' => 'sanctum',
+        ]);
+
+        DepartmentUserRole::query()->create([
+            'user_id' => $user->id,
+            'role_id' => $role->id,
+            'department_id' => $department->id,
+        ]);
+
         $login = $this->postJson('/api/auth/login', [
             'email' => 'login@example.com',
             'password' => 'password123',
         ]);
 
-        $login->assertOk()->assertJsonStructure(['success', 'status', 'message', 'data' => ['token', 'user', 'roles']]);
+        $login
+            ->assertOk()
+            ->assertJsonStructure(['success', 'status', 'message', 'data' => ['token', 'user', 'roles', 'lab_id']])
+            ->assertJsonPath('data.lab_id', $lab->id);
 
         $token = $login->json('data.token');
 
@@ -340,6 +376,34 @@ class AuthApiTest extends TestCase
         $response = $this->get('/api/auth/me');
 
         $response->assertUnauthorized();
+    }
+
+    public function test_authenticated_user_can_fetch_roles(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $user = User::factory()->create([
+            'email' => 'roles-user@example.com',
+        ]);
+
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $user->roles()->sync([$role->id]);
+        $expectedCount = Role::query()->where('guard_name', 'sanctum')->count();
+
+        Sanctum::actingAs($user);
+
+        $response = $this->getJson('/api/auth/roles');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('status', 200)
+            ->assertJsonPath('message', __('auth.roles_retrieved_successfully'))
+            ->assertJsonCount($expectedCount, 'data.roles')
+            ->assertJsonFragment([
+                'id' => $role->id,
+                'name' => 'doctor',
+            ]);
     }
 
     public function test_authenticated_user_can_update_profile(): void
