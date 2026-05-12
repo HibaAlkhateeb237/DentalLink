@@ -18,6 +18,13 @@ class LabActiveInactiveApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->seed(RolesAndPermissionsSeeder::class);
+    }
+
     public function test_labs_index_returns_only_active_labs(): void
     {
         $user = User::query()->create([
@@ -25,6 +32,8 @@ class LabActiveInactiveApiTest extends TestCase
             'email' => 'doctor.one@example.com',
             'password' => 'Secret1234',
         ]);
+
+        $this->assignDoctorRole($user);
 
         Sanctum::actingAs($user);
 
@@ -58,6 +67,48 @@ class LabActiveInactiveApiTest extends TestCase
             ->assertJsonPath('data.data.0.name', 'Active Lab');
     }
 
+    public function test_labs_index_returns_only_active_labs_for_system_admin(): void
+    {
+        $user = User::query()->create([
+            'name' => 'System Admin One',
+            'email' => 'admin.one@example.com',
+            'password' => 'Secret1234',
+        ]);
+
+        $this->assignAdminRole($user);
+
+        Sanctum::actingAs($user);
+
+        $activeLab = Lab::query()->create([
+            'name' => 'Active Lab Admin',
+            'license_number' => 'LIC-ACTIVE-010',
+            'phone' => '0930000010',
+            'address' => 'Damascus',
+            'latitude' => 33.5138,
+            'longitude' => 36.2765,
+            'is_active' => true,
+        ]);
+
+        Lab::query()->create([
+            'name' => 'Inactive Lab Admin',
+            'license_number' => 'LIC-INACTIVE-010',
+            'phone' => '0930000011',
+            'address' => 'Aleppo',
+            'latitude' => 36.2021,
+            'longitude' => 37.1343,
+            'is_active' => false,
+        ]);
+
+        $response = $this->getJson('/api/auth/labs?per_page=10');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('status', 200)
+            ->assertJsonPath('data.total', 1)
+            ->assertJsonPath('data.data.0.id', $activeLab->id)
+            ->assertJsonPath('data.data.0.name', 'Active Lab Admin');
+    }
+
     public function test_inactive_labs_endpoint_returns_only_inactive_labs(): void
     {
         $user = User::query()->create([
@@ -65,6 +116,8 @@ class LabActiveInactiveApiTest extends TestCase
             'email' => 'doctor.two@example.com',
             'password' => 'Secret1234',
         ]);
+
+        $this->assignAdminRole($user);
 
         Sanctum::actingAs($user);
 
@@ -88,7 +141,7 @@ class LabActiveInactiveApiTest extends TestCase
             'is_active' => false,
         ]);
 
-        $labManagerRole = Role::query()->create([
+        $labManagerRole = Role::query()->firstOrCreate([
             'name' => 'lab_manager',
             'guard_name' => 'sanctum',
         ]);
@@ -154,9 +207,11 @@ class LabActiveInactiveApiTest extends TestCase
             'password' => 'Secret1234',
         ]);
 
+        $this->assignAdminRole($user);
+
         Sanctum::actingAs($user);
 
-        $response = $this->getJson('/api/auth/labs/inactive?per_page=15');
+        $response = $this->getJson('/api/admin/labs/inactive?per_page=15');
 
         $response->assertOk()
             ->assertJsonPath('success', true)
@@ -170,5 +225,25 @@ class LabActiveInactiveApiTest extends TestCase
             $this->assertArrayHasKey('email', $lab['manager']);
             $this->assertArrayHasKey('phone', $lab['manager']);
         }
+    }
+
+    private function assignDoctorRole(User $user): void
+    {
+        $doctorRole = Role::query()
+            ->where('name', 'doctor')
+            ->where('guard_name', 'sanctum')
+            ->firstOrFail();
+
+        $user->roles()->sync([$doctorRole->id]);
+    }
+
+    private function assignAdminRole(User $user): void
+    {
+        $adminRole = Role::query()
+            ->where('name', 'system_admin')
+            ->where('guard_name', 'sanctum')
+            ->firstOrFail();
+
+        $user->roles()->sync([$adminRole->id]);
     }
 }

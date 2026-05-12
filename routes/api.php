@@ -30,6 +30,7 @@ Route::get('/ping', function () {
 
 Route::middleware(['auth:sanctum', 'role:system_admin'])->prefix('admin/labs')->group(function (): void {
     Route::get('/', [LabController::class, 'adminIndex'])->name('admin.labs.index');
+    Route::get('/inactive', [LabController::class, 'inactiveLabs'])->name('admin.labs.inactive');
     Route::get('/{lab}', [LabController::class, 'adminShow'])->name('admin.labs.show');
     Route::post('/', [LabController::class, 'store'])->name('admin.labs.store');
     Route::put('/{lab}', [LabController::class, 'update'])->name('admin.labs.update');
@@ -53,41 +54,40 @@ Route::prefix('auth')->group(function (): void {
         Route::post('/assign-role', [AuthController::class, 'assignRole'])
             ->middleware('permission:users.assign-role');
 
- //-----------------------------Doctor-------------------------------------------------------
+        Route::get('/labs/inactive', [LabController::class, 'inactiveLabs'])
+            ->middleware('role:system_admin')
+            ->name('labs.inactive');
 
-        Route::middleware(['role:doctor'])->prefix('labs')->group(function (): void {
-        Route::get('/', [LabController::class, 'index'])->name('labs.index');
-        Route::post('/search', [LabController::class, 'search'])->name('labs.search');
-        Route::get('/top-rated', [LabController::class, 'topRated'])->name('labs.top-rated');
-        Route::get('/nearby', [LabController::class, 'nearby'])->name('labs.nearby');
-        Route::get('/suggested', [LabController::class, 'suggested'])->name('labs.suggested');
-        Route::get('/most-ordered', [LabController::class, 'mostOrdered'])->name('labs.most-ordered');
+        // -----------------------------Doctor-------------------------------------------------------
 
-        Route::get('/{lab}', [LabController::class, 'show'])->name('labs.show');
+        Route::middleware(['role:doctor,system_admin'])->prefix('labs')->group(function (): void {
+            Route::get('/', [LabController::class, 'index'])->name('labs.index');
+            Route::post('/search', [LabController::class, 'search'])->name('labs.search');
+            Route::get('/top-rated', [LabController::class, 'topRated'])->name('labs.top-rated');
+            Route::get('/nearby', [LabController::class, 'nearby'])->name('labs.nearby');
+            Route::get('/suggested', [LabController::class, 'suggested'])->name('labs.suggested');
+            Route::get('/most-ordered', [LabController::class, 'mostOrdered'])->name('labs.most-ordered');
 
-        Route::get('/{lab}/portfolio', [LabPortfolioController::class, 'index'])->name('labs.portfolio.index');
-        Route::post('/{lab}/portfolio', [LabPortfolioController::class, 'store'])->name('labs.portfolio.store');
-        Route::get('/{lab}/pricing', [LabPricingController::class, 'show'])->name('labs.pricing.show');
+            Route::get('/{lab}', [LabController::class, 'show'])->name('labs.show');
 
-       });
+            Route::get('/{lab}/portfolio', [LabPortfolioController::class, 'index'])->name('labs.portfolio.index');
+            Route::post('/{lab}/portfolio', [LabPortfolioController::class, 'store'])->name('labs.portfolio.store');
+            Route::get('/{lab}/pricing', [LabPricingController::class, 'show'])->name('labs.pricing.show');
+        });
 
         Route::get('/tooth-shades', [ToothShadeController::class, 'index'])->name('tooth-shades.index');
 
         Route::middleware(['role:doctor'])->prefix('doctor/orders')->group(function (): void {
-        Route::post('/', [OrderController::class, 'store'])->name('doctor.orders.store');
-        Route::get('/', [OrderController::class, 'index'])->name('doctor.orders.index');
-        Route::get('/{order}', [OrderController::class, 'show'])->name('doctor.orders.show');
-          // for QR
-        Route::get('/qr/{order:qr_code}', [OrderController::class, 'show'])->name('doctor.orders.show-qr');
+            Route::post('/', [OrderController::class, 'store'])->name('doctor.orders.store');
+            Route::get('/', [OrderController::class, 'index'])->name('doctor.orders.index');
+            Route::get('/{order}', [OrderController::class, 'show'])->name('doctor.orders.show');
+            // for QR
+            Route::get('/qr/{order:qr_code}', [OrderController::class, 'show'])->name('doctor.orders.show-qr');
 
-        //  Route::post('/{order}/pricing/calculate', [OrderPricingController::class, 'calculate'])->name('orders.pricing.calculate');
+            //  Route::post('/{order}/pricing/calculate', [OrderPricingController::class, 'calculate'])->name('orders.pricing.calculate');
         });
 
-
-//----------------------------------Doctor-----------------------------------------------------------------
-
-        Route::get('/labs/inactive', [LabController::class, 'inactiveLabs'])->name('labs.inactive');
-
+        // ----------------------------------Doctor-----------------------------------------------------------------
 
         Route::middleware(['role:receptionist'])->prefix('orders')->group(function (): void {
             Route::get('/', [ReceptionistOrderController::class, 'index'])->name('orders.index');
