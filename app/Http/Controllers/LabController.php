@@ -28,17 +28,7 @@ class LabController extends Controller
 
         $labs = $this->labService->getLabs($perPage);
 
-        $resource = LabResource::collection($labs);
-        $resourceArray = $resource->response()->getData(true);
-
-        $data = [
-            'labs' => $resourceArray['data'],
-            'total' => $resourceArray['meta']['total'] ?? 0,
-            'per_page' => $resourceArray['meta']['per_page'] ?? $perPage,
-            'current_page' => $resourceArray['meta']['current_page'] ?? 1,
-        ];
-
-        return $this->apiResponse->success($data, __('labs.retrieved_successfully'));
+        return $this->apiResponse->success($labs, __('labs.retrieved_successfully'));
     }
 
     public function search(LabSearchRequest $request): JsonResponse
@@ -66,7 +56,7 @@ class LabController extends Controller
         $limit = $this->resolveHomeLimit($request);
 
         $labs = $this->labService->getTopRatedLabs($limit)
-            ->filter(fn ($lab) => data_get($lab, 'is_active', true));
+            ->filter(fn($lab) => data_get($lab, 'is_active', true));
 
         $resource = LabResource::collection($labs)->toArray(request());
 
@@ -87,7 +77,7 @@ class LabController extends Controller
         }
 
         $labs = $this->labService->getNearbyLabs((int) $doctorId, $limit)
-            ->filter(fn ($lab) => data_get($lab, 'is_active', true));
+            ->filter(fn($lab) => data_get($lab, 'is_active', true));
 
         $resource = LabResource::collection($labs)->toArray(request());
 
@@ -99,7 +89,7 @@ class LabController extends Controller
         $limit = $this->resolveHomeLimit($request);
 
         $labs = $this->labService->getSuggestedLabs($limit)
-            ->filter(fn ($lab) => data_get($lab, 'is_active', true));
+            ->filter(fn($lab) => data_get($lab, 'is_active', true));
 
         $resource = LabResource::collection($labs)->toArray(request());
 
@@ -111,7 +101,7 @@ class LabController extends Controller
         $limit = $this->resolveHomeLimit($request);
 
         $labs = $this->labService->getMostOrderedLabs($limit)
-            ->filter(fn ($lab) => data_get($lab, 'is_active', true));
+            ->filter(fn($lab) => data_get($lab, 'is_active', true));
 
         $resource = LabResource::collection($labs)->toArray(request());
 

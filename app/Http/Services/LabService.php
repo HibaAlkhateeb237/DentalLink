@@ -27,7 +27,18 @@ class LabService
 
     public function getLabs(int $perPage = 15): LengthAwarePaginator
     {
-        return $this->labRepository->paginateActive($perPage);
+        $labs = $this->labRepository->paginateActive($perPage);
+
+        $labIds = collect($labs->items())
+            ->pluck('id')
+            ->filter()
+            ->values();
+
+        $managersByLabId = $this->resolveManagersByLabIds($labIds->all());
+
+        return $labs->through(function (Lab $lab) use ($managersByLabId): array {
+            return $this->buildLabPayload($lab, $managersByLabId->get($lab->id));
+        });
     }
 
     public function searchLabs(string $search, int $perPage = 15): LengthAwarePaginator
@@ -351,6 +362,6 @@ class LabService
 
     private function generateLabLicenseNumber(int $labId): string
     {
-        return 'LAB-'.now()->format('Ymd').'-'.str_pad((string) $labId, 6, '0', STR_PAD_LEFT);
+        return 'LAB-' . now()->format('Ymd') . '-' . str_pad((string) $labId, 6, '0', STR_PAD_LEFT);
     }
 }

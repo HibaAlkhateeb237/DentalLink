@@ -62,9 +62,11 @@ class LabActiveInactiveApiTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('status', 200)
+            ->assertJsonPath('data.current_page', 1)
             ->assertJsonPath('data.total', 1)
             ->assertJsonPath('data.data.0.id', $activeLab->id)
-            ->assertJsonPath('data.data.0.name', 'Active Lab');
+            ->assertJsonPath('data.data.0.name', 'Active Lab')
+            ->assertJsonPath('data.data.0.manager', null);
     }
 
     public function test_labs_index_returns_only_active_labs_for_system_admin(): void
