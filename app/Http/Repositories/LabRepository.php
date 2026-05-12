@@ -11,13 +11,10 @@ class LabRepository
 {
     private function queryWithReviewStats(): Builder
     {
-        $avgRatingSubQuery = '(SELECT AVG(reviews.rating) FROM reviews INNER JOIN orders ON orders.id = reviews.order_id WHERE orders.lab_id = labs.id)';
-        $reviewsCountSubQuery = '(SELECT COUNT(*) FROM reviews INNER JOIN orders ON orders.id = reviews.order_id WHERE orders.lab_id = labs.id)';
-
         return Lab::query()
             ->select('labs.*')
-            ->selectRaw('COALESCE('.$avgRatingSubQuery.', 0) as rating')
-            ->selectRaw('COALESCE('.$reviewsCountSubQuery.', 0) as reviews_count');
+            ->selectRaw('(SELECT AVG(reviews.rating) FROM reviews INNER JOIN orders ON orders.id = reviews.order_id WHERE orders.lab_id = labs.id) as rating')
+            ->selectRaw('(SELECT COUNT(*) FROM reviews INNER JOIN orders ON orders.id = reviews.order_id WHERE orders.lab_id = labs.id) as reviews_count');
     }
 
     private function queryActiveWithReviewStats(): Builder
@@ -142,5 +139,11 @@ class LabRepository
             ->where('is_active', false)
             ->orderByDesc('created_at')
             ->paginate($perPage);
+    }
+
+    public function getWithReviewStats(int $labId): Lab
+    {
+        return $this->queryWithReviewStats()
+            ->findOrFail($labId);
     }
 }

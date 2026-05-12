@@ -6,6 +6,7 @@ use App\Http\Requests\LabIndexRequest;
 use App\Http\Requests\LabSearchRequest;
 use App\Http\Requests\LabStoreRequest;
 use App\Http\Requests\LabUpdateRequest;
+use App\Http\Resources\LabResource;
 use App\Http\Responses\ApiResponse;
 use App\Http\Services\LabService;
 use App\Models\Lab;
@@ -27,7 +28,17 @@ class LabController extends Controller
 
         $labs = $this->labService->getLabs($perPage);
 
-        return $this->apiResponse->success($labs, __('labs.retrieved_successfully'));
+        $resource = LabResource::collection($labs);
+        $resourceArray = $resource->response()->getData(true);
+
+        $data = [
+            'labs' => $resourceArray['data'],
+            'total' => $resourceArray['meta']['total'] ?? 0,
+            'per_page' => $resourceArray['meta']['per_page'] ?? $perPage,
+            'current_page' => $resourceArray['meta']['current_page'] ?? 1,
+        ];
+
+        return $this->apiResponse->success($data, __('labs.retrieved_successfully'));
     }
 
     public function search(LabSearchRequest $request): JsonResponse
@@ -37,17 +48,29 @@ class LabController extends Controller
 
         $labs = $this->labService->searchLabs($validated['search'], $perPage);
 
-        return $this->apiResponse->success($labs, __('labs.search_results_retrieved_successfully'));
+        $resource = LabResource::collection($labs);
+        $resourceArray = $resource->response()->getData(true);
+
+        $data = [
+            'labs' => $resourceArray['data'],
+            'total' => $resourceArray['meta']['total'] ?? 0,
+            'per_page' => $resourceArray['meta']['per_page'] ?? $perPage,
+            'current_page' => $resourceArray['meta']['current_page'] ?? 1,
+        ];
+
+        return $this->apiResponse->success($data, __('labs.search_results_retrieved_successfully'));
     }
 
     public function topRated(LabIndexRequest $request): JsonResponse
     {
         $limit = $this->resolveHomeLimit($request);
 
-        return $this->apiResponse->success(
-            $this->labService->getTopRatedLabs($limit),
-            __('labs.top_rated_retrieved_successfully')
-        );
+        $labs = $this->labService->getTopRatedLabs($limit)
+            ->filter(fn ($lab) => data_get($lab, 'is_active', true));
+
+        $resource = LabResource::collection($labs)->toArray(request());
+
+        return $this->apiResponse->success($resource, __('labs.top_rated_retrieved_successfully'));
     }
 
     public function nearby(LabIndexRequest $request): JsonResponse
@@ -63,30 +86,36 @@ class LabController extends Controller
             );
         }
 
-        return $this->apiResponse->success(
-            $this->labService->getNearbyLabs((int) $doctorId, $limit),
-            __('labs.nearby_retrieved_successfully')
-        );
+        $labs = $this->labService->getNearbyLabs((int) $doctorId, $limit)
+            ->filter(fn ($lab) => data_get($lab, 'is_active', true));
+
+        $resource = LabResource::collection($labs)->toArray(request());
+
+        return $this->apiResponse->success($resource, __('labs.nearby_retrieved_successfully'));
     }
 
     public function suggested(LabIndexRequest $request): JsonResponse
     {
         $limit = $this->resolveHomeLimit($request);
 
-        return $this->apiResponse->success(
-            $this->labService->getSuggestedLabs($limit),
-            __('labs.suggested_retrieved_successfully')
-        );
+        $labs = $this->labService->getSuggestedLabs($limit)
+            ->filter(fn ($lab) => data_get($lab, 'is_active', true));
+
+        $resource = LabResource::collection($labs)->toArray(request());
+
+        return $this->apiResponse->success($resource, __('labs.suggested_retrieved_successfully'));
     }
 
     public function mostOrdered(LabIndexRequest $request): JsonResponse
     {
         $limit = $this->resolveHomeLimit($request);
 
-        return $this->apiResponse->success(
-            $this->labService->getMostOrderedLabs($limit),
-            __('labs.most_ordered_retrieved_successfully')
-        );
+        $labs = $this->labService->getMostOrderedLabs($limit)
+            ->filter(fn ($lab) => data_get($lab, 'is_active', true));
+
+        $resource = LabResource::collection($labs)->toArray(request());
+
+        return $this->apiResponse->success($resource, __('labs.most_ordered_retrieved_successfully'));
     }
 
     public function inactiveLabs(LabIndexRequest $request): JsonResponse
@@ -101,10 +130,16 @@ class LabController extends Controller
 
     public function show(Lab $lab): JsonResponse
     {
-        return $this->apiResponse->success(
-            $this->labService->getLabDetails($lab),
-            __('labs.details_retrieved_successfully')
-        );
+        if (! data_get($lab, 'is_active', true)) {
+            return $this->apiResponse->error(__('messages.not_found'), 404);
+        }
+
+        // Fetch lab with review stats to ensure calculated fields are available
+        $lab = $this->labService->getLabById($lab->id);
+
+        $resource = new LabResource($lab);
+
+        return $this->apiResponse->success($resource->toArray(request()), __('labs.details_retrieved_successfully'));
     }
 
     private function resolveHomeLimit(Request $request): ?int

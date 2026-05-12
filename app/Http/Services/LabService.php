@@ -20,6 +20,11 @@ class LabService
         protected LabRepository $labRepository
     ) {}
 
+    public function getLabById(int $labId): Lab
+    {
+        return $this->labRepository->getWithReviewStats($labId);
+    }
+
     public function getLabs(int $perPage = 15): LengthAwarePaginator
     {
         return $this->labRepository->paginateActive($perPage);

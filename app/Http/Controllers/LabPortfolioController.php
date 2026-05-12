@@ -22,15 +22,21 @@ class LabPortfolioController extends Controller
 
     public function index(LabPortfolioIndexRequest $request, Lab $lab): JsonResponse
     {
-        //Gate::authorize('viewAny', [PortfolioCase::class, $lab]);
+        // Gate::authorize('viewAny', [PortfolioCase::class, $lab]);
+
+        if (! data_get($lab, 'is_active', true)) {
+            return $this->apiResponse->error(__('messages.not_found'), 404);
+        }
 
         $validated = $request->validated();
         $perPage = (int) ($validated['per_page'] ?? 15);
 
         $portfolioCases = $this->labPortfolioService->getPublishedPortfolioByLab($lab, $perPage);
 
+        $resource = LabPortfolioCaseResource::collection($portfolioCases)->toArray(request());
+
         return $this->apiResponse->success(
-            LabPortfolioCaseResource::collection($portfolioCases),
+            $resource,
             __('lab_portfolio.retrieved_successfully'),
             200,
         );
@@ -38,7 +44,11 @@ class LabPortfolioController extends Controller
 
     public function store(LabPortfolioStoreRequest $request, Lab $lab): JsonResponse
     {
-        //Gate::authorize('create', [PortfolioCase::class, $lab]);
+        // Gate::authorize('create', [PortfolioCase::class, $lab]);
+
+        if (! data_get($lab, 'is_active', true)) {
+            return $this->apiResponse->error(__('messages.not_found'), 404);
+        }
 
         /** @var UploadedFile $beforeImage */
         $beforeImage = $request->file('before_image');
@@ -53,8 +63,10 @@ class LabPortfolioController extends Controller
             $afterImage,
         );
 
+        $resource = LabPortfolioCaseResource::make($portfolioCase)->toArray(request());
+
         return $this->apiResponse->success(
-            LabPortfolioCaseResource::make($portfolioCase),
+            $resource,
             __('lab_portfolio.created_successfully'),
             201,
         );
