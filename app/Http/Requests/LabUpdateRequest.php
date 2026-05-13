@@ -49,6 +49,7 @@ class LabUpdateRequest extends FormRequest
                 Rule::unique('users', 'email')->ignore($manager?->id),
             ],
             'password' => ['nullable', 'string', 'confirmed', Password::min(8)],
+            'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:5120', 'dimensions:min_width=100,min_height=100'],
         ];
     }
 }

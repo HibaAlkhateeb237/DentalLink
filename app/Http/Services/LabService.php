@@ -134,7 +134,7 @@ class LabService
     }
 
     /**
-     * @param  array{lab_name:string,manager_name:string,phone:string,location:string,latitude:numeric-string|int|float,longitude:numeric-string|int|float,email:string,password:string}  $validated
+     * @param  array{lab_name:string,manager_name:string,phone:string,address:string,latitude:numeric-string|int|float,longitude:numeric-string|int|float,email:string,password:string}  $validated
      * @return array{lab:array<string,mixed>}
      */
     public function createLabWithManager(array $validated): array
@@ -143,7 +143,7 @@ class LabService
             $lab = Lab::query()->create([
                 'name' => $validated['lab_name'],
                 'phone' => $validated['phone'],
-                'address' => $validated['location'],
+                'address' => $validated['address'],
                 'latitude' => $validated['latitude'],
                 'longitude' => $validated['longitude'],
                 'rating' => 0,
@@ -185,7 +185,7 @@ class LabService
     }
 
     /**
-     * @param  array{lab_name:string,phone:string,location:string,latitude:numeric-string|int|float,longitude:numeric-string|int|float,manager_name?:string|null,email?:string|null,password?:string|null}  $validated
+     * @param  array{lab_name:string,phone:string,address:string,latitude:numeric-string|int|float,longitude:numeric-string|int|float,manager_name?:string|null,email?:string|null,password?:string|null}  $validated
      * @return array{lab:array<string,mixed>}
      */
     public function updateLabWithManager(Lab $lab, array $validated): array
@@ -194,7 +194,7 @@ class LabService
             $lab->fill([
                 'name' => $validated['lab_name'],
                 'phone' => $validated['phone'],
-                'address' => $validated['location'],
+                'address' => $validated['address'],
                 'latitude' => $validated['latitude'],
                 'longitude' => $validated['longitude'],
             ]);
@@ -337,6 +337,7 @@ class LabService
             'phone' => $lab->phone,
             'address' => $lab->address,
             'rating' => $lab->rating,
+            'photo' => $lab->photo,
             'created_at' => $lab->created_at,
             'updated_at' => $lab->updated_at,
             'manager' => $this->buildManagerPayload($manager),

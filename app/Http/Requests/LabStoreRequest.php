@@ -23,11 +23,12 @@ class LabStoreRequest extends FormRequest
             'lab_name' => ['required', 'string', 'max:255', 'unique:labs,name'],
             'manager_name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:30'],
-            'location' => ['required', 'string', 'max:1000'],
+            'address' => ['required', 'string', 'max:1000'],
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'confirmed', Password::min(8)],
+            'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:5120', 'dimensions:min_width=100,min_height=100'],
         ];
     }
 
