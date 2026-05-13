@@ -20,7 +20,7 @@ return new class extends Migration
             $table->foreignId('order_id')
                 ->constrained('orders')
                 ->cascadeOnUpdate()
-                ->restrictOnDelete();
+                ->cascadeOnDelete();
             $table->decimal('amount', 10, 2);
             $table->timestamps();
 
