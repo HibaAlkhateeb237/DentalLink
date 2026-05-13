@@ -12,6 +12,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class LabService
@@ -150,6 +151,13 @@ class LabService
             ]);
 
             $lab->license_number = $this->generateLabLicenseNumber($lab->id);
+
+            // Handle photo upload
+            if (isset($validated['photo']) && $validated['photo'] !== null) {
+                $photoPath = $this->storeLabPhoto($validated['photo'], $lab->id);
+                $lab->photo = $photoPath;
+            }
+
             $lab->save();
 
             $managementDepartment = Department::query()->create([
@@ -198,6 +206,17 @@ class LabService
                 'latitude' => $validated['latitude'],
                 'longitude' => $validated['longitude'],
             ]);
+
+            // Handle photo upload
+            if (isset($validated['photo']) && $validated['photo'] !== null) {
+                // Delete old photo if exists
+                if ($lab->photo) {
+                    Storage::disk('public')->delete($lab->photo);
+                }
+                $photoPath = $this->storeLabPhoto($validated['photo'], $lab->id);
+                $lab->photo = $photoPath;
+            }
+
             $lab->save();
 
             $manager = User::query()
@@ -326,6 +345,19 @@ class LabService
      */
     private function buildLabPayload(Lab $lab, ?User $manager): array
     {
+        $photoUrl = null;
+        if ($lab->photo) {
+            if (str_starts_with($lab->photo, 'http://') || str_starts_with($lab->photo, 'https://')) {
+                $photoUrl = $lab->photo;
+            } else {
+                try {
+                    $photoUrl = url(Storage::url($lab->photo));
+                } catch (\Throwable $e) {
+                    $photoUrl = null;
+                }
+            }
+        }
+
         return [
             'id' => $lab->id,
             'lab_name' => $lab->name,
@@ -337,7 +369,7 @@ class LabService
             'phone' => $lab->phone,
             'address' => $lab->address,
             'rating' => $lab->rating,
-            'photo' => $lab->photo,
+            'photo' => $photoUrl,
             'created_at' => $lab->created_at,
             'updated_at' => $lab->updated_at,
             'manager' => $this->buildManagerPayload($manager),
@@ -359,6 +391,15 @@ class LabService
             'email' => $manager->email,
             'phone' => $manager->phone,
         ];
+    }
+
+    private function storeLabPhoto($photoFile, int $labId): string
+    {
+        $extension = $photoFile->getClientOriginalExtension();
+        $filename = "lab{$labId}.{$extension}";
+        $path = $photoFile->storeAs('labs', $filename, 'public');
+
+        return $path;
     }
 
     private function generateLabLicenseNumber(int $labId): string
