@@ -1,0 +1,115 @@
+{
+    "info": {
+        "name": "DentaLink Departments With Employees API",
+        "_postman_id": "dentalink-departments-with-employees",
+        "description": "Collection for lab manager department listing with employees. Use the `{{baseUrl}}` and `{{token}}` variables.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Departments With Employees",
+            "item": [
+                {
+                    "name": "List Departments With Employees",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "X-Locale",
+                                "value": "en",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/lab/departments/with-employees/list?per_page=15",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "lab",
+                                "departments",
+                                "with-employees",
+                                "list"
+                            ],
+                            "query": [
+                                {
+                                    "key": "per_page",
+                                    "value": "15"
+                                }
+                            ]
+                        },
+                        "description": "Returns paginated departments for the authenticated lab manager with the employees assigned to each department."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Show Department With Employees",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "X-Locale",
+                                "value": "en",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/lab/departments/{{department_id}}/with-employees",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "lab",
+                                "departments",
+                                "{{department_id}}",
+                                "with-employees"
+                            ]
+                        },
+                        "description": "Returns a single department for the authenticated lab manager with the employees assigned to it."
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ],
+    "event": [],
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:8000",
+            "type": "string"
+        },
+        {
+            "key": "token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "department_id",
+            "value": "",
+            "type": "string"
+        }
+    ]
+}

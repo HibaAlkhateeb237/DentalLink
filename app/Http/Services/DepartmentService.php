@@ -124,6 +124,38 @@ class DepartmentService
         });
     }
 
+    public function listDepartmentsWithEmployees(User $manager, int $perPage = 15): LengthAwarePaginator
+    {
+        $managerLabId = $this->resolveManagerLabId($manager);
+
+        return Department::query()
+            ->where('lab_id', $managerLabId)
+            ->with([
+                'lab:id,name',
+                'departmentUserRoles.user:id,name,email,phone,birthdate,joined_at,profile_image',
+                'departmentUserRoles.role:id,name',
+            ])
+            ->orderByDesc('id')
+            ->paginate($perPage);
+    }
+
+    public function getDepartmentWithEmployees(User $manager, Department $department): Department
+    {
+        $managerLabId = $this->resolveManagerLabId($manager);
+
+        if ($department->lab_id !== $managerLabId) {
+            throw ValidationException::withMessages([
+                'department_id' => [__('messages.not_found')],
+            ]);
+        }
+
+        return $department->load([
+            'lab:id,name',
+            'departmentUserRoles.user:id,name,email,phone,birthdate,joined_at,profile_image',
+            'departmentUserRoles.role:id,name',
+        ]);
+    }
+
     private function resolveManagerLabId(User $manager): int
     {
         $managerLabId = DepartmentUserRole::query()

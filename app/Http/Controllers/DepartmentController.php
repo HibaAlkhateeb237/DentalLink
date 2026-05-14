@@ -7,6 +7,7 @@ use App\Http\Requests\DepartmentIndexRequest;
 use App\Http\Requests\DepartmentStoreRequest;
 use App\Http\Requests\DepartmentUpdateRequest;
 use App\Http\Resources\DepartmentResource;
+use App\Http\Resources\DepartmentWithEmployeesResource;
 use App\Http\Responses\ApiResponse;
 use App\Http\Services\DepartmentService;
 use App\Models\Department;
@@ -105,6 +106,35 @@ class DepartmentController extends Controller
                 'department' => DepartmentResource::make($department)->resolve(),
             ],
             __('departments.updated_successfully'),
+        );
+    }
+
+    public function indexWithEmployees(DepartmentIndexRequest $request): JsonResponse
+    {
+        $perPage = (int) ($request->validated()['per_page'] ?? 15);
+
+        $departments = $this->departmentService->listDepartmentsWithEmployees($request->user(), $perPage);
+        $payload = DepartmentWithEmployeesResource::collection($departments)->response()->getData(true);
+
+        return $this->apiResponse->success(
+            $payload,
+            __('departments.retrieved_successfully')
+        );
+    }
+
+    public function showWithEmployees(Request $request, Department $department): JsonResponse
+    {
+        if (! $request->user()?->can('view', $department)) {
+            return $this->apiResponse->error(__('auth.forbidden'), 403);
+        }
+
+        $department = $this->departmentService->getDepartmentWithEmployees($request->user(), $department);
+
+        return $this->apiResponse->success(
+            [
+                'department' => DepartmentWithEmployeesResource::make($department)->resolve(),
+            ],
+            __('departments.details_retrieved_successfully')
         );
     }
 }

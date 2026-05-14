@@ -106,9 +106,11 @@ Route::prefix('auth')->group(function (): void {
 
         Route::middleware(['role:lab_manager'])->prefix('lab/departments')->group(function (): void {
             Route::get('/', [DepartmentController::class, 'index'])->name('lab.departments.index');
+            Route::get('/with-employees/list', [DepartmentController::class, 'indexWithEmployees'])->name('lab.departments.with-employees.index');
             Route::post('/', [DepartmentController::class, 'store'])->name('lab.departments.store');
             Route::post('/bulk', [DepartmentController::class, 'bulkStore'])->name('lab.departments.bulk.store');
             Route::get('/{department}', [DepartmentController::class, 'show'])->name('lab.departments.show');
+            Route::get('/{department}/with-employees', [DepartmentController::class, 'showWithEmployees'])->name('lab.departments.with-employees.show');
             Route::put('/{department}', [DepartmentController::class, 'update'])->name('lab.departments.update');
             Route::delete('/{department}', [DepartmentController::class, 'destroy'])->name('lab.departments.destroy');
         });
