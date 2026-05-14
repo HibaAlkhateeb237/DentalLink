@@ -21,6 +21,7 @@ use App\Models\Task;
 use App\Models\TaskWorkSession;
 use App\Models\ToothShade;
 use App\Models\User;
+use App\Support\OrderStatus;
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -466,7 +467,7 @@ class DemoDataSeeder extends Seeder
      */
     private function seedOrders(array $doctors, array $labs): array
     {
-        $statuses = ['pending', 'in_progress', 'completed', 'delivered'];
+        $statuses = OrderStatus::ALL;
         $priorities = ['normal', 'normal', 'urgent'];
         $types = ['digital', 'physical', 'hybrid'];
 

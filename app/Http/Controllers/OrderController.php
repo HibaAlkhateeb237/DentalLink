@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\DoctorOrderIndexRequest;
 use App\Http\Requests\OrderStoreRequest;
 use App\Http\Resources\OrderDetailResource;
 use App\Http\Resources\OrderResource;
@@ -32,11 +33,14 @@ class OrderController extends Controller
         );
     }
 
-    public function index(Request $request): JsonResponse
+    public function index(DoctorOrderIndexRequest $request): JsonResponse
     {
         $user = $request->user();
         $orders = Order::query()
             ->where('user_id', $user->id)
+            ->when($request->status, function ($query, $status) {
+                $query->where('status', $status);
+            })
             ->with(['toothShade', 'dentalCompensationTypePrice.dentalCompensationType', 'orderTeeth'])
             ->orderByDesc('created_at')
             ->paginate(15);
