@@ -25,6 +25,7 @@ class OrderDetailResource extends JsonResource
             'compensation_base_price' => $this->dentalCompensationTypePrice?->base_price,
             'teeth' => OrderToothResource::collection($this->whenLoaded('orderTeeth')),
             'files' => OrderFileResource::collection($this->whenLoaded('orderFiles')),
+          //  'status_history' => OrderStatusHistoryResource::collection($this->whenLoaded('statusHistory')),
             'created_at' => $this->created_at?->toISOString(),
 
         ];

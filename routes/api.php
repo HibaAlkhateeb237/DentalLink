@@ -43,6 +43,9 @@ Route::prefix('auth')->group(function (): void {
     Route::post('/register/complete', [AuthController::class, 'completeRegister'])->middleware('throttle:api');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:api');
 
+    Route::get('/top-rated', [LabController::class, 'topRated'])->name('labs.top-rated');
+
+
     Route::middleware('auth:sanctum')->group(function (): void {
 
         Route::get('/me', [AuthController::class, 'me']);
@@ -87,6 +90,9 @@ Route::prefix('auth')->group(function (): void {
             //  Route::post('/{order}/pricing/calculate', [OrderPricingController::class, 'calculate'])->name('orders.pricing.calculate');
         });
 
+
+
+//http://127.0.0.1:8000/api/top-rated
         // ----------------------------------Doctor-----------------------------------------------------------------
 
         Route::middleware(['role:receptionist'])->prefix('orders')->group(function (): void {
