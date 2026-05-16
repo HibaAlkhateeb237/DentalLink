@@ -33,7 +33,7 @@ Route::middleware(['auth:sanctum', 'role:system_admin'])->prefix('admin/labs')->
     Route::get('/inactive', [LabController::class, 'inactiveLabs'])->name('admin.labs.inactive');
     Route::get('/{lab}', [LabController::class, 'adminShow'])->name('admin.labs.show');
     Route::post('/', [LabController::class, 'store'])->name('admin.labs.store');
-    Route::put('/{lab}', [LabController::class, 'update'])->name('admin.labs.update');
+    Route::post('/{lab}', [LabController::class, 'update'])->name('admin.labs.update');
     Route::delete('/{lab}', [LabController::class, 'destroy'])->name('admin.labs.destroy');
 });
 
@@ -104,15 +104,17 @@ Route::prefix('auth')->group(function (): void {
             Route::get('/', [LabEmployeeController::class, 'index'])->name('lab.employees.index');
             Route::post('/', [LabEmployeeController::class, 'store'])->name('lab.employees.store');
             Route::get('/{employee}', [LabEmployeeController::class, 'show'])->name('lab.employees.show');
-            Route::put('/{employee}', [LabEmployeeController::class, 'update'])->name('lab.employees.update');
+            Route::post('/{employee}', [LabEmployeeController::class, 'update'])->name('lab.employees.update');
             Route::delete('/{employee}', [LabEmployeeController::class, 'destroy'])->name('lab.employees.destroy');
         });
 
         Route::middleware(['role:lab_manager'])->prefix('lab/departments')->group(function (): void {
             Route::get('/', [DepartmentController::class, 'index'])->name('lab.departments.index');
+            Route::get('/with-employees/list', [DepartmentController::class, 'indexWithEmployees'])->name('lab.departments.with-employees.index');
             Route::post('/', [DepartmentController::class, 'store'])->name('lab.departments.store');
             Route::post('/bulk', [DepartmentController::class, 'bulkStore'])->name('lab.departments.bulk.store');
             Route::get('/{department}', [DepartmentController::class, 'show'])->name('lab.departments.show');
+            Route::get('/{department}/with-employees', [DepartmentController::class, 'showWithEmployees'])->name('lab.departments.with-employees.show');
             Route::put('/{department}', [DepartmentController::class, 'update'])->name('lab.departments.update');
             Route::delete('/{department}', [DepartmentController::class, 'destroy'])->name('lab.departments.destroy');
         });

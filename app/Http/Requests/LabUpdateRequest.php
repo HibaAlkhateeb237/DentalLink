@@ -35,21 +35,22 @@ class LabUpdateRequest extends FormRequest
             ->first();
 
         return [
-            'lab_name' => ['required', 'string', 'max:255', Rule::unique('labs', 'name')->ignore($labId)],
-            'manager_name' => ['nullable', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'max:30'],
-            'location' => ['required', 'string', 'max:1000'],
-            'latitude' => ['required', 'numeric', 'between:-90,90'],
-            'longitude' => ['required', 'numeric', 'between:-180,180'],
+            'lab_name' => ['sometimes', 'required', 'string', 'max:255', Rule::unique('labs', 'name')->ignore($labId)],
+            'manager_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'phone' => ['sometimes', 'required', 'string', 'max:30'],
+            'address' => ['sometimes', 'required', 'string', 'max:1000'],
+            'latitude' => ['sometimes', 'required', 'numeric', 'between:-90,90'],
+            'longitude' => ['sometimes', 'required', 'numeric', 'between:-180,180'],
             'email' => [
+                'sometimes',
                 'nullable',
                 'string',
                 'email',
                 'max:255',
                 Rule::unique('users', 'email')->ignore($manager?->id),
             ],
-            'password' => ['nullable', 'string', 'confirmed', Password::min(8)],
-            'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:5120', 'dimensions:min_width=100,min_height=100'],
+            'password' => ['sometimes', 'nullable', 'string', 'confirmed', Password::min(8)],
+            'photo' => ['sometimes', 'nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:5120', 'dimensions:min_width=100,min_height=100'],
         ];
     }
 }

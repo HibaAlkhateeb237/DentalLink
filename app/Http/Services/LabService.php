@@ -199,13 +199,31 @@ class LabService
     public function updateLabWithManager(Lab $lab, array $validated): array
     {
         return DB::transaction(function () use ($lab, $validated): array {
-            $lab->fill([
-                'name' => $validated['lab_name'],
-                'phone' => $validated['phone'],
-                'address' => $validated['address'],
-                'latitude' => $validated['latitude'],
-                'longitude' => $validated['longitude'],
-            ]);
+            $labUpdates = [];
+
+            if (array_key_exists('lab_name', $validated)) {
+                $labUpdates['name'] = $validated['lab_name'];
+            }
+
+            if (array_key_exists('phone', $validated)) {
+                $labUpdates['phone'] = $validated['phone'];
+            }
+
+            if (array_key_exists('address', $validated)) {
+                $labUpdates['address'] = $validated['address'];
+            }
+
+            if (array_key_exists('latitude', $validated)) {
+                $labUpdates['latitude'] = $validated['latitude'];
+            }
+
+            if (array_key_exists('longitude', $validated)) {
+                $labUpdates['longitude'] = $validated['longitude'];
+            }
+
+            if ($labUpdates !== []) {
+                $lab->fill($labUpdates);
+            }
 
             // Handle photo upload
             if (isset($validated['photo']) && $validated['photo'] !== null) {
@@ -231,15 +249,17 @@ class LabService
                 ->first();
 
             if ($manager !== null) {
-                $managerUpdates = [
-                    'phone' => $validated['phone'],
-                ];
+                $managerUpdates = [];
 
-                if (isset($validated['manager_name'])) {
+                if (array_key_exists('phone', $validated)) {
+                    $managerUpdates['phone'] = $validated['phone'];
+                }
+
+                if (array_key_exists('manager_name', $validated)) {
                     $managerUpdates['name'] = $validated['manager_name'];
                 }
 
-                if (isset($validated['email'])) {
+                if (array_key_exists('email', $validated)) {
                     $managerUpdates['email'] = $validated['email'];
                 }
 
@@ -247,8 +267,10 @@ class LabService
                     $managerUpdates['password'] = $validated['password'];
                 }
 
-                $manager->fill($managerUpdates);
-                $manager->save();
+                if ($managerUpdates !== []) {
+                    $manager->fill($managerUpdates);
+                    $manager->save();
+                }
             }
 
             return [
@@ -362,7 +384,6 @@ class LabService
             'id' => $lab->id,
             'lab_name' => $lab->name,
             'license_number' => $lab->license_number,
-            'location' => $lab->address,
             'latitude' => $lab->latitude,
             'longitude' => $lab->longitude,
             'name' => $lab->name,

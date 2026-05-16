@@ -34,6 +34,7 @@ class EmployeeUpdateRequest extends FormRequest
         return [
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'email' => ['sometimes', 'required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($employeeId)],
+            'phone' => ['sometimes', 'nullable', 'string', 'regex:/^\d+$/'],
             'password' => ['sometimes', 'required', 'string', 'confirmed', Password::min(8)],
             'birthdate' => ['sometimes', 'required', 'date'],
             'joined_at' => ['sometimes', 'required', 'date'],

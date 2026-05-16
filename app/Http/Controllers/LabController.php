@@ -42,7 +42,7 @@ class LabController extends Controller
         $resourceArray = $resource->response()->getData(true);
 
         $data = [
-            'labs' => $resourceArray['data'],
+            'data' => $resourceArray['data'],
             'total' => $resourceArray['meta']['total'] ?? 0,
             'per_page' => $resourceArray['meta']['per_page'] ?? $perPage,
             'current_page' => $resourceArray['meta']['current_page'] ?? 1,

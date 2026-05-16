@@ -49,6 +49,7 @@ class EmployeeService
                 $employee = User::query()->create([
                     'name' => $validated['name'],
                     'email' => $validated['email'],
+                    'phone' => $validated['phone'] ?? null,
                     'password' => $validated['password'],
                     'birthdate' => $validated['birthdate'],
                     'joined_at' => $validated['joined_at'],
@@ -120,7 +121,7 @@ class EmployeeService
         try {
             $assignment = DB::transaction(function () use ($validated, $employee, $manager, $managerLabId, $newProfileImagePath): DepartmentUserRole {
                 $updates = collect($validated)
-                    ->only(['name', 'email', 'birthdate', 'joined_at'])
+                    ->only(['name', 'email', 'phone', 'birthdate', 'joined_at'])
                     ->all();
 
                 if (array_key_exists('password', $validated)) {

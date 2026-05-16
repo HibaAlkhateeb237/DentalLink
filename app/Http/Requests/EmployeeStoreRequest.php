@@ -26,6 +26,7 @@ class EmployeeStoreRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')],
+            'phone' => ['nullable', 'string', 'regex:/^\d+$/'],
             'password' => ['required', 'string', 'confirmed', Password::min(8)],
             'birthdate' => ['required', 'date'],
             'joined_at' => ['required', 'date'],
