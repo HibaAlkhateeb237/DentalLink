@@ -91,8 +91,6 @@ Route::prefix('auth')->group(function (): void {
         });
 
 
-
-//http://127.0.0.1:8000/api/top-rated
         // ----------------------------------Doctor-----------------------------------------------------------------
 
         Route::middleware(['role:receptionist'])->prefix('orders')->group(function (): void {
