@@ -35,6 +35,7 @@ class LabEmployeesApiTest extends TestCase
         $response = $this->post('/api/auth/lab/employees', [
             'name' => 'Employee One',
             'email' => 'employee1@example.com',
+            'phone' => '0999555123',
             'password' => 'Secret1234',
             'password_confirmation' => 'Secret1234',
             'birthdate' => '1995-06-10',
@@ -52,12 +53,14 @@ class LabEmployeesApiTest extends TestCase
             ->assertJsonPath('status', 201)
             ->assertJsonPath('message', __('employees.created_successfully'))
             ->assertJsonPath('data.employee.email', 'employee1@example.com')
+            ->assertJsonPath('data.employee.phone', '0999555123')
             ->assertJsonPath('data.employee.department.id', $department->id)
             ->assertJsonPath('data.employee.role.name', 'receptionist');
 
         $employee = User::query()->where('email', 'employee1@example.com')->firstOrFail();
 
         $this->assertSame('2026-04-01', $employee->joined_at?->format('Y-m-d'));
+        $this->assertSame('0999555123', $employee->phone);
         $this->assertNotNull($employee->profile_image);
         $this->assertTrue(Storage::disk('public')->exists((string) $employee->profile_image));
 
@@ -139,8 +142,9 @@ class LabEmployeesApiTest extends TestCase
             'department_id' => $department->id,
         ]);
 
-        $response = $this->putJson('/api/auth/lab/employees/'.$employee->id, [
+        $response = $this->postJson('/api/auth/lab/employees/'.$employee->id, [
             'name' => 'Employee Three Updated',
+            'phone' => '0999000111',
             'joined_at' => '2026-02-10',
             'department_id' => $departmentTwo->id,
             'role_id' => $updatedRole->id,
@@ -150,12 +154,49 @@ class LabEmployeesApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('message', __('employees.updated_successfully'))
             ->assertJsonPath('data.employee.name', 'Employee Three Updated')
+            ->assertJsonPath('data.employee.phone', '0999000111')
             ->assertJsonPath('data.employee.department.id', $departmentTwo->id)
             ->assertJsonPath('data.employee.role.name', 'department_manager');
 
         $employee->refresh();
 
         $this->assertSame('2026-02-10', $employee->joined_at?->format('Y-m-d'));
+        $this->assertSame('0999000111', $employee->phone);
+    }
+
+    public function test_lab_manager_cannot_create_employee_with_non_numeric_phone(): void
+    {
+        Storage::fake('public');
+
+        [$manager, $lab] = $this->authenticateLabManager();
+
+        $department = Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'Reception',
+            'is_management' => false,
+        ]);
+
+        $role = Role::query()->where('name', 'receptionist')->where('guard_name', 'sanctum')->firstOrFail();
+
+        $response = $this->post('/api/auth/lab/employees', [
+            'name' => 'Employee One',
+            'email' => 'employee1@example.com',
+            'phone' => '0999-555-123',
+            'password' => 'Secret1234',
+            'password_confirmation' => 'Secret1234',
+            'birthdate' => '1995-06-10',
+            'joined_at' => '2026-04-01',
+            'department_id' => $department->id,
+            'role_id' => $role->id,
+            'profile_image' => UploadedFile::fake()->image('employee.jpg'),
+        ], [
+            'Accept' => 'application/json',
+        ]);
+
+        $response
+            ->assertStatus(400)
+            ->assertJsonPath('message', 'Validation failed')
+            ->assertJsonValidationErrors(['phone']);
     }
 
     public function test_lab_manager_can_delete_employee(): void

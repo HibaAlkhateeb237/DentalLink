@@ -30,8 +30,8 @@ class EmployeeResource extends JsonResource
             'email' => $this->user?->email,
             'phone' => $this->user?->phone,
             'profile_image' => $profileImage,
-            'birthdate' => $this->user?->birthdate,
-            'joined_at' => $this->user?->joined_at,
+            'birthdate' => $this->user?->birthdate?->format('Y-m-d'),
+            'joined_at' => $this->user?->joined_at?->format('Y-m-d'),
             'department' => $this->department === null
                 ? null
                 : [

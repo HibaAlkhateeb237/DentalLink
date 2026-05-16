@@ -100,7 +100,7 @@ Route::prefix('auth')->group(function (): void {
             Route::get('/', [LabEmployeeController::class, 'index'])->name('lab.employees.index');
             Route::post('/', [LabEmployeeController::class, 'store'])->name('lab.employees.store');
             Route::get('/{employee}', [LabEmployeeController::class, 'show'])->name('lab.employees.show');
-            Route::put('/{employee}', [LabEmployeeController::class, 'update'])->name('lab.employees.update');
+            Route::post('/{employee}', [LabEmployeeController::class, 'update'])->name('lab.employees.update');
             Route::delete('/{employee}', [LabEmployeeController::class, 'destroy'])->name('lab.employees.destroy');
         });
 

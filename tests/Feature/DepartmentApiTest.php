@@ -59,6 +59,104 @@ class DepartmentApiTest extends TestCase
             ->assertJsonPath('data.data.0.lab_id', $lab->id);
     }
 
+    public function test_lab_manager_lists_departments_with_employees_paginated_and_prioritized(): void
+    {
+        [$manager, $lab] = $this->authenticateLabManager();
+
+        $department = Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'Design',
+            'description' => null,
+            'is_management' => false,
+        ]);
+
+        $departmentManagerRole = Role::query()
+            ->where('name', 'department_manager')
+            ->where('guard_name', 'sanctum')
+            ->firstOrFail();
+
+        $technicianRole = Role::query()
+            ->where('name', 'lab_technician')
+            ->where('guard_name', 'sanctum')
+            ->firstOrFail();
+
+        $managerUser = User::factory()->create();
+        DepartmentUserRole::query()->create([
+            'user_id' => $managerUser->id,
+            'role_id' => $departmentManagerRole->id,
+            'department_id' => $department->id,
+        ]);
+
+        $employees = User::factory()->count(5)->create();
+        foreach ($employees as $employee) {
+            DepartmentUserRole::query()->create([
+                'user_id' => $employee->id,
+                'role_id' => $technicianRole->id,
+                'department_id' => $department->id,
+            ]);
+        }
+
+        $response = $this->getJson('/api/auth/lab/departments/with-employees/list?per_page=10&employees_per_page=4&employees_page=1');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message', __('departments.retrieved_successfully'))
+            ->assertJsonCount(4, 'data.data.0.employees.data')
+            ->assertJsonPath('data.data.0.employees.data.0.role.name', 'department_manager')
+            ->assertJsonPath('data.data.0.employees.data.0.birthdate', null)
+            ->assertJsonPath('data.data.0.employees.data.0.joined_at', null)
+            ->assertJsonPath('data.data.0.employees.meta.per_page', 4);
+    }
+
+    public function test_lab_manager_can_show_department_with_employees_paginated_and_prioritized(): void
+    {
+        [$manager, $lab] = $this->authenticateLabManager();
+
+        $department = Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'Design',
+            'description' => null,
+            'is_management' => false,
+        ]);
+
+        $departmentManagerRole = Role::query()
+            ->where('name', 'department_manager')
+            ->where('guard_name', 'sanctum')
+            ->firstOrFail();
+
+        $technicianRole = Role::query()
+            ->where('name', 'lab_technician')
+            ->where('guard_name', 'sanctum')
+            ->firstOrFail();
+
+        $managerUser = User::factory()->create();
+        DepartmentUserRole::query()->create([
+            'user_id' => $managerUser->id,
+            'role_id' => $departmentManagerRole->id,
+            'department_id' => $department->id,
+        ]);
+
+        $employees = User::factory()->count(4)->create();
+        foreach ($employees as $employee) {
+            DepartmentUserRole::query()->create([
+                'user_id' => $employee->id,
+                'role_id' => $technicianRole->id,
+                'department_id' => $department->id,
+            ]);
+        }
+
+        $response = $this->getJson('/api/auth/lab/departments/'.$department->id.'/with-employees?employees_per_page=2&employees_page=1');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message', __('departments.details_retrieved_successfully'))
+            ->assertJsonCount(2, 'data.department.employees.data')
+            ->assertJsonPath('data.department.employees.data.0.role.name', 'department_manager')
+            ->assertJsonPath('data.department.employees.data.0.birthdate', null)
+            ->assertJsonPath('data.department.employees.data.0.joined_at', null)
+            ->assertJsonPath('data.department.employees.meta.per_page', 2);
+    }
+
     public function test_lab_manager_can_show_department(): void
     {
         [$manager, $lab] = $this->authenticateLabManager();
