@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use App\Support\OrderStatus;
 
 class ReceptionistOrderIndexRequest extends FormRequest
 {
@@ -19,7 +20,7 @@ class ReceptionistOrderIndexRequest extends FormRequest
     {
         return [
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'status' => ['nullable', Rule::in(['pending', 'accepted', 'in_progress', 'completed', 'delivered', 'cancelled'])],
+            'status' => ['nullable', Rule::in(OrderStatus::ALL)],
             'priority' => ['nullable', Rule::in(['normal', 'urgent'])],
             'doctor_id' => ['nullable', 'integer', 'exists:users,id'],
             'lab_id' => ['nullable', 'integer', 'exists:labs,id'],

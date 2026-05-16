@@ -8,6 +8,9 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\DB;
+use App\Models\OrderStatusHistory;
+use App\Support\OrderStatus;
 
 class ReceptionistOrderService
 {
@@ -112,6 +115,41 @@ class ReceptionistOrderService
             'resubmission_requested_by' => $actor->id,
         ]);
         $order->save();
+
+        return $this->getOrderDetails($order->fresh());
+    }
+
+    /**
+     * Update order status via a single transactional path and record history.
+     */
+    public function updateStatus(Order $order, string $toStatus, ?string $reason = null, ?User $actor = null): Order
+    {
+        $actorId = $actor?->id ?? Auth::id();
+
+        // Basic guard: ensure provided status is valid
+        if (! in_array($toStatus, OrderStatus::ALL, true)) {
+            throw ValidationException::withMessages(['status' => ['Invalid status provided.']]);
+        }
+
+        DB::transaction(function () use ($order, $toStatus, $reason, $actorId): void {
+            $from = $order->status;
+
+            // update model
+            $order->status = $toStatus;
+            $order->save();
+
+            // write history
+            OrderStatusHistory::create([
+                'order_id' => $order->id,
+                'from_status' => $from,
+                'to_status' => $toStatus,
+                'changed_by' => $actorId,
+                'reason' => $reason,
+                'metadata' => [
+                    'triggered_via' => 'api',
+                ],
+            ]);
+        });
 
         return $this->getOrderDetails($order->fresh());
     }
