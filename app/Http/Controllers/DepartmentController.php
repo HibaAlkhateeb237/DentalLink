@@ -111,9 +111,7 @@ class DepartmentController extends Controller
 
     public function indexWithEmployees(DepartmentIndexRequest $request): JsonResponse
     {
-        $perPage = (int) ($request->validated()['per_page'] ?? 15);
-
-        $departments = $this->departmentService->listDepartmentsWithEmployees($request->user(), $perPage);
+        $departments = $this->departmentService->listDepartmentsWithEmployees($request->user());
         $payload = DepartmentWithEmployeesResource::collection($departments)->response()->getData(true);
 
         return $this->apiResponse->success(

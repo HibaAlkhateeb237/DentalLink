@@ -124,7 +124,10 @@ class DepartmentService
         });
     }
 
-    public function listDepartmentsWithEmployees(User $manager, int $perPage = 15): LengthAwarePaginator
+    /**
+     * @return Collection<int, Department>
+     */
+    public function listDepartmentsWithEmployees(User $manager): Collection
     {
         $managerLabId = $this->resolveManagerLabId($manager);
 
@@ -137,7 +140,7 @@ class DepartmentService
                 'departmentUserRoles.role:id,name',
             ])
             ->orderByDesc('id')
-            ->paginate($perPage);
+            ->get();
     }
 
     public function getDepartmentWithEmployees(User $manager, Department $department): Department

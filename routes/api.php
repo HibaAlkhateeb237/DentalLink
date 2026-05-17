@@ -33,7 +33,7 @@ Route::middleware(['auth:sanctum', 'role:system_admin'])->prefix('admin/labs')->
     Route::get('/inactive', [LabController::class, 'inactiveLabs'])->name('admin.labs.inactive');
     Route::get('/{lab}', [LabController::class, 'adminShow'])->name('admin.labs.show');
     Route::post('/', [LabController::class, 'store'])->name('admin.labs.store');
-    Route::put('/{lab}', [LabController::class, 'update'])->name('admin.labs.update');
+    Route::post('/{lab}', [LabController::class, 'update'])->name('admin.labs.update');
     Route::delete('/{lab}', [LabController::class, 'destroy'])->name('admin.labs.destroy');
 });
 

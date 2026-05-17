@@ -59,7 +59,7 @@ class DepartmentApiTest extends TestCase
             ->assertJsonPath('data.data.0.lab_id', $lab->id);
     }
 
-    public function test_lab_manager_lists_departments_with_employees_paginated_and_prioritized(): void
+    public function test_lab_manager_lists_departments_with_employees_limited_and_prioritized(): void
     {
         [$manager, $lab] = $this->authenticateLabManager();
 
@@ -96,16 +96,18 @@ class DepartmentApiTest extends TestCase
             ]);
         }
 
-        $response = $this->getJson('/api/auth/lab/departments/with-employees/list?per_page=10&employees_per_page=4&employees_page=1');
+        $response = $this->getJson('/api/auth/lab/departments/with-employees/list');
 
         $response
             ->assertOk()
             ->assertJsonPath('message', __('departments.retrieved_successfully'))
             ->assertJsonCount(4, 'data.data.0.employees.data')
             ->assertJsonPath('data.data.0.employees.data.0.role.name', 'department_manager')
+            ->assertJsonPath('data.data.0.employees.data.0.profile_image', null)
             ->assertJsonPath('data.data.0.employees.data.0.birthdate', null)
             ->assertJsonPath('data.data.0.employees.data.0.joined_at', null)
-            ->assertJsonPath('data.data.0.employees.meta.per_page', 4);
+            ->assertJsonMissingPath('data.data.0.employees.meta')
+            ->assertJsonMissingPath('data.data.0.employees.links');
     }
 
     public function test_lab_manager_can_show_department_with_employees_paginated_and_prioritized(): void
@@ -152,9 +154,13 @@ class DepartmentApiTest extends TestCase
             ->assertJsonPath('message', __('departments.details_retrieved_successfully'))
             ->assertJsonCount(2, 'data.department.employees.data')
             ->assertJsonPath('data.department.employees.data.0.role.name', 'department_manager')
+            ->assertJsonPath('data.department.employees.data.0.profile_image', null)
             ->assertJsonPath('data.department.employees.data.0.birthdate', null)
             ->assertJsonPath('data.department.employees.data.0.joined_at', null)
-            ->assertJsonPath('data.department.employees.meta.per_page', 2);
+            ->assertJsonPath('data.department.employees.meta.per_page', 2)
+            ->assertJsonPath('data.department.employees.meta.current_page', 1)
+            ->assertJsonPath('data.department.employees.meta.total', 5)
+            ->assertJsonPath('data.department.employees.links.first', url('/api/auth/lab/departments/'.$department->id.'/with-employees?employees_per_page=2&employees_page=1'));
     }
 
     public function test_lab_manager_can_show_department(): void

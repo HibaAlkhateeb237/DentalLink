@@ -327,6 +327,7 @@ class DemoDataSeeder extends Seeder
 
         $departmentNames = ['Ceramics', 'Orthodontics', 'Implants'];
         $compensationTypes = ['Zircon Crown', 'E-Max Veneer', 'Implant Abutment', 'Temporary Crown'];
+        $firstLabId = $labs[0]->id ?? null;
 
         foreach ($labs as $lab) {
             $departmentsByLab[$lab->id] = [];
@@ -337,6 +338,14 @@ class DemoDataSeeder extends Seeder
                     'lab_id' => $lab->id,
                     'name' => $name,
                     'description' => $name . ' department for ' . $lab->name,
+                ]);
+            }
+
+            if ($firstLabId !== null && $lab->id === $firstLabId) {
+                $departmentsByLab[$lab->id][] = Department::query()->create([
+                    'lab_id' => $lab->id,
+                    'name' => 'Reception',
+                    'description' => 'Reception department for ' . $lab->name,
                 ]);
             }
 
@@ -383,10 +392,35 @@ class DemoDataSeeder extends Seeder
 
         $managers = array_values($usersByRole['department_manager']);
         $technicians = array_values($usersByRole['lab_technician']);
+        $receptionists = array_values($usersByRole['receptionist']);
+
+        $labIds = array_keys($departmentsByLab);
+        sort($labIds);
+        $firstLabId = $labIds[0] ?? null;
 
         $departmentCounter = 0;
-        foreach ($departmentsByLab as $departments) {
+        $receptionistCounter = 0;
+        foreach ($departmentsByLab as $labId => $departments) {
             foreach ($departments as $department) {
+                if ($firstLabId !== null && $labId === $firstLabId && $department->name === 'Reception') {
+                    if ($receptionistRoleId !== null && ! empty($receptionists)) {
+                        $receptionistCount = min(2, count($receptionists));
+
+                        for ($offset = 0; $offset < $receptionistCount; $offset++) {
+                            $receptionist = $receptionists[($receptionistCounter + $offset) % count($receptionists)];
+                            DepartmentUserRole::query()->firstOrCreate([
+                                'user_id' => $receptionist->id,
+                                'role_id' => $receptionistRoleId,
+                                'department_id' => $department->id,
+                            ]);
+                        }
+
+                        $receptionistCounter += $receptionistCount;
+                    }
+
+                    continue;
+                }
+
                 $manager = $managers[$departmentCounter % count($managers)];
                 DepartmentUserRole::query()->firstOrCreate([
                     'user_id' => $manager->id,
@@ -394,7 +428,9 @@ class DemoDataSeeder extends Seeder
                     'department_id' => $department->id,
                 ]);
 
-                for ($offset = 0; $offset < 2; $offset++) {
+                $technicianSlots = $firstLabId !== null && $labId === $firstLabId ? 3 : 2;
+
+                for ($offset = 0; $offset < $technicianSlots; $offset++) {
                     $technician = $technicians[($departmentCounter + $offset) % count($technicians)];
                     DepartmentUserRole::query()->firstOrCreate([
                         'user_id' => $technician->id,
@@ -435,29 +471,6 @@ class DemoDataSeeder extends Seeder
                     'role_id' => $labManagerRoleId,
                     'department_id' => $managementDept->id,
                 ]);
-            }
-        }
-
-        if ($receptionistRoleId !== null && ! empty($usersByRole['receptionist'])) {
-            $labIds = array_keys($departmentsByLab);
-            sort($labIds);
-            $firstLabId = $labIds[0] ?? null;
-
-            if ($firstLabId !== null) {
-                $managementDepartment = Department::query()
-                    ->where('lab_id', $firstLabId)
-                    ->where('is_management', true)
-                    ->first();
-
-                if ($managementDepartment !== null) {
-                    foreach ($usersByRole['receptionist'] as $receptionist) {
-                        DepartmentUserRole::query()->firstOrCreate([
-                            'user_id' => $receptionist->id,
-                            'role_id' => $receptionistRoleId,
-                            'department_id' => $managementDepartment->id,
-                        ]);
-                    }
-                }
             }
         }
     }
