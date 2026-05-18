@@ -95,6 +95,12 @@ class DepartmentService
             ]);
         }
 
+        if ($department->departmentUserRoles()->exists()) {
+            throw ValidationException::withMessages([
+                'department_id' => [__('departments.cannot_delete_with_employees')],
+            ]);
+        }
+
         DB::transaction(function () use ($department): void {
             $department->delete();
         });
