@@ -16,6 +16,11 @@ class Department extends Model
         'name',
         'description',
         'is_management',
+        'time_allowed',
+    ];
+
+    protected $casts = [
+        'time_allowed' => 'integer',
     ];
 
     public function lab(): BelongsTo
