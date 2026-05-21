@@ -15,10 +15,18 @@ class ReceptionistOrderListResource extends JsonResource
             'priority' => $this->priority,
             'status' => $this->status,
             'order_type' => $this->order_type,
+            'tooth_shade_name' => $this->toothShade?->name,
+            'material_type' => $this->dentalCompensationTypePrice?->dentalCompensationType?->name,
             'price' => $this->price,
             'remaining_amount' => $this->remaining_amount,
             'paid_amount' => number_format((float) ($this->paid_amount ?? 0), 2, '.', ''),
             'order_teeth_count' => $this->order_teeth_count,
+            'teeth' => $this->relationLoaded('orderTeeth')
+                ? $this->orderTeeth->pluck('tooth_number')->values()
+                : [],
+            'files' => $this->relationLoaded('orderFiles')
+                ? OrderFileResource::collection($this->orderFiles)
+                : [],
             'requires_resubmission' => (bool) $this->requires_resubmission,
             'resubmission_reason' => $this->resubmission_reason,
             'resubmission_requested_at' => $this->resubmission_requested_at,

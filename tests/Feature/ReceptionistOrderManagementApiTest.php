@@ -2,13 +2,17 @@
 
 namespace Tests\Feature;
 
+use App\Models\DentalCompensationType;
+use App\Models\DentalCompensationTypePrice;
 use App\Models\Lab;
 use App\Models\Order;
 use App\Models\OrderFile;
 use App\Models\OrderTooth;
 use App\Models\Role;
+use App\Models\ToothShade;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Database\Seeders\ToothShadeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
@@ -21,6 +25,7 @@ class ReceptionistOrderManagementApiTest extends TestCase
     public function test_receptionist_can_view_orders_list_with_filters(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);
+        $this->seed(ToothShadeSeeder::class);
 
         $receptionist = $this->actingAsRole('receptionist');
         $doctorOne = User::factory()->create(['name' => 'Doctor One']);
@@ -34,9 +39,28 @@ class ReceptionistOrderManagementApiTest extends TestCase
             'longitude' => 36.2765279,
         ]);
 
+        $type = DentalCompensationType::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'Zircon Standard',
+            'description' => null,
+            'code' => 'zircon_standard',
+            'category' => 'zircon',
+        ]);
+
+        $price = DentalCompensationTypePrice::query()->create([
+            'dental_compensation_type_id' => $type->id,
+            'base_price' => 125,
+            'effective_from' => '2026-05-01',
+            'is_active' => true,
+        ]);
+
+        $shade = ToothShade::query()->where('code', 'A1')->firstOrFail();
+
         $matchingOrder = Order::query()->create([
             'user_id' => $doctorOne->id,
             'lab_id' => $lab->id,
+            'tooth_shade_id' => $shade->id,
+            'dental_compensation_type_price_id' => $price->id,
             'qr_code' => 'QR-MATCH-001',
             'priority' => 'normal',
             'status' => 'pending',
@@ -44,6 +68,19 @@ class ReceptionistOrderManagementApiTest extends TestCase
             'notes' => null,
             'price' => 125,
             'remaining_amount' => 125,
+        ]);
+
+        OrderTooth::query()->create([
+            'order_id' => $matchingOrder->id,
+            'tooth_number' => 12,
+            'notes' => null,
+        ]);
+
+        OrderFile::query()->create([
+            'order_id' => $matchingOrder->id,
+            'file_path' => 'orders/QR-MATCH-001/image-1.png',
+            'file_type' => 'image/png',
+            'uploaded_at' => now(),
         ]);
 
         Order::query()->create([
@@ -68,7 +105,11 @@ class ReceptionistOrderManagementApiTest extends TestCase
             ->assertJsonPath('message', __('orders.retrieved_successfully'))
             ->assertJsonPath('data.total', 1)
             ->assertJsonPath('data.data.0.id', $matchingOrder->id)
-            ->assertJsonPath('data.data.0.doctor.name', 'Doctor One');
+            ->assertJsonPath('data.data.0.doctor.name', 'Doctor One')
+            ->assertJsonPath('data.data.0.tooth_shade_name', $shade->name)
+            ->assertJsonPath('data.data.0.material_type', $type->name)
+            ->assertJsonPath('data.data.0.teeth.0', 12)
+            ->assertJsonPath('data.data.0.files.0.file_type', 'image/png');
     }
 
     public function test_receptionist_can_view_order_details(): void
