@@ -49,6 +49,12 @@ class DemoDataSeeder extends Seeder
         $this->call([ToothShadeSeeder::class]);
         $usersByRole = $this->seedUsers($labs);
         $departmentsByLab = $this->seedDepartmentsAndCompensationTypes($labs);
+
+        // Fill time_allowed (hours) for demo departments where it's NULL
+        DB::table('departments')
+            ->whereNull('time_allowed')
+            ->update(['time_allowed' => DB::raw('FLOOR(1 + RAND() * 10)')]);
+
         $this->seedDepartmentAssignments($usersByRole, $departmentsByLab, $labs);
 
         $orders = $this->seedOrders($usersByRole['doctor'], $labs);
