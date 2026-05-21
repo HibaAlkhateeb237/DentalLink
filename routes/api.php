@@ -45,7 +45,6 @@ Route::prefix('auth')->group(function (): void {
 
     Route::get('/top-rated', [LabController::class, 'topRated'])->name('labs.top-rated');
 
-
     Route::middleware('auth:sanctum')->group(function (): void {
 
         Route::get('/me', [AuthController::class, 'me']);
@@ -90,6 +89,7 @@ Route::prefix('auth')->group(function (): void {
             //  Route::post('/{order}/pricing/calculate', [OrderPricingController::class, 'calculate'])->name('orders.pricing.calculate');
         });
 
+        // http://127.0.0.1:8000/api/top-rated
 
         // ----------------------------------Doctor-----------------------------------------------------------------
 

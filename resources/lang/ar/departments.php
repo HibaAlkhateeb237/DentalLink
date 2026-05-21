@@ -7,4 +7,5 @@ return [
     'details_retrieved_successfully' => 'تم جلب تفاصيل القسم بنجاح.',
     'updated_successfully' => 'تم تحديث القسم بنجاح.',
     'deleted_successfully' => 'تم حذف القسم بنجاح.',
+    'cannot_delete_with_employees' => 'لا يمكن حذف القسم لوجود موظفين ضمنه.',
 ];
