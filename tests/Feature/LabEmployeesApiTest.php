@@ -146,7 +146,7 @@ class LabEmployeesApiTest extends TestCase
             'name' => 'Employee Three Updated',
             'phone' => '0999000111',
             'joined_at' => '2026-02-10',
-            'department_id' => $departmentTwo->id,
+            'departments_ids' => [$department->id, $departmentTwo->id],
             'role_id' => $updatedRole->id,
         ]);
 
@@ -155,7 +155,7 @@ class LabEmployeesApiTest extends TestCase
             ->assertJsonPath('message', __('employees.updated_successfully'))
             ->assertJsonPath('data.employee.name', 'Employee Three Updated')
             ->assertJsonPath('data.employee.phone', '0999000111')
-            ->assertJsonPath('data.employee.department.id', $departmentTwo->id)
+            ->assertJsonPath('data.employee.departments_ids', [$department->id, $departmentTwo->id])
             ->assertJsonPath('data.employee.role.name', 'department_manager');
 
         $employee->refresh();
@@ -197,6 +197,62 @@ class LabEmployeesApiTest extends TestCase
             ->assertStatus(400)
             ->assertJsonPath('message', 'Validation failed')
             ->assertJsonValidationErrors(['phone']);
+    }
+
+    public function test_lab_manager_can_create_department_manager_for_multiple_departments(): void
+    {
+        Storage::fake('public');
+
+        [$manager, $lab] = $this->authenticateLabManager();
+
+        $departmentOne = Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'Scan',
+            'is_management' => false,
+        ]);
+
+        $departmentTwo = Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'Mill',
+            'is_management' => false,
+        ]);
+
+        $role = Role::query()->where('name', 'department_manager')->where('guard_name', 'sanctum')->firstOrFail();
+
+        $response = $this->post('/api/auth/lab/employees', [
+            'name' => 'Employee Multi',
+            'email' => 'employee.multi@example.com',
+            'phone' => '0999555999',
+            'password' => 'Secret1234',
+            'password_confirmation' => 'Secret1234',
+            'birthdate' => '1995-06-10',
+            'joined_at' => '2026-04-01',
+            'departments_ids' => [$departmentOne->id, $departmentTwo->id],
+            'role_id' => $role->id,
+            'profile_image' => UploadedFile::fake()->image('employee.jpg'),
+        ], [
+            'Accept' => 'application/json',
+        ]);
+
+        $response
+            ->assertCreated()
+            ->assertJsonPath('message', __('employees.created_successfully'))
+            ->assertJsonPath('data.employee.departments_ids', [$departmentOne->id, $departmentTwo->id])
+            ->assertJsonPath('data.employee.role.name', 'department_manager');
+
+        $employee = User::query()->where('email', 'employee.multi@example.com')->firstOrFail();
+
+        $this->assertDatabaseHas('department_user_roles', [
+            'user_id' => $employee->id,
+            'department_id' => $departmentOne->id,
+            'role_id' => $role->id,
+        ]);
+
+        $this->assertDatabaseHas('department_user_roles', [
+            'user_id' => $employee->id,
+            'department_id' => $departmentTwo->id,
+            'role_id' => $role->id,
+        ]);
     }
 
     public function test_lab_manager_can_delete_employee(): void
