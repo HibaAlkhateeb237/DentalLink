@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\DentalCompensationType;
 use App\Models\DentalCompensationTypePrice;
+use App\Models\Department;
+use App\Models\DepartmentUserRole;
 use App\Models\Lab;
 use App\Models\Order;
 use App\Models\OrderFile;
@@ -15,6 +17,7 @@ use Database\Seeders\RolesAndPermissionsSeeder;
 use Database\Seeders\ToothShadeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -211,6 +214,172 @@ class ReceptionistOrderManagementApiTest extends TestCase
             'requires_resubmission' => 1,
             'resubmission_requested_by' => $receptionist->id,
         ]);
+    }
+
+    public function test_receptionist_can_view_order_qr_image(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        Storage::fake('public');
+
+        $lab = Lab::query()->create([
+            'name' => 'QR Lab',
+            'phone' => '101010',
+            'address' => 'Damascus',
+            'latitude' => 33.5138070,
+            'longitude' => 36.2765279,
+        ]);
+
+        $department = Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'Front Desk',
+            'description' => null,
+            'is_management' => true,
+        ]);
+
+        $receptionist = $this->actingAsRole('receptionist');
+
+        DepartmentUserRole::query()->create([
+            'user_id' => $receptionist->id,
+            'role_id' => Role::query()->where('name', 'receptionist')->where('guard_name', 'sanctum')->value('id'),
+            'department_id' => $department->id,
+        ]);
+
+        $order = Order::query()->create([
+            'user_id' => User::factory()->create()->id,
+            'lab_id' => $lab->id,
+            'qr_code' => 'QR-IMAGE-001',
+            'qr_image_path' => 'orders/QR-IMAGE-001/qr.png',
+            'priority' => 'normal',
+            'status' => 'pending',
+            'order_type' => 'digital',
+            'notes' => null,
+            'price' => 100,
+            'remaining_amount' => 100,
+        ]);
+
+        Storage::disk('public')->put($order->qr_image_path, 'qr');
+
+        Sanctum::actingAs($receptionist);
+
+        $response = $this->getJson("/api/auth/orders/{$order->id}/qr-image");
+
+        $response->assertOk()
+            ->assertHeader('content-type', 'image/png');
+    }
+
+    public function test_receptionist_cannot_view_qr_image_for_other_lab(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        Storage::fake('public');
+
+        $lab = Lab::query()->create([
+            'name' => 'Lab One',
+            'phone' => '101011',
+            'address' => 'Damascus',
+            'latitude' => 33.5138070,
+            'longitude' => 36.2765279,
+        ]);
+
+        $department = Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'Front Desk',
+            'description' => null,
+            'is_management' => true,
+        ]);
+
+        $otherLab = Lab::query()->create([
+            'name' => 'Lab Two',
+            'phone' => '202022',
+            'address' => 'Aleppo',
+            'latitude' => 33.5104140,
+            'longitude' => 36.2783360,
+        ]);
+
+        $receptionist = $this->actingAsRole('receptionist');
+
+        DepartmentUserRole::query()->create([
+            'user_id' => $receptionist->id,
+            'role_id' => Role::query()->where('name', 'receptionist')->where('guard_name', 'sanctum')->value('id'),
+            'department_id' => $department->id,
+        ]);
+
+        $order = Order::query()->create([
+            'user_id' => User::factory()->create()->id,
+            'lab_id' => $otherLab->id,
+            'qr_code' => 'QR-IMAGE-002',
+            'qr_image_path' => 'orders/QR-IMAGE-002/qr.png',
+            'priority' => 'normal',
+            'status' => 'pending',
+            'order_type' => 'digital',
+            'notes' => null,
+            'price' => 100,
+            'remaining_amount' => 100,
+        ]);
+
+        Storage::disk('public')->put($order->qr_image_path, 'qr');
+
+        Sanctum::actingAs($receptionist);
+
+        $response = $this->getJson("/api/auth/orders/{$order->id}/qr-image");
+
+        $response->assertStatus(403)
+            ->assertJsonPath('message', __('auth.forbidden'));
+    }
+
+    public function test_receptionist_gets_not_found_when_qr_image_missing(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        Storage::fake('public');
+
+        $lab = Lab::query()->create([
+            'name' => 'Missing QR Lab',
+            'phone' => '909090',
+            'address' => 'Damascus',
+            'latitude' => 33.5138070,
+            'longitude' => 36.2765279,
+        ]);
+
+        $department = Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'Front Desk',
+            'description' => null,
+            'is_management' => true,
+        ]);
+
+        $receptionist = $this->actingAsRole('receptionist');
+
+        DepartmentUserRole::query()->create([
+            'user_id' => $receptionist->id,
+            'role_id' => Role::query()->where('name', 'receptionist')->where('guard_name', 'sanctum')->value('id'),
+            'department_id' => $department->id,
+        ]);
+
+        $order = Order::query()->create([
+            'user_id' => User::factory()->create()->id,
+            'lab_id' => $lab->id,
+            'qr_code' => 'QR-IMAGE-003',
+            'priority' => 'normal',
+            'status' => 'pending',
+            'order_type' => 'digital',
+            'notes' => null,
+            'price' => 100,
+            'remaining_amount' => 100,
+        ]);
+
+        Sanctum::actingAs($receptionist);
+
+        $response = $this->getJson("/api/auth/orders/{$order->id}/qr-image");
+
+        $response->assertOk()
+            ->assertHeader('content-type', 'image/png');
+
+        $order = $order->refresh();
+
+        $this->assertNotNull($order->qr_image_path);
+        Storage::disk('public')->assertExists($order->qr_image_path);
     }
 
     public function test_non_receptionist_cannot_access_receptionist_order_routes(): void

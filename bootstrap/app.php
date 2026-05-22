@@ -101,6 +101,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (Throwable $exception, Request $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 $reason = $exception->getMessage();
+                $shouldExposeReason = app()->isLocal() || (bool) config('app.debug');
 
                 if ($reason === '') {
                     $reason = Response::$statusTexts[Response::HTTP_INTERNAL_SERVER_ERROR] ?? __('messages.error');
@@ -109,9 +110,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 return app(ApiResponse::class)->error(
                     message: __('messages.error'),
                     status: Response::HTTP_INTERNAL_SERVER_ERROR,
-                    errors: [
-                        'reason' => $reason,
-                    ],
+                    errors: $shouldExposeReason ? ['reason' => $reason] : null,
                 );
             }
 

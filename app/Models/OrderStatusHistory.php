@@ -32,13 +32,3 @@ class OrderStatusHistory extends Model
         return $this->belongsTo(User::class, 'changed_by');
     }
 }
-<?php
-
-namespace App\Models;
-
-use Illuminate\Database\Eloquent\Model;
-
-class OrderStatusHistory extends Model
-{
-    //
-}

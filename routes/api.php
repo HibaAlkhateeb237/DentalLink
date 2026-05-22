@@ -95,6 +95,7 @@ Route::prefix('auth')->group(function (): void {
 
         Route::middleware(['role:receptionist'])->prefix('orders')->group(function (): void {
             Route::get('/', [ReceptionistOrderController::class, 'index'])->name('orders.index');
+            Route::get('/{order}/qr-image', [ReceptionistOrderController::class, 'qrImage'])->name('orders.qr-image');
             Route::get('/{order}', [ReceptionistOrderController::class, 'show'])->name('orders.show');
             Route::post('/{order}/resubmission', [ReceptionistOrderController::class, 'markForResubmission'])
                 ->name('orders.resubmission.store');
