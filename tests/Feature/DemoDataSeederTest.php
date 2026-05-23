@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Department;
+use App\Models\DepartmentUserRole;
 use App\Models\Lab;
 use App\Models\Role;
 use App\Models\User;
@@ -40,8 +41,8 @@ class DemoDataSeederTest extends TestCase
             ->get();
 
         $this->assertSame(3, $receptionists->count());
-        $assignedReceptionists = $receptionDepartment
-            ->departmentUserRoles()
+        $assignedReceptionists = DepartmentUserRole::query()
+            ->where('department_id', $receptionDepartment->id)
             ->where('role_id', $receptionistRoleId)
             ->pluck('user_id')
             ->all();
@@ -51,7 +52,7 @@ class DemoDataSeederTest extends TestCase
         $this->assertTrue($receptionists->whereIn('id', $assignedReceptionists)->count() === count($assignedReceptionists));
     }
 
-    public function test_demo_data_seeder_assigns_four_employees_to_each_first_lab_department(): void
+    public function test_demo_data_seeder_assigns_one_manager_and_one_technician_to_each_first_lab_department(): void
     {
         $this->seed(DemoDataSeeder::class);
 
@@ -79,10 +80,49 @@ class DemoDataSeederTest extends TestCase
         $this->assertNotEmpty($departments);
 
         foreach ($departments as $department) {
-            $assignments = $department->departmentUserRoles()->get();
-            $this->assertSame(4, $assignments->count());
+            $assignments = DepartmentUserRole::query()
+                ->where('department_id', $department->id)
+                ->get();
+            $this->assertSame(2, $assignments->count());
             $this->assertSame(1, $assignments->where('role_id', $managerRoleId)->count());
-            $this->assertSame(3, $assignments->where('role_id', $technicianRoleId)->count());
+            $this->assertSame(1, $assignments->where('role_id', $technicianRoleId)->count());
+        }
+    }
+
+    public function test_demo_data_seeder_assigns_each_lab_technician_to_only_one_department(): void
+    {
+        $this->seed(DemoDataSeeder::class);
+
+        $technicianRoleId = Role::query()
+            ->where('name', 'lab_technician')
+            ->where('guard_name', 'sanctum')
+            ->value('id');
+        $this->assertNotNull($technicianRoleId);
+
+        $technicians = User::query()
+            ->whereHas('roles', function ($query) use ($technicianRoleId): void {
+                $query->where('roles.id', $technicianRoleId);
+            })
+            ->get();
+
+        $this->assertGreaterThanOrEqual(24, $technicians->count());
+
+        foreach ($technicians as $technician) {
+            $assignments = DepartmentUserRole::query()
+                ->where('user_id', $technician->id)
+                ->where('role_id', $technicianRoleId)
+                ->get();
+
+            $this->assertSame(1, $assignments->count());
+
+            $department = Department::query()->find($assignments->first()->department_id);
+            $this->assertNotNull($department);
+
+            $lab = Lab::query()->find($department->lab_id);
+            $this->assertNotNull($lab);
+            $this->assertSame($lab->name, $technician->lab_name);
+            $this->assertSame(0, (int) $department->is_management);
+            $this->assertNotSame('Reception', $department->name);
         }
     }
 
@@ -107,7 +147,8 @@ class DemoDataSeederTest extends TestCase
             $this->assertNotNull($managementDepartment);
 
             $this->assertTrue(
-                $managementDepartment->departmentUserRoles()
+                DepartmentUserRole::query()
+                    ->where('department_id', $managementDepartment->id)
                     ->where('role_id', $labManagerRoleId)
                     ->exists()
             );

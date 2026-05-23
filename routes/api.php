@@ -8,6 +8,7 @@ use App\Http\Controllers\LabController;
 use App\Http\Controllers\LabEmployeeController;
 use App\Http\Controllers\LabPortfolioController;
 use App\Http\Controllers\LabPricingController;
+use App\Http\Controllers\LabTechnicianTaskController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OrderPricingController;
 use App\Http\Controllers\ReceptionistOrderController;
@@ -26,14 +27,12 @@ Route::get('/ping', function () {
     ]);
 });
 
-// ?context=home
-
 Route::middleware(['auth:sanctum', 'role:system_admin'])->prefix('admin/labs')->group(function (): void {
     Route::get('/', [LabController::class, 'adminIndex'])->name('admin.labs.index');
     Route::get('/inactive', [LabController::class, 'inactiveLabs'])->name('admin.labs.inactive');
     Route::get('/{lab}', [LabController::class, 'adminShow'])->name('admin.labs.show');
     Route::post('/', [LabController::class, 'store'])->name('admin.labs.store');
-    Route::post('/{lab}', [LabController::class, 'update'])->name('admin.labs.update');
+    Route::put('/{lab}', [LabController::class, 'update'])->name('admin.labs.update');
     Route::delete('/{lab}', [LabController::class, 'destroy'])->name('admin.labs.destroy');
 });
 
@@ -110,13 +109,20 @@ Route::prefix('auth')->group(function (): void {
 
         Route::middleware(['role:lab_manager'])->prefix('lab/departments')->group(function (): void {
             Route::get('/', [DepartmentController::class, 'index'])->name('lab.departments.index');
-            Route::get('/with-employees/list', [DepartmentController::class, 'indexWithEmployees'])->name('lab.departments.with-employees.index');
             Route::post('/', [DepartmentController::class, 'store'])->name('lab.departments.store');
             Route::post('/bulk', [DepartmentController::class, 'bulkStore'])->name('lab.departments.bulk.store');
             Route::get('/{department}', [DepartmentController::class, 'show'])->name('lab.departments.show');
-            Route::get('/{department}/with-employees', [DepartmentController::class, 'showWithEmployees'])->name('lab.departments.with-employees.show');
             Route::put('/{department}', [DepartmentController::class, 'update'])->name('lab.departments.update');
             Route::delete('/{department}', [DepartmentController::class, 'destroy'])->name('lab.departments.destroy');
         });
+
+        // ====================================lab_technician===================================================
+
+        Route::middleware(['role:lab_technician'])->prefix('lab/technician')->group(function (): void {
+            Route::get('/departments/{department}/tasks', [LabTechnicianTaskController::class, 'index'])
+                ->name('lab.technician.departments.tasks.index');
+        });
+        // =======================================================================================================
+
     });
 });
