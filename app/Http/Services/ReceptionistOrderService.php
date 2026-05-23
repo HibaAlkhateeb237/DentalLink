@@ -3,14 +3,14 @@
 namespace App\Http\Services;
 
 use App\Models\Order;
+use App\Models\OrderStatusHistory;
 use App\Models\User;
+use App\Support\OrderStatus;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
-use App\Models\OrderStatusHistory;
-use App\Support\OrderStatus;
+use Illuminate\Validation\ValidationException;
 
 class ReceptionistOrderService
 {
@@ -23,6 +23,11 @@ class ReceptionistOrderService
             ->with([
                 'user:id,name,email,phone',
                 'lab:id,name,phone,address',
+                'toothShade:id,name',
+                'dentalCompensationTypePrice:id,dental_compensation_type_id',
+                'dentalCompensationTypePrice.dentalCompensationType:id,name',
+                'orderTeeth:id,order_id,tooth_number',
+                'orderFiles:id,order_id,file_path,file_type,uploaded_at',
             ])
             ->withCount('orderTeeth')
             ->withSum('payments as paid_amount', 'payment_order.amount');

@@ -3,11 +3,13 @@
 namespace App\Http\Requests;
 
 use App\Models\DepartmentUserRole;
+use App\Models\Role;
 use App\Models\User;
 use App\Support\EmployeeRoles;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\Validator;
 
 class EmployeeUpdateRequest extends FormRequest
 {
@@ -41,8 +43,21 @@ class EmployeeUpdateRequest extends FormRequest
             'profile_image' => ['sometimes', 'required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'department_id' => [
                 'sometimes',
-                Rule::requiredIf($this->filled('role_id')),
                 'integer',
+                Rule::exists('departments', 'id')->where(function ($query) use ($managerLabId): void {
+                    if ($managerLabId !== null) {
+                        $query->where('lab_id', $managerLabId);
+
+                        return;
+                    }
+
+                    $query->whereRaw('1 = 0');
+                }),
+            ],
+            'departments_ids' => ['sometimes', 'array', 'min:1'],
+            'departments_ids.*' => [
+                'integer',
+                'distinct',
                 Rule::exists('departments', 'id')->where(function ($query) use ($managerLabId): void {
                     if ($managerLabId !== null) {
                         $query->where('lab_id', $managerLabId);
@@ -55,7 +70,6 @@ class EmployeeUpdateRequest extends FormRequest
             ],
             'role_id' => [
                 'sometimes',
-                Rule::requiredIf($this->filled('department_id')),
                 'integer',
                 Rule::exists('roles', 'id')->where(function ($query): void {
                     $query
@@ -64,6 +78,59 @@ class EmployeeUpdateRequest extends FormRequest
                 }),
             ],
         ];
+    }
+
+    /**
+     * @return array<int, \Closure(Validator): void>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                $employee = $this->route('employee');
+                $roleName = $this->resolveRoleName($employee instanceof User ? $employee : null);
+
+                if ($roleName === 'department_manager') {
+                    if ($this->filled('department_id')) {
+                        $validator->errors()->add('department_id', __('validation.prohibited'));
+                    }
+
+                    if ($this->filled('role_id') && ! $this->filled('departments_ids')) {
+                        $validator->errors()->add('departments_ids', __('validation.required'));
+                    }
+
+                    return;
+                }
+
+                if ($this->filled('departments_ids')) {
+                    $validator->errors()->add('departments_ids', __('validation.prohibited'));
+                }
+
+                if ($this->filled('role_id') && ! $this->filled('department_id')) {
+                    $validator->errors()->add('department_id', __('validation.required'));
+                }
+            },
+        ];
+    }
+
+    private function resolveRoleName(?User $employee): ?string
+    {
+        $roleId = $this->integer('role_id') ?: null;
+
+        if ($roleId !== null) {
+            return Role::query()->where('id', $roleId)->value('name');
+        }
+
+        if ($employee === null) {
+            return null;
+        }
+
+        return DepartmentUserRole::query()
+            ->join('roles', 'roles.id', '=', 'department_user_roles.role_id')
+            ->where('department_user_roles.user_id', $employee->id)
+            ->where('roles.guard_name', 'sanctum')
+            ->whereIn('roles.name', EmployeeRoles::allowed())
+            ->value('roles.name');
     }
 
     private function resolveManagerLabId(): ?int

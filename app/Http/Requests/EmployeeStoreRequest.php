@@ -3,11 +3,13 @@
 namespace App\Http\Requests;
 
 use App\Models\DepartmentUserRole;
+use App\Models\Role;
 use App\Models\User;
 use App\Support\EmployeeRoles;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\Validator;
 
 class EmployeeStoreRequest extends FormRequest
 {
@@ -32,8 +34,22 @@ class EmployeeStoreRequest extends FormRequest
             'joined_at' => ['required', 'date'],
             'profile_image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'department_id' => [
-                'required',
+                'nullable',
                 'integer',
+                Rule::exists('departments', 'id')->where(function ($query) use ($managerLabId): void {
+                    if ($managerLabId !== null) {
+                        $query->where('lab_id', $managerLabId);
+
+                        return;
+                    }
+
+                    $query->whereRaw('1 = 0');
+                }),
+            ],
+            'departments_ids' => ['nullable', 'array', 'min:1'],
+            'departments_ids.*' => [
+                'integer',
+                'distinct',
                 Rule::exists('departments', 'id')->where(function ($query) use ($managerLabId): void {
                     if ($managerLabId !== null) {
                         $query->where('lab_id', $managerLabId);
@@ -54,6 +70,49 @@ class EmployeeStoreRequest extends FormRequest
                 }),
             ],
         ];
+    }
+
+    /**
+     * @return array<int, \Closure(Validator): void>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                $roleName = $this->resolveRoleName();
+
+                if ($roleName === 'department_manager') {
+                    if (! $this->filled('departments_ids')) {
+                        $validator->errors()->add('departments_ids', __('validation.required'));
+                    }
+
+                    if ($this->filled('department_id')) {
+                        $validator->errors()->add('department_id', __('validation.prohibited'));
+                    }
+
+                    return;
+                }
+
+                if ($this->filled('departments_ids')) {
+                    $validator->errors()->add('departments_ids', __('validation.prohibited'));
+                }
+
+                if (! $this->filled('department_id')) {
+                    $validator->errors()->add('department_id', __('validation.required'));
+                }
+            },
+        ];
+    }
+
+    private function resolveRoleName(): ?string
+    {
+        $roleId = $this->integer('role_id') ?: null;
+
+        if ($roleId === null) {
+            return null;
+        }
+
+        return Role::query()->where('id', $roleId)->value('name');
     }
 
     private function resolveManagerLabId(): ?int
