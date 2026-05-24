@@ -62,7 +62,7 @@ class OrderRepository
             $order->save();
 
             try {
-                $qrData = route('orders.show-qr', ['order' => $order->qr_code]);
+                $qrData = route('orders.show-qr', ['qr' => $order->qr_code]);
 
                 $result = Builder::create()
                     ->writer(new PngWriter)

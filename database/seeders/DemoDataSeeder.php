@@ -563,7 +563,7 @@ class DemoDataSeeder extends Seeder
         try {
             $result = Builder::create()
                 ->writer(new PngWriter)
-                ->data(route('orders.show-qr', ['order' => $order->qr_code]))
+                ->data(route('orders.show-qr', ['qr' => $order->qr_code]))
                 ->size(300)
                 ->build();
 
