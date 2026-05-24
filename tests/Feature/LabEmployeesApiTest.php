@@ -40,7 +40,7 @@ class LabEmployeesApiTest extends TestCase
             'password_confirmation' => 'Secret1234',
             'birthdate' => '1995-06-10',
             'joined_at' => '2026-04-01',
-            'department_id' => $department->id,
+            'departments_ids' => [$department->id],
             'role_id' => $role->id,
             'profile_image' => UploadedFile::fake()->image('employee.jpg'),
         ], [
@@ -186,7 +186,7 @@ class LabEmployeesApiTest extends TestCase
             'password_confirmation' => 'Secret1234',
             'birthdate' => '1995-06-10',
             'joined_at' => '2026-04-01',
-            'department_id' => $department->id,
+            'departments_ids' => [$department->id],
             'role_id' => $role->id,
             'profile_image' => UploadedFile::fake()->image('employee.jpg'),
         ], [
@@ -255,6 +255,58 @@ class LabEmployeesApiTest extends TestCase
         ]);
     }
 
+    public function test_lab_manager_cannot_assign_second_department_manager_to_department(): void
+    {
+        Storage::fake('public');
+
+        [$manager, $lab] = $this->authenticateLabManager();
+
+        $department = Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'Finishing',
+            'is_management' => false,
+        ]);
+
+        $departmentManagerRole = Role::query()
+            ->where('name', 'department_manager')
+            ->where('guard_name', 'sanctum')
+            ->firstOrFail();
+
+        $existingManager = User::query()->create([
+            'name' => 'Existing Manager',
+            'email' => 'existing.manager@example.com',
+            'password' => 'Secret1234',
+            'birthdate' => '1991-03-10',
+            'joined_at' => '2026-01-01',
+            'profile_image' => null,
+        ]);
+
+        DepartmentUserRole::query()->create([
+            'user_id' => $existingManager->id,
+            'role_id' => $departmentManagerRole->id,
+            'department_id' => $department->id,
+        ]);
+
+        $response = $this->post('/api/auth/lab/employees', [
+            'name' => 'Second Manager',
+            'email' => 'second.manager@example.com',
+            'phone' => '0999555011',
+            'password' => 'Secret1234',
+            'password_confirmation' => 'Secret1234',
+            'birthdate' => '1994-06-10',
+            'joined_at' => '2026-04-01',
+            'departments_ids' => [$department->id],
+            'role_id' => $departmentManagerRole->id,
+            'profile_image' => UploadedFile::fake()->image('employee.jpg'),
+        ], [
+            'Accept' => 'application/json',
+        ]);
+
+        $response
+            ->assertStatus(400)
+            ->assertJsonValidationErrors(['departments_ids']);
+    }
+
     public function test_lab_manager_can_delete_employee(): void
     {
         [$manager, $lab] = $this->authenticateLabManager();
@@ -310,7 +362,7 @@ class LabEmployeesApiTest extends TestCase
             'password_confirmation' => 'Secret1234',
             'birthdate' => '1995-06-10',
             'joined_at' => '2026-04-01',
-            'department_id' => 1,
+            'departments_ids' => [1],
             'role_id' => Role::query()->where('name', 'receptionist')->where('guard_name', 'sanctum')->firstOrFail()->id,
         ]);
 

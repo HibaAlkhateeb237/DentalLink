@@ -24,6 +24,7 @@ class EmployeeStoreRequest extends FormRequest
     public function rules(): array
     {
         $managerLabId = $this->resolveManagerLabId();
+        $roleName = $this->resolveRoleName();
 
         return [
             'name' => ['required', 'string', 'max:255'],
@@ -33,20 +34,7 @@ class EmployeeStoreRequest extends FormRequest
             'birthdate' => ['required', 'date'],
             'joined_at' => ['required', 'date'],
             'profile_image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
-            'department_id' => [
-                'nullable',
-                'integer',
-                Rule::exists('departments', 'id')->where(function ($query) use ($managerLabId): void {
-                    if ($managerLabId !== null) {
-                        $query->where('lab_id', $managerLabId);
-
-                        return;
-                    }
-
-                    $query->whereRaw('1 = 0');
-                }),
-            ],
-            'departments_ids' => ['nullable', 'array', 'min:1'],
+            'departments_ids' => ['required', 'array', 'min:1'],
             'departments_ids.*' => [
                 'integer',
                 'distinct',
@@ -82,23 +70,13 @@ class EmployeeStoreRequest extends FormRequest
                 $roleName = $this->resolveRoleName();
 
                 if ($roleName === 'department_manager') {
-                    if (! $this->filled('departments_ids')) {
-                        $validator->errors()->add('departments_ids', __('validation.required'));
-                    }
-
-                    if ($this->filled('department_id')) {
-                        $validator->errors()->add('department_id', __('validation.prohibited'));
-                    }
-
                     return;
                 }
 
-                if ($this->filled('departments_ids')) {
-                    $validator->errors()->add('departments_ids', __('validation.prohibited'));
-                }
+                $departments = $this->input('departments_ids', []);
 
-                if (! $this->filled('department_id')) {
-                    $validator->errors()->add('department_id', __('validation.required'));
+                if (is_array($departments) && count($departments) > 1) {
+                    $validator->errors()->add('departments_ids', __('validation.max.array', ['max' => 1]));
                 }
             },
         ];

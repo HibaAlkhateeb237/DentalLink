@@ -32,6 +32,7 @@ class EmployeeUpdateRequest extends FormRequest
         $employee = $this->route('employee');
         $employeeId = $employee instanceof User ? $employee->id : (int) $employee;
         $managerLabId = $this->resolveManagerLabId();
+        $roleName = $this->resolveRoleName($employee instanceof User ? $employee : null);
 
         return [
             'name' => ['sometimes', 'required', 'string', 'max:255'],
@@ -41,19 +42,6 @@ class EmployeeUpdateRequest extends FormRequest
             'birthdate' => ['sometimes', 'required', 'date'],
             'joined_at' => ['sometimes', 'required', 'date'],
             'profile_image' => ['sometimes', 'required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
-            'department_id' => [
-                'sometimes',
-                'integer',
-                Rule::exists('departments', 'id')->where(function ($query) use ($managerLabId): void {
-                    if ($managerLabId !== null) {
-                        $query->where('lab_id', $managerLabId);
-
-                        return;
-                    }
-
-                    $query->whereRaw('1 = 0');
-                }),
-            ],
             'departments_ids' => ['sometimes', 'array', 'min:1'],
             'departments_ids.*' => [
                 'integer',
@@ -91,10 +79,6 @@ class EmployeeUpdateRequest extends FormRequest
                 $roleName = $this->resolveRoleName($employee instanceof User ? $employee : null);
 
                 if ($roleName === 'department_manager') {
-                    if ($this->filled('department_id')) {
-                        $validator->errors()->add('department_id', __('validation.prohibited'));
-                    }
-
                     if ($this->filled('role_id') && ! $this->filled('departments_ids')) {
                         $validator->errors()->add('departments_ids', __('validation.required'));
                     }
@@ -102,12 +86,14 @@ class EmployeeUpdateRequest extends FormRequest
                     return;
                 }
 
-                if ($this->filled('departments_ids')) {
-                    $validator->errors()->add('departments_ids', __('validation.prohibited'));
+                if ($this->filled('role_id') && ! $this->filled('departments_ids')) {
+                    $validator->errors()->add('departments_ids', __('validation.required'));
                 }
 
-                if ($this->filled('role_id') && ! $this->filled('department_id')) {
-                    $validator->errors()->add('department_id', __('validation.required'));
+                $departments = $this->input('departments_ids', []);
+
+                if (is_array($departments) && count($departments) > 1) {
+                    $validator->errors()->add('departments_ids', __('validation.max.array', ['max' => 1]));
                 }
             },
         ];

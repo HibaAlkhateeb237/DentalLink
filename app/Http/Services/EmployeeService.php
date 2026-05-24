@@ -83,6 +83,8 @@ class EmployeeService
                         ->unique()
                         ->values();
 
+                    $this->ensureDepartmentsHaveNoManager($departmentIds->all());
+
                     $departments = Department::query()
                         ->whereIn('id', $departmentIds)
                         ->where('lab_id', $managerLabId)
@@ -96,8 +98,10 @@ class EmployeeService
                         ]);
                     }
                 } else {
+                    $departmentId = (int) collect($validated['departments_ids'] ?? [])->first();
+
                     $department = Department::query()
-                        ->where('id', $validated['department_id'])
+                        ->where('id', $departmentId)
                         ->where('lab_id', $managerLabId)
                         ->firstOrFail();
 
@@ -164,6 +168,8 @@ class EmployeeService
                                 ->unique()
                                 ->values();
 
+                            $this->ensureDepartmentsHaveNoManager($departmentIds->all(), $employee->id);
+
                             $departments = Department::query()
                                 ->whereIn('id', $departmentIds)
                                 ->where('lab_id', $managerLabId)
@@ -180,9 +186,11 @@ class EmployeeService
                             }
                         }
                     } else {
-                        if (array_key_exists('department_id', $validated) || array_key_exists('role_id', $validated)) {
+                        if (array_key_exists('departments_ids', $validated) || array_key_exists('role_id', $validated)) {
+                            $departmentId = (int) collect($validated['departments_ids'] ?? [])->first();
+
                             $department = Department::query()
-                                ->where('id', $validated['department_id'])
+                                ->where('id', $departmentId)
                                 ->where('lab_id', $managerLabId)
                                 ->firstOrFail();
 
@@ -314,5 +322,42 @@ class EmployeeService
         }
 
         return (int) $managerLabId;
+    }
+
+    /**
+     * @param  array<int, int>  $departmentIds
+     */
+    private function ensureDepartmentsHaveNoManager(array $departmentIds, ?int $excludeUserId = null): void
+    {
+        $departmentIds = collect($departmentIds)
+            ->filter(static fn ($value): bool => (int) $value > 0)
+            ->unique()
+            ->values();
+
+        if ($departmentIds->isEmpty()) {
+            return;
+        }
+
+        $query = DepartmentUserRole::query()
+            ->join('roles', 'roles.id', '=', 'department_user_roles.role_id')
+            ->where('roles.name', 'department_manager')
+            ->where('roles.guard_name', 'sanctum')
+            ->whereIn('department_user_roles.department_id', $departmentIds->all());
+
+        if ($excludeUserId !== null) {
+            $query->where('department_user_roles.user_id', '!=', $excludeUserId);
+        }
+
+        $conflicts = $query
+            ->pluck('department_user_roles.department_id')
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($conflicts !== []) {
+            throw ValidationException::withMessages([
+                'departments_ids' => [__('validation.unique', ['attribute' => 'departments_ids'])],
+            ]);
+        }
     }
 }
