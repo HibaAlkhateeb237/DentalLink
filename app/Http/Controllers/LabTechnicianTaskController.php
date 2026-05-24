@@ -8,6 +8,8 @@ use App\Http\Responses\ApiResponse;
 use App\Http\Services\LabTechnicianTaskService;
 use App\Models\Department;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Symfony\Component\HttpFoundation\Response;
 
 class LabTechnicianTaskController extends Controller
@@ -52,5 +54,31 @@ class LabTechnicianTaskController extends Controller
                 'total' => $tasks->total(),
             ],
         ], __('tasks.retrieved_successfully'), Response::HTTP_OK);
+    }
+
+    public function startByQr(Request $request, string $qr): JsonResponse
+    {
+        try {
+            $session = $this->taskService->startTaskByQr($request->user(), $qr);
+
+            return $this->apiResponse->success([
+                'session' => $session,
+            ], __('tasks.started_successfully'), Response::HTTP_OK);
+        } catch (ModelNotFoundException $e) {
+            return $this->apiResponse->error(__('messages.not_found'), Response::HTTP_NOT_FOUND);
+        }
+    }
+
+    public function finishByQr(Request $request, string $qr): JsonResponse
+    {
+        try {
+            $session = $this->taskService->finishTaskByQr($request->user(), $qr);
+
+            return $this->apiResponse->success([
+                'session' => $session,
+            ], __('tasks.finished_successfully'), Response::HTTP_OK);
+        } catch (ModelNotFoundException $e) {
+            return $this->apiResponse->error(__('messages.not_found'), Response::HTTP_NOT_FOUND);
+        }
     }
 }

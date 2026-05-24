@@ -122,6 +122,8 @@ Route::prefix('auth')->group(function (): void {
                 ->name('lab.technician.departments.tasks.index');
 
             Route::get('orders/qr/{qr}', [OrderController::class, 'showByQr'])->name('orders.show-qr');
+            Route::post('orders/qr/{qr}/start', [LabTechnicianTaskController::class, 'startByQr'])->name('lab.technician.orders.qr.start');
+            Route::post('orders/qr/{qr}/finish', [LabTechnicianTaskController::class, 'finishByQr'])->name('lab.technician.orders.qr.finish');
 
         });
         // =======================================================================================================
