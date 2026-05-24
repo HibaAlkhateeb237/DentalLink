@@ -13,8 +13,8 @@ use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -133,7 +133,7 @@ class ReceptionistOrderController extends Controller
                 $order->save();
             }
 
-            $qrData = route('doctor.orders.show-qr', ['order' => $order->qr_code]);
+            $qrData = route('orders.show-qr', ['qr' => $order->qr_code]);
 
             $result = Builder::create()
                 ->writer(new PngWriter)
