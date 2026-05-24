@@ -15,4 +15,8 @@ return [
     'resubmission_marked_successfully' => 'Order was marked for doctor resubmission successfully',
     'resubmission_not_allowed_for_status' => 'This order status cannot be marked for resubmission',
     'created_successfully' => 'Order created successfully',
+    'delivery_employees_retrieved' => 'Delivery employees retrieved successfully',
+    'delivery_assigned_successfully' => 'Delivery employee assigned successfully',
+    'delivery_user_invalid' => 'Selected delivery employee is not available for this lab',
+    'delivery_already_assigned' => 'This order already has an active delivery assignment',
 ];

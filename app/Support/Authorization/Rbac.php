@@ -34,6 +34,7 @@ final class Rbac
             'receptionist' => [
                 'orders.view',
                 'orders.price',
+                'delivery.assign',
                 'payments.create',
                 'payments.view',
                 'payments.view-own',
