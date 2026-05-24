@@ -50,16 +50,16 @@ class OrderShowApiTest extends TestCase
 
         $shade = ToothShade::query()->where('code', 'A1')->firstOrFail();
 
-        $doctor = User::factory()->create();
-        $doctorRoleId = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->value('id');
+        $technician = User::factory()->create();
+        $technicianRoleId = Role::query()->where('name', 'lab_technician')->where('guard_name', 'sanctum')->value('id');
 
-        if ($doctorRoleId !== null) {
-            $doctor->roles()->syncWithoutDetaching([$doctorRoleId]);
+        if ($technicianRoleId !== null) {
+            $technician->roles()->sync([$technicianRoleId]);
         }
 
         $order = Order::query()->create([
             'lab_id' => $lab->id,
-            'user_id' => $doctor->id,
+            'user_id' => $technician->id,
             'tooth_shade_id' => $shade->id,
             'dental_compensation_type_price_id' => $price->id,
             'qr_code' => (string) Str::uuid(),
@@ -69,9 +69,9 @@ class OrderShowApiTest extends TestCase
             'remaining_amount' => 15.00,
         ]);
 
-        Sanctum::actingAs($doctor);
+        Sanctum::actingAs($technician);
 
-        $response = $this->getJson("/api/auth/orders/qr/{$order->qr_code}");
+        $response = $this->getJson("/api/auth/lab/technician/orders/qr/{$order->qr_code}");
 
         $response->assertOk()
             ->assertJsonPath('success', true)
@@ -86,16 +86,16 @@ class OrderShowApiTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
 
-        $doctor = User::factory()->create();
-        $doctorRoleId = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->value('id');
+        $technician = User::factory()->create();
+        $technicianRoleId = Role::query()->where('name', 'lab_technician')->where('guard_name', 'sanctum')->value('id');
 
-        if ($doctorRoleId !== null) {
-            $doctor->roles()->syncWithoutDetaching([$doctorRoleId]);
+        if ($technicianRoleId !== null) {
+            $technician->roles()->sync([$technicianRoleId]);
         }
 
-        Sanctum::actingAs($doctor);
+        Sanctum::actingAs($technician);
 
-        $response = $this->getJson('/api/auth/orders/qr/invalid-uuid-xyz');
+        $response = $this->getJson('/api/auth/lab/technician/orders/qr/invalid-uuid-xyz');
 
         $response->assertNotFound();
     }
@@ -130,16 +130,16 @@ class OrderShowApiTest extends TestCase
 
         $shade = ToothShade::query()->where('code', 'A1')->firstOrFail();
 
-        $doctor = User::factory()->create();
-        $doctorRoleId = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->value('id');
+        $technician = User::factory()->create();
+        $technicianRoleId = Role::query()->where('name', 'lab_technician')->where('guard_name', 'sanctum')->value('id');
 
-        if ($doctorRoleId !== null) {
-            $doctor->roles()->syncWithoutDetaching([$doctorRoleId]);
+        if ($technicianRoleId !== null) {
+            $technician->roles()->sync([$technicianRoleId]);
         }
 
         $order = Order::query()->create([
             'lab_id' => $lab->id,
-            'user_id' => $doctor->id,
+            'user_id' => $technician->id,
             'tooth_shade_id' => $shade->id,
             'dental_compensation_type_price_id' => $price->id,
             'qr_code' => (string) Str::uuid(),
@@ -149,9 +149,9 @@ class OrderShowApiTest extends TestCase
             'remaining_amount' => 15.00,
         ]);
 
-        Sanctum::actingAs($doctor);
+        Sanctum::actingAs($technician);
 
-        $response = $this->getJson("/api/auth/orders/qr/{$order->qr_code}");
+        $response = $this->getJson("/api/auth/lab/technician/orders/qr/{$order->qr_code}");
 
         $qrCode = $response->json('data.qr_code');
         $qrUrl = $response->json('data.qr_url');

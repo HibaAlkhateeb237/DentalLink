@@ -45,4 +45,21 @@ class Task extends Model
     {
         return $this->hasMany(TaskWorkSession::class);
     }
+
+    public function workedMinutes(): int
+    {
+        return $this->workSessions->sum(function (TaskWorkSession $session): int {
+            $endTime = $session->end_time;
+
+            if ($endTime === null && $session->status === 'active') {
+                $endTime = now();
+            }
+
+            if ($endTime === null || $session->start_time === null) {
+                return 0;
+            }
+
+            return max($session->start_time->diffInMinutes($endTime), 0);
+        });
+    }
 }

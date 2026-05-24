@@ -22,6 +22,7 @@ use App\Models\TaskWorkSession;
 use App\Models\ToothShade;
 use App\Models\User;
 use App\Support\OrderStatus;
+use App\Support\TaskStatus;
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -51,15 +52,20 @@ class DemoDataSeeder extends Seeder
         $departmentsByLab = $this->seedDepartmentsAndCompensationTypes($labs);
 
         // Fill time_allowed (hours) for demo departments where it's NULL
-        DB::table('departments')
+        Department::query()
             ->whereNull('time_allowed')
-            ->update(['time_allowed' => DB::raw('FLOOR(1 + RAND() * 10)')]);
+            ->get(['id'])
+            ->each(function (Department $department): void {
+                $department->update([
+                    'time_allowed' => random_int(1, 5),
+                ]);
+            });
 
-        $this->seedDepartmentAssignments($usersByRole, $departmentsByLab, $labs);
+        $technicianIdsByDepartment = $this->seedDepartmentAssignments($usersByRole, $departmentsByLab, $labs);
 
         $orders = $this->seedOrders($usersByRole['doctor'], $labs);
         $this->seedOrderDetails($orders);
-        $this->seedTasksAndWorkSessions($orders, $departmentsByLab, $usersByRole['lab_technician']);
+        $this->seedTasksAndWorkSessions($orders, $departmentsByLab, $technicianIdsByDepartment);
         $this->seedPayments($orders);
         $this->seedDeliveryTasks($orders, $usersByRole['delivery']);
         $this->seedReviews($orders);
@@ -183,13 +189,12 @@ class DemoDataSeeder extends Seeder
                 'is_active' => 0,
             ],
 
-
         ];
 
         foreach ($labsData as $index => $labData) {
             $labs[] = Lab::query()->create([
                 'name' => $labData['name'],
-                'phone' => '+9631100' . str_pad((string) ($index + 1), 4, '0', STR_PAD_LEFT),
+                'phone' => '+9631100'.str_pad((string) ($index + 1), 4, '0', STR_PAD_LEFT),
                 'address' => $labData['address'],
                 'latitude' => $labData['latitude'],
                 'longitude' => $labData['longitude'],
@@ -236,9 +241,9 @@ class DemoDataSeeder extends Seeder
 
         foreach ($labs as $index => $lab) {
             $manager = User::query()->create([
-                'name' => 'Lab Manager ' . ($index + 1),
-                'email' => 'lab.manager' . ($index + 1) . '@demo.local',
-                'phone' => '09991' . str_pad((string) ($index + 1), 5, '0', STR_PAD_LEFT),
+                'name' => 'Lab Manager '.($index + 1),
+                'email' => 'lab.manager'.($index + 1).'@demo.local',
+                'phone' => '09991'.str_pad((string) ($index + 1), 5, '0', STR_PAD_LEFT),
                 'password' => 'Password@123',
                 'location_lat' => $lab->latitude,
                 'location_lng' => $lab->longitude,
@@ -250,11 +255,11 @@ class DemoDataSeeder extends Seeder
 
         for ($index = 1; $index <= 12; $index++) {
             $usersByRole['doctor'][] = User::query()->create([
-                'name' => 'Doctor ' . $index,
-                'email' => 'doctor' . $index . '@demo.local',
-                'phone' => '09992' . str_pad((string) $index, 5, '0', STR_PAD_LEFT),
+                'name' => 'Doctor '.$index,
+                'email' => 'doctor'.$index.'@demo.local',
+                'phone' => '09992'.str_pad((string) $index, 5, '0', STR_PAD_LEFT),
                 'password' => 'Password@123',
-                'location' => 'Clinic ' . $index,
+                'location' => 'Clinic '.$index,
                 'location_lat' => 33.5000000 + ($index * 0.0010000),
                 'location_lng' => 36.2500000 + ($index * 0.0010000),
             ]);
@@ -262,9 +267,9 @@ class DemoDataSeeder extends Seeder
 
         for ($index = 1; $index <= 3; $index++) {
             $usersByRole['receptionist'][] = User::query()->create([
-                'name' => 'Receptionist ' . $index,
-                'email' => 'receptionist' . $index . '@demo.local',
-                'phone' => '09993' . str_pad((string) $index, 5, '0', STR_PAD_LEFT),
+                'name' => 'Receptionist '.$index,
+                'email' => 'receptionist'.$index.'@demo.local',
+                'phone' => '09993'.str_pad((string) $index, 5, '0', STR_PAD_LEFT),
                 'password' => 'Password@123',
                 'lab_name' => $firstLabName,
             ]);
@@ -272,27 +277,32 @@ class DemoDataSeeder extends Seeder
 
         for ($index = 1; $index <= 4; $index++) {
             $usersByRole['department_manager'][] = User::query()->create([
-                'name' => 'Department Manager ' . $index,
-                'email' => 'department.manager' . $index . '@demo.local',
-                'phone' => '09994' . str_pad((string) $index, 5, '0', STR_PAD_LEFT),
+                'name' => 'Department Manager '.$index,
+                'email' => 'department.manager'.$index.'@demo.local',
+                'phone' => '09994'.str_pad((string) $index, 5, '0', STR_PAD_LEFT),
                 'password' => 'Password@123',
             ]);
         }
 
-        for ($index = 1; $index <= 10; $index++) {
-            $usersByRole['lab_technician'][] = User::query()->create([
-                'name' => 'Technician ' . $index,
-                'email' => 'technician' . $index . '@demo.local',
-                'phone' => '09995' . str_pad((string) $index, 5, '0', STR_PAD_LEFT),
-                'password' => 'Password@123',
-            ]);
+        foreach ($labs as $labIndex => $lab) {
+            for ($slot = 1; $slot <= 3; $slot++) {
+                $technicianNumber = ($labIndex * 3) + $slot;
+
+                $usersByRole['lab_technician'][] = User::query()->create([
+                    'name' => 'Technician '.$technicianNumber,
+                    'email' => 'technician'.$technicianNumber.'@demo.local',
+                    'phone' => '09995'.str_pad((string) $technicianNumber, 5, '0', STR_PAD_LEFT),
+                    'password' => 'Password@123',
+                    'lab_name' => $lab->name,
+                ]);
+            }
         }
 
         for ($index = 1; $index <= 4; $index++) {
             $usersByRole['delivery'][] = User::query()->create([
-                'name' => 'Delivery ' . $index,
-                'email' => 'delivery' . $index . '@demo.local',
-                'phone' => '09996' . str_pad((string) $index, 5, '0', STR_PAD_LEFT),
+                'name' => 'Delivery '.$index,
+                'email' => 'delivery'.$index.'@demo.local',
+                'phone' => '09996'.str_pad((string) $index, 5, '0', STR_PAD_LEFT),
                 'password' => 'Password@123',
             ]);
         }
@@ -343,7 +353,7 @@ class DemoDataSeeder extends Seeder
                 $departmentsByLab[$lab->id][] = Department::query()->create([
                     'lab_id' => $lab->id,
                     'name' => $name,
-                    'description' => $name . ' department for ' . $lab->name,
+                    'description' => $name.' department for '.$lab->name,
                 ]);
             }
 
@@ -351,7 +361,7 @@ class DemoDataSeeder extends Seeder
                 $departmentsByLab[$lab->id][] = Department::query()->create([
                     'lab_id' => $lab->id,
                     'name' => 'Reception',
-                    'description' => 'Reception department for ' . $lab->name,
+                    'description' => 'Reception department for '.$lab->name,
                 ]);
             }
 
@@ -373,7 +383,7 @@ class DemoDataSeeder extends Seeder
                     [
                         'name' => $typeName,
                         'category' => null,
-                        'description' => $typeName . ' reference pricing',
+                        'description' => $typeName.' reference pricing',
                     ],
                 );
             }
@@ -385,20 +395,34 @@ class DemoDataSeeder extends Seeder
     /**
      * @param  array<string, array<int, User>>  $usersByRole
      * @param  array<int, array<int, Department>>  $departmentsByLab
+     * @return array<int, int>
      */
-    private function seedDepartmentAssignments(array $usersByRole, array $departmentsByLab, array $labs): void
+    private function seedDepartmentAssignments(array $usersByRole, array $departmentsByLab, array $labs): array
     {
         $managerRoleId = Role::query()->where('name', 'department_manager')->where('guard_name', 'sanctum')->value('id');
         $technicianRoleId = Role::query()->where('name', 'lab_technician')->where('guard_name', 'sanctum')->value('id');
         $receptionistRoleId = Role::query()->where('name', 'receptionist')->where('guard_name', 'sanctum')->value('id');
 
         if ($managerRoleId === null || $technicianRoleId === null) {
-            return;
+            return [];
         }
 
         $managers = array_values($usersByRole['department_manager']);
         $technicians = array_values($usersByRole['lab_technician']);
         $receptionists = array_values($usersByRole['receptionist']);
+        $labsById = collect($labs)->keyBy('id');
+
+        $techniciansByLab = [];
+
+        foreach ($technicians as $technician) {
+            if ($technician->lab_name === null) {
+                continue;
+            }
+
+            $techniciansByLab[$technician->lab_name][] = $technician;
+        }
+
+        $technicianIdsByDepartment = [];
 
         $labIds = array_keys($departmentsByLab);
         sort($labIds);
@@ -407,6 +431,10 @@ class DemoDataSeeder extends Seeder
         $departmentCounter = 0;
         $receptionistCounter = 0;
         foreach ($departmentsByLab as $labId => $departments) {
+            $labName = $labsById[$labId]->name ?? null;
+            $labTechnicians = $labName !== null ? ($techniciansByLab[$labName] ?? []) : [];
+            $technicianCounter = 0;
+
             foreach ($departments as $department) {
                 if ($firstLabId !== null && $labId === $firstLabId && $department->name === 'Reception') {
                     if ($receptionistRoleId !== null && ! empty($receptionists)) {
@@ -434,17 +462,19 @@ class DemoDataSeeder extends Seeder
                     'department_id' => $department->id,
                 ]);
 
-                $technicianSlots = $firstLabId !== null && $labId === $firstLabId ? 3 : 2;
+                $technician = $labTechnicians[$technicianCounter] ?? null;
 
-                for ($offset = 0; $offset < $technicianSlots; $offset++) {
-                    $technician = $technicians[($departmentCounter + $offset) % count($technicians)];
+                if ($technician !== null) {
                     DepartmentUserRole::query()->firstOrCreate([
                         'user_id' => $technician->id,
                         'role_id' => $technicianRoleId,
                         'department_id' => $department->id,
                     ]);
+
+                    $technicianIdsByDepartment[$department->id] = $technician->id;
                 }
 
+                $technicianCounter++;
                 $departmentCounter++;
             }
         }
@@ -479,6 +509,8 @@ class DemoDataSeeder extends Seeder
                 ]);
             }
         }
+
+        return $technicianIdsByDepartment;
     }
 
     /**
@@ -511,7 +543,7 @@ class DemoDataSeeder extends Seeder
                     'priority' => $priorities[$index % count($priorities)],
                     'status' => $status,
                     'order_type' => $types[$index % count($types)],
-                    'notes' => 'Demo order #' . ($index + 1),
+                    'notes' => 'Demo order #'.($index + 1),
                     'price' => $price,
                     'remaining_amount' => $remainingAmount,
                 ]);
@@ -531,11 +563,11 @@ class DemoDataSeeder extends Seeder
         try {
             $result = Builder::create()
                 ->writer(new PngWriter)
-                ->data(route('orders.show-qr', ['order' => $order->qr_code]))
+                ->data(route('orders.show-qr', ['qr' => $order->qr_code]))
                 ->size(300)
                 ->build();
 
-            $path = 'orders/' . $order->qr_code . '/qr.png';
+            $path = 'orders/'.$order->qr_code.'/qr.png';
             Storage::disk('public')->put($path, $result->getString());
 
             $order->forceFill([
@@ -571,14 +603,14 @@ class DemoDataSeeder extends Seeder
 
             OrderFile::query()->create([
                 'order_id' => $order->id,
-                'file_path' => 'orders/' . $order->id . '/scan-before.jpg',
+                'file_path' => 'orders/'.$order->id.'/scan-before.jpg',
                 'file_type' => 'before_image',
                 'uploaded_at' => $order->created_at,
             ]);
 
             OrderFile::query()->create([
                 'order_id' => $order->id,
-                'file_path' => 'orders/' . $order->id . '/scan-after.jpg',
+                'file_path' => 'orders/'.$order->id.'/scan-after.jpg',
                 'file_type' => 'after_image',
                 'uploaded_at' => $order->created_at?->addDay(),
             ]);
@@ -603,64 +635,74 @@ class DemoDataSeeder extends Seeder
     /**
      * @param  array<int, Order>  $orders
      * @param  array<int, array<int, Department>>  $departmentsByLab
-     * @param  array<int, User>  $technicians
+     * @param  array<int, int>  $technicianIdsByDepartment
      */
-    private function seedTasksAndWorkSessions(array $orders, array $departmentsByLab, array $technicians): void
+    private function seedTasksAndWorkSessions(array $orders, array $departmentsByLab, array $technicianIdsByDepartment): void
     {
         $taskStatusByOrderStatus = [
-            'pending' => 'pending',
-            'accepted' => 'assigned',
-            'in_progress' => 'in_progress',
-            'completed' => 'completed',
-            'delivered' => 'completed',
-            'cancelled' => 'rejected',
+            OrderStatus::PENDING => TaskStatus::ASSIGNED,
+            OrderStatus::IN_PROGRESS => TaskStatus::IN_PROGRESS,
+            OrderStatus::COMPLETED => TaskStatus::COMPLETED,
+            OrderStatus::TRY_ON => TaskStatus::IN_PROGRESS,
+            OrderStatus::RESEND_WRONG_IMPRESSION => TaskStatus::ASSIGNED,
         ];
-
-        $technicianCount = count($technicians);
 
         foreach ($orders as $orderIndex => $order) {
             $departments = $departmentsByLab[$order->lab_id] ?? [];
-            $taskStatus = $taskStatusByOrderStatus[$order->status] ?? 'pending';
+            $taskStatus = $taskStatusByOrderStatus[$order->status] ?? TaskStatus::ASSIGNED;
 
             foreach (array_slice($departments, 0, 2) as $departmentIndex => $department) {
-                $technician = $technicians[($orderIndex + $departmentIndex) % $technicianCount];
+                $technicianId = $technicianIdsByDepartment[$department->id] ?? null;
+
+                if ($technicianId === null) {
+                    continue;
+                }
 
                 $task = Task::query()->create([
                     'order_id' => $order->id,
                     'department_id' => $department->id,
-                    'user_id' => in_array($taskStatus, ['pending', 'rejected'], true) ? null : $technician->id,
-                    'approved_at' => in_array($taskStatus, ['assigned', 'in_progress', 'completed'], true)
-                        ? $order->created_at?->addHours(3)
+                    'user_id' => $technicianId,
+                    'approved_at' => $taskStatus === TaskStatus::COMPLETED
+                        ? now()->subHours(rand(1, 48))
                         : null,
                     'status' => $taskStatus,
                 ]);
 
-                if ($taskStatus === 'in_progress') {
-                    TaskWorkSession::query()->create([
-                        'task_id' => $task->id,
-                        'start_time' => now()->subHours(6),
-                        'end_time' => null,
-                        'status' => 'active',
-                        'note' => 'Work in progress',
-                    ]);
-                }
+                switch ($taskStatus) {
+                    case TaskStatus::ASSIGNED:
+                        // Assigned tasks are not started yet, so no work sessions should exist.
+                        break;
 
-                if ($taskStatus === 'completed') {
-                    TaskWorkSession::query()->create([
-                        'task_id' => $task->id,
-                        'start_time' => now()->subHours(12),
-                        'end_time' => now()->subHours(10),
-                        'status' => 'completed',
-                        'note' => 'Initial work session',
-                    ]);
+                    case TaskStatus::IN_PROGRESS:
+                        TaskWorkSession::query()->create([
+                            'task_id' => $task->id,
+                            'start_time' => now()->subHours(6),
+                            'end_time' => null,
+                            'status' => 'active',
+                            'note' => 'Work in progress',
+                        ]);
+                        break;
 
-                    TaskWorkSession::query()->create([
-                        'task_id' => $task->id,
-                        'start_time' => now()->subHours(9),
-                        'end_time' => now()->subHours(8),
-                        'status' => 'completed',
-                        'note' => 'Finishing work session',
-                    ]);
+                    case TaskStatus::COMPLETED:
+                        TaskWorkSession::query()->create([
+                            'task_id' => $task->id,
+                            'start_time' => now()->subHours(12),
+                            'end_time' => now()->subHours(10),
+                            'status' => 'completed',
+                            'note' => 'Initial work session',
+                        ]);
+
+                        TaskWorkSession::query()->create([
+                            'task_id' => $task->id,
+                            'start_time' => now()->subHours(9),
+                            'end_time' => now()->subHours(8),
+                            'status' => 'completed',
+                            'note' => 'Finishing work session',
+                        ]);
+                        break;
+
+                    default:
+                        break;
                 }
             }
         }
@@ -749,7 +791,7 @@ class DemoDataSeeder extends Seeder
                 'user_id' => $order->user_id,
                 'order_id' => $order->id,
                 'rating' => 3 + ($index % 3),
-                'comment' => 'Demo review for order #' . $order->id,
+                'comment' => 'Demo review for order #'.$order->id,
             ]);
         }
     }
@@ -792,9 +834,9 @@ class DemoDataSeeder extends Seeder
 
             PortfolioCase::query()->create([
                 'order_id' => $order->id,
-                'case_name' => 'Portfolio Case #' . $order->id,
-                'before_image_path' => 'labs/portfolio/order-' . $order->id . '-before.jpg',
-                'after_image_path' => 'labs/portfolio/order-' . $order->id . '-after.jpg',
+                'case_name' => 'Portfolio Case #'.$order->id,
+                'before_image_path' => 'labs/portfolio/order-'.$order->id.'-before.jpg',
+                'after_image_path' => 'labs/portfolio/order-'.$order->id.'-after.jpg',
                 'duration_minutes' => 90 + (($index % 4) * 20),
                 'is_published' => ($index % 5) !== 0,
             ]);
@@ -805,7 +847,7 @@ class DemoDataSeeder extends Seeder
     {
         for ($index = 1; $index <= 8; $index++) {
             RegistrationOtp::query()->create([
-                'email' => 'pending.user' . $index . '@demo.local',
+                'email' => 'pending.user'.$index.'@demo.local',
                 'otp_hash' => bcrypt((string) (100000 + $index)),
                 'expires_at' => now()->addMinutes(15 + $index),
                 'verify_attempts' => $index % 2,
@@ -837,7 +879,7 @@ class DemoDataSeeder extends Seeder
                 'notifiable_id' => $user->id,
                 'data' => json_encode([
                     'title' => 'Demo notification',
-                    'message' => 'Notification #' . ($index + 1) . ' for ' . $user->email,
+                    'message' => 'Notification #'.($index + 1).' for '.$user->email,
                 ], JSON_UNESCAPED_UNICODE),
                 'read_at' => $index % 2 === 0 ? now()->subDay() : null,
                 'created_at' => now()->subHours($index + 1),
@@ -856,7 +898,7 @@ class DemoDataSeeder extends Seeder
                 continue;
             }
 
-            $tokenUser->createToken('demo-token-' . Str::lower(str_replace(' ', '-', $tokenUser->name)), ['*']);
+            $tokenUser->createToken('demo-token-'.Str::lower(str_replace(' ', '-', $tokenUser->name)), ['*']);
         }
     }
 }

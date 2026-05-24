@@ -23,7 +23,9 @@ return new class extends Migration
                 ->restrictOnDelete();
             $table->string('qr_code')->unique();
             $table->enum('priority', ['normal', 'urgent'])->default('normal');
-            $table->enum('status', ['pending', 'in_progress', 'completed', 'delivered'])->default('pending');
+
+            $table->string('status')->default('pending');
+
             $table->enum('order_type', ['digital', 'physical', 'hybrid'])->default('digital');
             $table->text('notes')->nullable();
             $table->decimal('price', 10, 2)->default(0);

@@ -17,8 +17,8 @@ return new class extends Migration
                 ->constrained('tasks')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete();
-            $table->timestamp('start_time');
-            $table->timestamp('end_time')->nullable();
+            $table->dateTime('start_time');
+            $table->dateTime('end_time')->nullable();
             $table->enum('status', ['active', 'paused', 'completed', 'cancelled'])->default('active');
             $table->text('note')->nullable();
             $table->timestamps();

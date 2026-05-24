@@ -14,7 +14,7 @@ class OrderResource extends JsonResource
             //   'user_id' => $this->user_id,
             // 'lab_id' => $this->lab_id,
             // 'qr_code' => $this->qr_code,
-            // 'qr_url' => route('orders.show-qr', ['order' => $this->qr_code]),
+            // 'qr_url' => route('orders.show-qr', ['qr' => $this->qr_code]),
             'priority' => $this->priority,
             'status' => $this->status,
             'notes' => $this->notes,

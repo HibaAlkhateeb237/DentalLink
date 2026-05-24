@@ -27,7 +27,9 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->nullOnDelete();
             $table->timestamp('approved_at')->nullable();
-            $table->enum('status', ['pending', 'assigned', 'in_progress', 'blocked', 'completed', 'rejected'])->default('pending');
+            $table->string('status')->default('assigned');
+
+            // ['assigned', 'in_progress','completed']
             $table->timestamps();
 
             $table->index(['order_id', 'status']);

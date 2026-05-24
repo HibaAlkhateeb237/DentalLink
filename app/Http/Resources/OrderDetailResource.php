@@ -11,10 +11,10 @@ class OrderDetailResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            // 'user_id' => $this->user_id,
-            //  'lab_id' => $this->lab_id,
-            //  'qr_code' => $this->qr_code,
-            //  'qr_url' => route('orders.show-qr', ['order' => $this->qr_code]),
+            'user_id' => $this->user_id,
+            'lab_id' => $this->lab_id,
+            'qr_code' => $this->qr_code,
+            'qr_url' => route('orders.show-qr', ['qr' => $this->qr_code]),
             'priority' => $this->priority,
             'status' => $this->status,
             'notes' => $this->notes,
@@ -25,7 +25,7 @@ class OrderDetailResource extends JsonResource
             'compensation_base_price' => $this->dentalCompensationTypePrice?->base_price,
             'teeth' => OrderToothResource::collection($this->whenLoaded('orderTeeth')),
             'files' => OrderFileResource::collection($this->whenLoaded('orderFiles')),
-          //  'status_history' => OrderStatusHistoryResource::collection($this->whenLoaded('statusHistory')),
+            //  'status_history' => OrderStatusHistoryResource::collection($this->whenLoaded('statusHistory')),
             'created_at' => $this->created_at?->toISOString(),
 
         ];

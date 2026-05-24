@@ -54,8 +54,7 @@ class OrderController extends Controller
     public function show(Request $request, Order $order): JsonResponse
     {
 
-
-       // Authorization: only the owner (doctor) can view their order
+        // Authorization: only the owner (doctor) can view their order
         if ($order->user_id !== $request->user()->id) {
             return $this->apiResponse->error(
                 __('messages.unauthorized'),
@@ -64,6 +63,18 @@ class OrderController extends Controller
         }
 
         $order->load(['toothShade', 'dentalCompensationTypePrice.dentalCompensationType', 'orderTeeth', 'orderFiles']);
+
+        return $this->apiResponse->success(
+            OrderDetailResource::make($order),
+            __('orders.retrieved_successfully')
+        );
+    }
+
+    public function showByQr(string $qr): JsonResponse
+    {
+        $order = Order::query()
+            ->where('qr_code', $qr)
+            ->firstOrFail();
 
         return $this->apiResponse->success(
             OrderDetailResource::make($order),
