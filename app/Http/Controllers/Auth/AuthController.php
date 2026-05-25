@@ -220,7 +220,7 @@ class AuthController extends Controller
         $user->loadMissing('departmentUserRoles.department.lab');
 
         $labId = $user->departmentUserRoles
-            ->map(static fn ($departmentUserRole): ?int => $departmentUserRole->department?->lab_id ?? $departmentUserRole->department?->lab?->id)
+            ->map(static fn($departmentUserRole): ?int => $departmentUserRole->department?->lab_id ?? $departmentUserRole->department?->lab?->id)
             ->filter()
             ->unique()
             ->values()
@@ -287,6 +287,11 @@ class AuthController extends Controller
         }
 
         $roles = $this->roleService->listRoles();
+
+        // Exclude certain roles for lab_manager
+        if ($user->hasRole('lab_manager')) {
+            $roles = $roles->whereNotIn('name', ['system_admin', 'lab_manager', 'doctor'])->values();
+        }
 
         return $this->apiResponse->success(
             [
@@ -374,17 +379,17 @@ class AuthController extends Controller
 
     private function throttleKey(Request $request): string
     {
-        return Str::transliterate(Str::lower($request->string('email')->toString()).'|'.$request->ip());
+        return Str::transliterate(Str::lower($request->string('email')->toString()) . '|' . $request->ip());
     }
 
     private function registerOtpThrottleKey(Request $request): string
     {
-        return Str::transliterate('register-otp-send|'.Str::lower($request->string('email')->toString()).'|'.$request->ip());
+        return Str::transliterate('register-otp-send|' . Str::lower($request->string('email')->toString()) . '|' . $request->ip());
     }
 
     private function verifyOtpThrottleKey(Request $request): string
     {
-        return Str::transliterate('register-otp-verify|'.Str::lower($request->string('email')->toString()).'|'.$request->ip());
+        return Str::transliterate('register-otp-verify|' . Str::lower($request->string('email')->toString()) . '|' . $request->ip());
     }
 
     private function applyLocale(Request $request): void
