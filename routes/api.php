@@ -15,12 +15,14 @@ use App\Http\Controllers\ReceptionistDeliveryTaskController;
 use App\Http\Controllers\ReceptionistOrderController;
 use App\Http\Controllers\ToothShadeController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\DentalCompensationTypeController;
 
 Route::get('/ping', function () {
     return response()->json([
         'success' => true,
         'status' => 200,
         'message' => __('messages.success'),
+        //use App\Http\Controllers\DentalCompensationTypeController;
         'data' => [
             'app' => config('app.name'),
         ],
@@ -41,6 +43,15 @@ Route::prefix('auth')->group(function (): void {
     Route::post('/register/request-otp', [AuthController::class, 'requestRegisterOtp'])->middleware('throttle:api');
     Route::post('/register/verify-otp', [AuthController::class, 'verifyRegisterOtp'])->middleware('throttle:api');
     Route::post('/register/complete', [AuthController::class, 'completeRegister'])->middleware('throttle:api');
+        });
+
+        Route::middleware(['auth:sanctum', 'role:lab_manager'])->prefix('lab/compensations')->group(function () {
+            Route::get('/', [DentalCompensationTypeController::class, 'index']);
+            Route::post('/', [DentalCompensationTypeController::class, 'store']);
+            Route::get('{dental_compensation_type}', [DentalCompensationTypeController::class, 'show']);
+            Route::put('{dental_compensation_type}', [DentalCompensationTypeController::class, 'update']);
+            Route::delete('{dental_compensation_type}', [DentalCompensationTypeController::class, 'destroy']);
+        });
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:api');
 
     Route::get('/top-rated', [LabController::class, 'topRated'])->name('labs.top-rated');
