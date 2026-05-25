@@ -43,8 +43,12 @@ Route::prefix('auth')->group(function (): void {
     Route::post('/register/request-otp', [AuthController::class, 'requestRegisterOtp'])->middleware('throttle:api');
     Route::post('/register/verify-otp', [AuthController::class, 'verifyRegisterOtp'])->middleware('throttle:api');
     Route::post('/register/complete', [AuthController::class, 'completeRegister'])->middleware('throttle:api');
-        });
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:api');
 
+    Route::get('/top-rated', [LabController::class, 'topRated'])->name('labs.top-rated');
+
+    Route::middleware('auth:sanctum')->group(function (): void {
+        // Dental Compensation Types API (lab_manager)
         Route::middleware(['auth:sanctum', 'role:lab_manager'])->prefix('lab/compensations')->group(function () {
             Route::get('/', [DentalCompensationTypeController::class, 'index']);
             Route::post('/', [DentalCompensationTypeController::class, 'store']);
@@ -52,11 +56,6 @@ Route::prefix('auth')->group(function (): void {
             Route::put('{dental_compensation_type}', [DentalCompensationTypeController::class, 'update']);
             Route::delete('{dental_compensation_type}', [DentalCompensationTypeController::class, 'destroy']);
         });
-    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:api');
-
-    Route::get('/top-rated', [LabController::class, 'topRated'])->name('labs.top-rated');
-
-    Route::middleware('auth:sanctum')->group(function (): void {
 
         Route::get('/me', [AuthController::class, 'me']);
         Route::get('/roles', [AuthController::class, 'roles']);
