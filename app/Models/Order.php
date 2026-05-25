@@ -17,6 +17,10 @@ class Order extends Model
     protected $fillable = [
         'user_id',
         'lab_id',
+        'serial_number',
+        'patient_name',
+        'received_at',
+        'delivered_at',
         'qr_code',
         'qr_image_path',
         'priority',
@@ -44,6 +48,8 @@ class Order extends Model
 
             'requires_resubmission' => 'boolean',
             'resubmission_requested_at' => 'datetime',
+            'received_at' => 'datetime',
+            'delivered_at' => 'datetime',
 
             'qr_image_path' => 'string',
 

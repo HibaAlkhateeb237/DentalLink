@@ -16,8 +16,8 @@ use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Database\Seeders\ToothShadeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -41,6 +41,8 @@ class ReceptionistOrderManagementApiTest extends TestCase
             'latitude' => 33.5138070,
             'longitude' => 36.2765279,
         ]);
+
+        $this->attachReceptionistToLab($receptionist, $lab);
 
         $type = DentalCompensationType::query()->create([
             'lab_id' => $lab->id,
@@ -130,12 +132,14 @@ class ReceptionistOrderManagementApiTest extends TestCase
             'longitude' => 36.2783360,
         ]);
 
+        $this->attachReceptionistToLab($receptionist, $lab);
+
         $order = Order::query()->create([
             'user_id' => $doctor->id,
             'lab_id' => $lab->id,
             'qr_code' => (string) Str::uuid(),
             'priority' => 'normal',
-            'status' => 'accepted',
+            'status' => 'pending',
             'order_type' => 'hybrid',
             'notes' => 'Needs careful margin finishing.',
             'price' => 230,
@@ -184,12 +188,14 @@ class ReceptionistOrderManagementApiTest extends TestCase
             'longitude' => 36.7099460,
         ]);
 
+        $this->attachReceptionistToLab($receptionist, $lab);
+
         $order = Order::query()->create([
             'user_id' => $doctor->id,
             'lab_id' => $lab->id,
             'qr_code' => (string) Str::uuid(),
             'priority' => 'normal',
-            'status' => 'accepted',
+            'status' => 'pending',
             'order_type' => 'digital',
             'notes' => null,
             'price' => 200,
@@ -412,5 +418,21 @@ class ReceptionistOrderManagementApiTest extends TestCase
         }
 
         return $user;
+    }
+
+    private function attachReceptionistToLab(User $receptionist, Lab $lab): void
+    {
+        $department = Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'Front Desk',
+            'description' => null,
+            'is_management' => true,
+        ]);
+
+        DepartmentUserRole::query()->create([
+            'user_id' => $receptionist->id,
+            'role_id' => Role::query()->where('name', 'receptionist')->where('guard_name', 'sanctum')->value('id'),
+            'department_id' => $department->id,
+        ]);
     }
 }

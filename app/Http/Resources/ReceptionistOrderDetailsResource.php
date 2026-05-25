@@ -31,6 +31,7 @@ class ReceptionistOrderDetailsResource extends JsonResource
                     'name' => $this->user->name,
                     'email' => $this->user->email,
                     'phone' => $this->user->phone,
+                    'location' => $this->user->location,
                 ],
             'lab' => $this->lab === null
                 ? null

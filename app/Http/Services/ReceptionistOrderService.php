@@ -15,13 +15,13 @@ use Illuminate\Validation\ValidationException;
 class ReceptionistOrderService
 {
     /**
-     * @param  array{per_page?:int,status?:string,priority?:string,doctor_id?:int,lab_id?:int,search?:string,from_date?:string,to_date?:string,sort_by?:string,sort_direction?:string,requires_resubmission?:bool}  $validated
+     * @param  array{per_page?:int,status?:string,priority?:string,doctor_id?:int,search?:string,from_date?:string,to_date?:string,sort_by?:string,sort_direction?:string,requires_resubmission?:bool}  $validated
      */
     public function listOrders(array $validated): LengthAwarePaginator
     {
         $query = Order::query()
             ->with([
-                'user:id,name,email,phone',
+                'user:id,name,email,phone,location',
                 'lab:id,name,phone,address',
                 'toothShade:id,name',
                 'dentalCompensationTypePrice:id,dental_compensation_type_id',
@@ -44,13 +44,18 @@ class ReceptionistOrderService
             $query->where('user_id', $validated['doctor_id']);
         }
 
-        if (isset($validated['lab_id'])) {
-            $query->where('lab_id', $validated['lab_id']);
-        } else {
-            $user = Auth::user();
-            if ($user && isset($user->lab_id)) {
-                $query->where('lab_id', $user->lab_id);
-            }
+        $user = Auth::user();
+
+        if ($user !== null) {
+            $user->loadMissing('departmentUserRoles.department');
+
+            $labIds = $user->departmentUserRoles
+                ->map(static fn ($departmentUserRole): ?int => $departmentUserRole->department?->lab_id)
+                ->filter()
+                ->unique()
+                ->values();
+
+            $query->whereIn('lab_id', $labIds->all());
         }
 
         if (array_key_exists('requires_resubmission', $validated)) {
@@ -93,7 +98,7 @@ class ReceptionistOrderService
     public function getOrderDetails(Order $order): Order
     {
         return $order->load([
-            'user:id,name,email,phone',
+            'user:id,name,email,phone,location',
             'lab:id,name,phone,address',
             'orderTeeth:id,order_id,tooth_number,notes',
             'orderFiles:id,order_id,file_path,file_type,uploaded_at',
