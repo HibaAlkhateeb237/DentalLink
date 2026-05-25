@@ -50,11 +50,11 @@ Route::prefix('auth')->group(function (): void {
     Route::middleware('auth:sanctum')->group(function (): void {
         // Dental Compensation Types API (lab_manager)
         Route::middleware(['auth:sanctum', 'role:lab_manager'])->prefix('lab/compensations')->group(function () {
-            Route::get('/', [DentalCompensationTypeController::class, 'index']);
-            Route::post('/', [DentalCompensationTypeController::class, 'store']);
-            Route::get('{dental_compensation_type}', [DentalCompensationTypeController::class, 'show']);
-            Route::put('{dental_compensation_type}', [DentalCompensationTypeController::class, 'update']);
-            Route::delete('{dental_compensation_type}', [DentalCompensationTypeController::class, 'destroy']);
+            Route::get('/', [DentalCompensationTypeController::class, 'index'])->middleware('can:viewAny,App\Models\DentalCompensationType');
+            Route::post('/', [DentalCompensationTypeController::class, 'store'])->middleware('can:create,App\Models\DentalCompensationType');
+            Route::get('{dental_compensation_type}', [DentalCompensationTypeController::class, 'show'])->middleware('can:view,dental_compensation_type');
+            Route::put('{dental_compensation_type}', [DentalCompensationTypeController::class, 'update'])->middleware('can:update,dental_compensation_type');
+            Route::delete('{dental_compensation_type}', [DentalCompensationTypeController::class, 'destroy'])->middleware('can:delete,dental_compensation_type');
         });
 
         Route::get('/me', [AuthController::class, 'me']);
