@@ -17,6 +17,7 @@ class DentalCompensationTypeUpdateRequest extends FormRequest
             'name' => ['sometimes', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
             'price' => ['sometimes', 'numeric', 'min:0'],
+            'category' => ['nullable', 'string', 'max:255'],
         ];
     }
 }
