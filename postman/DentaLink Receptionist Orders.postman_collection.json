@@ -5,13 +5,11 @@
         "description": "Collection for receptionist order management endpoints. Use the `{{baseUrl}}` and `{{token}}` variables.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
-    "item": [
-        {
+    "item": [{
             "name": "Get Orders",
             "request": {
                 "method": "GET",
-                "header": [
-                    {
+                "header": [{
                         "key": "Accept",
                         "value": "application/json"
                     },
@@ -36,8 +34,7 @@
                         "auth",
                         "orders"
                     ],
-                    "query": [
-                        {
+                    "query": [{
                             "key": "per_page",
                             "value": "15"
                         },
@@ -91,8 +88,7 @@
             "name": "Get Order Details",
             "request": {
                 "method": "GET",
-                "header": [
-                    {
+                "header": [{
                         "key": "Accept",
                         "value": "application/json"
                     },
@@ -127,8 +123,7 @@
             "name": "Mark Order For Resubmission",
             "request": {
                 "method": "POST",
-                "header": [
-                    {
+                "header": [{
                         "key": "Accept",
                         "value": "application/json"
                     },
@@ -175,8 +170,7 @@
         }
     ],
     "event": [],
-    "variable": [
-        {
+    "variable": [{
             "key": "baseUrl",
             "value": "http://localhost:8000",
             "type": "string"
