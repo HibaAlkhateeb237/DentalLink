@@ -15,7 +15,7 @@ class OrderPricingService
     ) {}
 
     /**
-     * @param  array{compensation_code:string,units?:int,is_implant?:bool,is_long_bridge_or_high?:bool,include_lisi_connect_etching?:bool,include_intraoral_print_examples?:bool,is_vip?:bool,apply_student_discount?:bool,student_discount_percent?:numeric,persist?:bool}  $validated
+     * @param  array{compensation_code:string,units?:int,case_type?:string,is_implant?:bool,is_long_bridge_or_high?:bool,include_lisi_connect_etching?:bool,include_intraoral_print_examples?:bool,is_vip?:bool,apply_student_discount?:bool,student_discount_percent?:numeric,persist?:bool}  $validated
      * @return array<string, mixed>
      */
     public function calculate(Order $order, array $validated): array
@@ -44,6 +44,8 @@ class OrderPricingService
         $addons = [];
         $addonsTotal = 0.0;
 
+        $caseType = $validated['case_type'] ?? null;
+
         $includeLisi = (bool) ($validated['include_lisi_connect_etching'] ?? false);
         if ($includeLisi) {
             $lisiAddon = (float) ($settings?->lisi_connect_etching_addon ?? 2.00);
@@ -56,6 +58,10 @@ class OrderPricingService
         }
 
         $isImplant = (bool) ($validated['is_implant'] ?? false);
+        if ($caseType === 'implant') {
+            $isImplant = true;
+        }
+
         if ($isImplant) {
             $implantAddon = (float) ($settings?->implant_addon ?? 2.50);
             $amount = round($implantAddon * $units, 2);
@@ -67,6 +73,10 @@ class OrderPricingService
         }
 
         $isLongBridgeOrHigh = (bool) ($validated['is_long_bridge_or_high'] ?? false);
+        if ($caseType === 'bridge') {
+            $isLongBridgeOrHigh = true;
+        }
+
         if ($isLongBridgeOrHigh) {
             $longBridgeAddon = (float) ($settings?->long_bridge_or_high_addon ?? 3.50);
             $amount = round($longBridgeAddon * $units, 2);
@@ -136,7 +146,7 @@ class OrderPricingService
     }
 
     /**
-     * @param  array{compensation_code:string,units?:int,is_implant?:bool,is_long_bridge_or_high?:bool,include_lisi_connect_etching?:bool,include_intraoral_print_examples?:bool,is_vip?:bool,apply_student_discount?:bool,student_discount_percent?:numeric}  $validated
+     * @param  array{compensation_code:string,units?:int,case_type?:string,is_implant?:bool,is_long_bridge_or_high?:bool,include_lisi_connect_etching?:bool,include_intraoral_print_examples?:bool,is_vip?:bool,apply_student_discount?:bool,student_discount_percent?:numeric}  $validated
      */
     public function apply(Order $order, array $validated): Order
     {

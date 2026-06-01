@@ -83,7 +83,7 @@ class OrderPricingApiTest extends TestCase
         $response = $this->postJson("/api/auth/orders/{$order->id}/pricing/calculate", [
             'compensation_code' => 'full_zircon_standard',
             'units' => 2,
-            'is_implant' => true,
+            'case_type' => 'implant',
             'include_intraoral_print_examples' => true,
         ]);
 
@@ -91,6 +91,78 @@ class OrderPricingApiTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.order_id', $order->id)
             ->assertJsonPath('data.breakdown.total', '42.50');
+    }
+
+    public function test_it_calculates_bridge_case_type_addon_using_case_type(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $lab = Lab::query()->create([
+            'name' => 'Pricing Lab',
+            'phone' => '1111111',
+            'address' => 'Address',
+            'latitude' => 33.5138070,
+            'longitude' => 36.2765279,
+        ]);
+
+        LabPricingSetting::query()->create([
+            'lab_id' => $lab->id,
+            'currency' => 'USD',
+            'effective_from' => '2026-04-15',
+            'implant_addon' => 2.50,
+            'long_bridge_or_high_addon' => 3.50,
+            'lisi_connect_etching_addon' => 2.00,
+            'intraoral_print_fee' => 8.00,
+            'vip_urgent_multiplier' => 1.25,
+            'student_discount_note' => null,
+            'is_active' => true,
+        ]);
+
+        $type = DentalCompensationType::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'فل زيركون عادي',
+            'description' => null,
+            'code' => 'full_zircon_standard',
+            'category' => 'zircon',
+        ]);
+
+        DentalCompensationTypePrice::query()->create([
+            'dental_compensation_type_id' => $type->id,
+            'base_price' => 10.50,
+            'effective_from' => '2026-04-15',
+            'is_active' => true,
+        ]);
+
+        $receptionist = User::factory()->create();
+        $receptionistRoleId = Role::query()->where('name', 'receptionist')->where('guard_name', 'sanctum')->value('id');
+        if ($receptionistRoleId !== null) {
+            $receptionist->roles()->syncWithoutDetaching([$receptionistRoleId]);
+        }
+
+        Sanctum::actingAs($receptionist);
+
+        $order = Order::query()->create([
+            'user_id' => $receptionist->id,
+            'lab_id' => $lab->id,
+            'qr_code' => (string) Str::uuid(),
+            'priority' => 'urgent',
+            'status' => 'pending',
+            'order_type' => 'digital',
+            'case_type' => 'bridge',
+            'notes' => null,
+            'price' => 0,
+            'remaining_amount' => 0,
+        ]);
+
+        $response = $this->postJson("/api/auth/orders/{$order->id}/pricing/calculate", [
+            'compensation_code' => 'full_zircon_standard',
+            'units' => 2,
+            'case_type' => 'bridge',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.breakdown.total', '35.00');
     }
 
     public function test_it_can_persist_calculated_price_on_order_when_requested(): void

@@ -11,6 +11,7 @@ use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Database\Seeders\ToothShadeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -29,6 +30,7 @@ class DoctorOrderCreationApiTest extends TestCase
             'address' => 'Address',
             'latitude' => 33.5138070,
             'longitude' => 36.2765279,
+            'is_active' => true,
         ]);
 
         $type = DentalCompensationType::query()->create([
@@ -74,6 +76,7 @@ class DoctorOrderCreationApiTest extends TestCase
             'address' => 'Address',
             'latitude' => 33.5138070,
             'longitude' => 36.2765279,
+            'is_active' => true,
         ]);
 
         $type = DentalCompensationType::query()->create([
@@ -102,12 +105,14 @@ class DoctorOrderCreationApiTest extends TestCase
 
         Sanctum::actingAs($doctor);
 
-        $response = $this->postJson('/api/auth/orders', [
+        $response = $this->postJson('/api/auth/doctor/orders', [
             'lab_id' => $lab->id,
+            'patient_name' => 'محمد',
             'tooth_shade_id' => $shade->id,
             'dental_compensation_type_id' => $type->id,
             'priority' => 'urgent',
             'order_type' => 'digital',
+            'case_type' => 'implant',
             'notes' => 'Doctor order',
             'teeth' => [
                 [
@@ -120,9 +125,21 @@ class DoctorOrderCreationApiTest extends TestCase
         $response->assertCreated()
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.lab_id', $lab->id)
+            ->assertJsonPath('data.case_type', 'implant')
+            ->assertJsonPath('data.patient_name', 'محمد')
+            ->assertJsonPath('data.serial_number', 'ORD-000001')
             ->assertJsonPath('data.tooth_shade.code', 'A2')
-            ->assertJsonPath('data.dental_compensation_type_price.id', $price->id)
             ->assertJsonPath('data.teeth.0.tooth_number', 11);
+
+        $receivedAt = $response->json('data.received_at');
+        $deliveredAt = $response->json('data.delivered_at');
+
+        $this->assertNotNull($receivedAt);
+        $this->assertNotNull($deliveredAt);
+        $this->assertEquals(
+            Carbon::parse($receivedAt)->addDays(2)->toISOString(),
+            $deliveredAt
+        );
 
         $this->assertDatabaseHas('orders', [
             'lab_id' => $lab->id,
@@ -130,6 +147,7 @@ class DoctorOrderCreationApiTest extends TestCase
             'priority' => 'urgent',
             'tooth_shade_id' => $shade->id,
             'dental_compensation_type_price_id' => $price->id,
+            'patient_name' => 'محمد',
         ]);
 
         $this->assertDatabaseHas('order_teeth', [
@@ -140,10 +158,19 @@ class DoctorOrderCreationApiTest extends TestCase
         $qrCode = $response->json('data.qr_code');
         $qrUrl = $response->json('data.qr_url');
         $this->assertStringContainsString($qrCode, $qrUrl);
-        $this->assertStringContainsString('/orders/qr/', $qrUrl);
+        $this->assertStringContainsString('/lab/technician/orders/qr/', $qrUrl);
 
         // Test retrieval via show route with qr_code binding
-        $getResponse = $this->getJson("/api/auth/orders/qr/{$qrCode}");
+        $technician = User::factory()->create();
+        $technicianRoleId = Role::query()->where('name', 'lab_technician')->where('guard_name', 'sanctum')->value('id');
+
+        if ($technicianRoleId !== null) {
+            $technician->roles()->syncWithoutDetaching([$technicianRoleId]);
+        }
+
+        Sanctum::actingAs($technician);
+
+        $getResponse = $this->getJson("/api/auth/lab/technician/orders/qr/{$qrCode}");
         $getResponse->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.qr_code', $qrCode)
@@ -161,6 +188,7 @@ class DoctorOrderCreationApiTest extends TestCase
             'address' => 'Address',
             'latitude' => 33.5138070,
             'longitude' => 36.2765279,
+            'is_active' => true,
         ]);
 
         $otherLab = Lab::query()->create([
@@ -169,6 +197,7 @@ class DoctorOrderCreationApiTest extends TestCase
             'address' => 'Address 2',
             'latitude' => 33.6138070,
             'longitude' => 36.3765279,
+            'is_active' => true,
         ]);
 
         $type = DentalCompensationType::query()->create([
@@ -197,11 +226,13 @@ class DoctorOrderCreationApiTest extends TestCase
 
         $shade = ToothShade::query()->where('code', 'A1')->firstOrFail();
 
-        $response = $this->postJson('/api/auth/orders', [
+        $response = $this->postJson('/api/auth/doctor/orders', [
             'lab_id' => $lab->id,
+            'patient_name' => 'أحمد',
             'tooth_shade_id' => $shade->id,
             'dental_compensation_type_id' => $type->id,
             'priority' => 'normal',
+            'case_type' => 'bridge',
             'teeth' => [
                 [
                     'tooth_number' => 11,
@@ -216,5 +247,128 @@ class DoctorOrderCreationApiTest extends TestCase
 
         $this->assertDatabaseCount('orders', 0);
         $this->assertDatabaseCount('order_teeth', 0);
+    }
+
+    public function test_doctor_can_create_bridge_order_with_case_type_pricing(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $this->seed(ToothShadeSeeder::class);
+
+        $lab = Lab::query()->create([
+            'name' => 'Order Lab',
+            'phone' => '1111111',
+            'address' => 'Address',
+            'latitude' => 33.5138070,
+            'longitude' => 36.2765279,
+            'is_active' => true,
+        ]);
+
+        $type = DentalCompensationType::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'فل زيركون عادي',
+            'description' => null,
+            'code' => 'full_zircon_standard',
+            'category' => 'zircon',
+        ]);
+
+        DentalCompensationTypePrice::query()->create([
+            'dental_compensation_type_id' => $type->id,
+            'base_price' => 10.50,
+            'effective_from' => '2026-04-15',
+            'is_active' => true,
+        ]);
+
+        $shade = ToothShade::query()->where('code', 'A1')->firstOrFail();
+
+        $doctor = User::factory()->create();
+        $doctorRoleId = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->value('id');
+
+        if ($doctorRoleId !== null) {
+            $doctor->roles()->syncWithoutDetaching([$doctorRoleId]);
+        }
+
+        Sanctum::actingAs($doctor);
+
+        $response = $this->postJson('/api/auth/doctor/orders', [
+            'lab_id' => $lab->id,
+            'patient_name' => 'سارة',
+            'tooth_shade_id' => $shade->id,
+            'dental_compensation_type_id' => $type->id,
+            'priority' => 'normal',
+            'case_type' => 'bridge',
+            'teeth' => [
+                [
+                    'tooth_number' => 11,
+                ],
+                [
+                    'tooth_number' => 12,
+                ],
+            ],
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.case_type', 'bridge')
+            ->assertJsonPath('data.price', '28.00');
+    }
+
+    public function test_patient_name_is_required_on_order_creation(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $this->seed(ToothShadeSeeder::class);
+
+        $lab = Lab::query()->create([
+            'name' => 'Order Lab',
+            'phone' => '1111111',
+            'address' => 'Address',
+            'latitude' => 33.5138070,
+            'longitude' => 36.2765279,
+            'is_active' => true,
+        ]);
+
+        $type = DentalCompensationType::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'فل زيركون عادي',
+            'description' => null,
+            'code' => 'full_zircon_standard',
+            'category' => 'zircon',
+        ]);
+
+        DentalCompensationTypePrice::query()->create([
+            'dental_compensation_type_id' => $type->id,
+            'base_price' => 10.50,
+            'effective_from' => '2026-04-15',
+            'is_active' => true,
+        ]);
+
+        $shade = ToothShade::query()->where('code', 'A2')->firstOrFail();
+
+        $doctor = User::factory()->create();
+        $doctorRoleId = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->value('id');
+
+        if ($doctorRoleId !== null) {
+            $doctor->roles()->syncWithoutDetaching([$doctorRoleId]);
+        }
+
+        Sanctum::actingAs($doctor);
+
+        $response = $this->postJson('/api/auth/doctor/orders', [
+            'lab_id' => $lab->id,
+            'tooth_shade_id' => $shade->id,
+            'dental_compensation_type_id' => $type->id,
+            'priority' => 'urgent',
+            'order_type' => 'digital',
+            'case_type' => 'implant',
+            'notes' => 'Doctor order',
+            'teeth' => [
+                [
+                    'tooth_number' => 11,
+                    'notes' => 'Main tooth',
+                ],
+            ],
+        ]);
+
+        $response->assertStatus(400)
+            ->assertJsonPath('success', false)
+            ->assertJsonStructure(['errors' => ['patient_name']]);
     }
 }
