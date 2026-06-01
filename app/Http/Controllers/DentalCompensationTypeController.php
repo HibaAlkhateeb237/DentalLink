@@ -9,7 +9,7 @@ use App\Models\DentalCompensationType;
 use App\Services\DentalCompensationTypeService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Gate;
+use App\Http\Responses\ApiResponse;
 
 class DentalCompensationTypeController extends Controller
 {
@@ -47,6 +47,6 @@ class DentalCompensationTypeController extends Controller
     public function destroy(Request $request, DentalCompensationType $dental_compensation_type)
     {
         $this->service->delete($dental_compensation_type, $request->user());
-        return response()->json(['success' => true]);
+        return (new ApiResponse())->success(null, __('messages.deleted'));
     }
 }
