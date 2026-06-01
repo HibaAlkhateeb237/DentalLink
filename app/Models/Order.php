@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-
 class Order extends Model
 {
     use HasFactory;
@@ -26,6 +25,7 @@ class Order extends Model
         'priority',
         'status',
         'order_type',
+        'case_type',
         'notes',
         'price',
         'remaining_amount',

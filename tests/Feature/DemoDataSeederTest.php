@@ -9,6 +9,7 @@ use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\DemoDataSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class DemoDataSeederTest extends TestCase
@@ -153,5 +154,17 @@ class DemoDataSeederTest extends TestCase
                     ->exists()
             );
         }
+    }
+
+    public function test_demo_data_seeder_cleans_existing_order_qr_images(): void
+    {
+        Storage::fake('public');
+
+        Storage::disk('public')->put('orders/stale-order/qr.png', 'stale');
+
+        $this->seed(DemoDataSeeder::class);
+
+        Storage::disk('public')->assertMissing('orders/stale-order/qr.png');
+        $this->assertNotEmpty(Storage::disk('public')->allFiles('orders'));
     }
 }

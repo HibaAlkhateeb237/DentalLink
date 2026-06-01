@@ -23,6 +23,7 @@ class OrderPricingCalculateRequest extends FormRequest
                     ),
             ],
             'units' => ['nullable', 'integer', 'min:1', 'max:32'],
+            'case_type' => ['nullable', Rule::in(['normal', 'implant', 'bridge'])],
             'is_implant' => ['nullable', 'boolean'],
             'is_long_bridge_or_high' => ['nullable', 'boolean'],
             'include_lisi_connect_etching' => ['nullable', 'boolean'],

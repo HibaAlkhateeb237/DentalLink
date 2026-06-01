@@ -37,7 +37,7 @@ class OrderPolicy
 
     public function update(User $user, Order $order): bool
     {
-        if ($user->hasPermission('orders.update')) {
+        if ($user->hasPermission(['orders.update', 'orders.price'])) {
             return true;
         }
 

@@ -80,6 +80,8 @@ class DemoDataSeeder extends Seeder
         // Disable foreign key checks to allow clean deletes across DB drivers
         Schema::disableForeignKeyConstraints();
 
+        Storage::disk('public')->deleteDirectory('orders');
+
         DB::table('personal_access_tokens')->delete();
         DB::table('notifications')->delete();
         RegistrationOtp::query()->delete();
@@ -524,6 +526,9 @@ class DemoDataSeeder extends Seeder
         $priorities = ['normal', 'normal', 'urgent'];
         $types = ['digital', 'physical', 'hybrid'];
 
+        $caseTypes = ['normal', 'implant', 'bridge'];
+        $patientNames = ['Ali', 'Ahmad', 'Omar', 'Laila', 'Nour', 'Yousef'];
+
         $orders = [];
         $index = 0;
 
@@ -531,22 +536,36 @@ class DemoDataSeeder extends Seeder
             for ($count = 0; $count < 4; $count++) {
                 $lab = $labs[($index + $count) % count($labs)];
                 $status = $statuses[$index % count($statuses)];
+                $priority = $priorities[$index % count($priorities)];
                 $price = 150 + (($index % 7) * 45);
-                $remainingAmount = in_array($status, ['delivered', 'completed'], true)
+                $remainingAmount = in_array($status, ['completed'], true)
                     ? ($index % 3 === 0 ? 0 : 35)
                     : $price;
+
+
+                $receivedAt = \Carbon\CarbonImmutable::now()->subDays($index % 10);
+                $deliveredAt = $receivedAt->addDays($priority === 'urgent' ? 2 : 3);
 
                 $order = Order::query()->create([
                     'user_id' => $doctor->id,
                     'lab_id' => $lab->id,
+                    'patient_name' => $patientNames[$index % count($patientNames)],
                     'qr_code' => (string) Str::uuid(),
-                    'priority' => $priorities[$index % count($priorities)],
+                    'priority' => $priority,
                     'status' => $status,
                     'order_type' => $types[$index % count($types)],
+                    'case_type' => $caseTypes[$index % count($caseTypes)],
                     'notes' => 'Demo order #'.($index + 1),
                     'price' => $price,
                     'remaining_amount' => $remainingAmount,
+                    'serial_number' => null,
+                    'received_at' => $receivedAt,
+                    'delivered_at' => $deliveredAt,
                 ]);
+
+
+                $order->serial_number = sprintf('ORD-%06d', $order->id);
+                $order->save();
 
                 $this->seedOrderQrImage($order);
                 $orders[] = $order->fresh();

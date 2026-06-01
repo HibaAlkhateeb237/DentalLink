@@ -15,8 +15,20 @@ class OrderResource extends JsonResource
             // 'lab_id' => $this->lab_id,
             // 'qr_code' => $this->qr_code,
             // 'qr_url' => route('orders.show-qr', ['qr' => $this->qr_code]),
+            //   'qr_url' => url('/api/auth/lab/technician/orders/qr/'.$this->qr_code),
+
+
+            'lab_name' => $this->whenLoaded('lab', function() {
+                return $this->lab->name;
+            }),
+            'case_type' => $this->case_type,
             'priority' => $this->priority,
             'status' => $this->status,
+            'patient_name' => $this->patient_name,
+            'serial_number' => $this->serial_number,
+            'received_at' => $this->received_at?->toISOString(),
+            'delivered_at' => $this->delivered_at?->toISOString(),
+
             'notes' => $this->notes,
             'price' => $this->price,
             // 'tooth_shade' => ToothShadeResource::make($this->whenLoaded('toothShade')),

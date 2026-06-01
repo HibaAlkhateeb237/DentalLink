@@ -16,6 +16,7 @@ use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Database\Seeders\ToothShadeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
@@ -219,6 +220,60 @@ class ReceptionistOrderManagementApiTest extends TestCase
             'id' => $order->id,
             'requires_resubmission' => 1,
             'resubmission_requested_by' => $receptionist->id,
+        ]);
+    }
+
+    public function test_receptionist_can_update_patient_and_delivery_dates(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $receptionist = $this->actingAsRole('receptionist');
+        $doctor = User::factory()->create();
+
+        $lab = Lab::query()->create([
+            'name' => 'Reception Lab',
+            'phone' => '9999999',
+            'address' => 'Latakia',
+            'latitude' => 35.5216060,
+            'longitude' => 35.7902710,
+        ]);
+
+        $this->attachReceptionistToLab($receptionist, $lab);
+
+        $order = Order::query()->create([
+            'user_id' => $doctor->id,
+            'lab_id' => $lab->id,
+            'qr_code' => (string) Str::uuid(),
+            'priority' => 'urgent',
+            'status' => 'pending',
+            'order_type' => 'digital',
+            'case_type' => 'normal',
+            'notes' => null,
+            'price' => 200,
+            'remaining_amount' => 200,
+        ]);
+
+        Sanctum::actingAs($receptionist);
+
+        $receivedAt = '2026-05-20 10:30:00';
+
+        $response = $this->putJson("/api/auth/orders/{$order->id}", [
+            'patient_name' => 'Ahmad Ali',
+            'serial_number' => 'SER-2026-001',
+            'received_at' => $receivedAt,
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.order.patient_name', 'Ahmad Ali')
+            ->assertJsonPath('data.order.serial_number', 'SER-2026-001')
+            ->assertJsonPath('data.order.received_at', Carbon::parse($receivedAt)->toISOString())
+            ->assertJsonPath('data.order.delivered_at', Carbon::parse($receivedAt)->addDays(2)->toISOString());
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'patient_name' => 'Ahmad Ali',
+            'serial_number' => 'SER-2026-001',
         ]);
     }
 
