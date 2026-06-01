@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ReceptionistDeliveryAssignRequest;
 use App\Http\Requests\ReceptionistDeliveryEmployeesRequest;
+use App\Http\Requests\ReceptionistDeliveryTasksRequest;
 use App\Http\Resources\DeliveryEmployeeResource;
 use App\Http\Resources\DeliveryTaskResource;
 use App\Http\Responses\ApiResponse;
@@ -34,6 +35,24 @@ class ReceptionistDeliveryTaskController extends Controller
         return $this->apiResponse->success(
             $payload,
             __('orders.delivery_employees_retrieved'),
+            200,
+        );
+    }
+
+    public function tasks(ReceptionistDeliveryTasksRequest $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user === null) {
+            return $this->apiResponse->error(__('auth.unauthenticated'), 401);
+        }
+
+        $tasks = $this->receptionistDeliveryService->listDeliveryTasks($user, $request->validated());
+        $payload = DeliveryTaskResource::collection($tasks)->response()->getData(true);
+
+        return $this->apiResponse->success(
+            $payload,
+            __('orders.delivery_tasks_retrieved'),
             200,
         );
     }

@@ -62,6 +62,28 @@ class ReceptionistDeliveryAssignmentApiTest extends TestCase
         ]);
     }
 
+    public function test_receptionist_can_list_delivery_tasks(): void
+    {
+        [$receptionist, $lab] = $this->authenticateReceptionist();
+        $deliveryEmployee = $this->createDeliveryEmployee($lab, 'delivery.list@example.com');
+        $order = $this->createOrder($lab);
+
+        $task = DeliveryTask::query()->create([
+            'order_id' => $order->id,
+            'user_id' => $deliveryEmployee->id,
+            'status' => 'pending',
+        ]);
+
+        Sanctum::actingAs($receptionist);
+
+        $response = $this->getJson('/api/auth/orders/delivery-tasks?per_page=10');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message', __('orders.delivery_tasks_retrieved'))
+            ->assertJsonPath('data.data.0.id', $task->id);
+    }
+
     public function test_receptionist_cannot_assign_delivery_for_other_lab(): void
     {
         [$receptionist, $lab] = $this->authenticateReceptionist();

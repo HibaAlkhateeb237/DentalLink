@@ -14,6 +14,38 @@ use Illuminate\Validation\ValidationException;
 class ReceptionistDeliveryService
 {
     /**
+     * @param  array{status?:string,search?:string,per_page?:int}  $validated
+     */
+    public function listDeliveryTasks(User $receptionist, array $validated): LengthAwarePaginator
+    {
+        $labId = $this->resolveReceptionistLabId($receptionist);
+
+        $query = DeliveryTask::query()
+            ->whereHas('order', function (Builder $builder) use ($labId): void {
+                $builder->where('lab_id', $labId);
+            })
+            ->with(['user', 'order.user']);
+
+        if (! empty($validated['status'])) {
+            $query->where('status', $validated['status']);
+        }
+
+        if (! empty($validated['search'])) {
+            $search = trim((string) $validated['search']);
+
+            $query->whereHas('user', function (Builder $builder) use ($search): void {
+                $builder
+                    ->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('phone', 'like', '%'.$search.'%');
+            });
+        }
+
+        $perPage = (int) ($validated['per_page'] ?? 15);
+
+        return $query->orderByDesc('id')->paginate($perPage);
+    }
+
+    /**
      * @param  array{per_page?:int,search?:string}  $validated
      */
     public function listDeliveryEmployees(User $receptionist, array $validated): LengthAwarePaginator

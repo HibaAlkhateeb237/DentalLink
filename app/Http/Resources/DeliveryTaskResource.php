@@ -16,6 +16,9 @@ class DeliveryTaskResource extends JsonResource
     {
         $user = $this->whenLoaded('user');
 
+        // Doctor info from related order->user
+        $doctor = optional(optional($this->order)->user);
+
         return [
             'id' => $this->id,
             'order_id' => $this->order_id,
@@ -29,6 +32,11 @@ class DeliveryTaskResource extends JsonResource
                     'email' => $user->email,
                     'phone' => $user->phone,
                 ],
+            'doctor_name' => $doctor->name,
+            'doctor_phone' => $doctor->phone,
+            'doctor_location' => $doctor->location,
+            'doctor_location_lat' => $doctor->location_lat,
+            'doctor_location_lng' => $doctor->location_lng,
         ];
     }
 }

@@ -3,6 +3,7 @@
 // routes/api.php
 
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\DentalCompensationTypeController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\LabController;
 use App\Http\Controllers\LabEmployeeController;
@@ -15,14 +16,13 @@ use App\Http\Controllers\ReceptionistDeliveryTaskController;
 use App\Http\Controllers\ReceptionistOrderController;
 use App\Http\Controllers\ToothShadeController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\DentalCompensationTypeController;
 
 Route::get('/ping', function () {
     return response()->json([
         'success' => true,
         'status' => 200,
         'message' => __('messages.success'),
-        //use App\Http\Controllers\DentalCompensationTypeController;
+        // use App\Http\Controllers\DentalCompensationTypeController;
         'data' => [
             'app' => config('app.name'),
         ],
@@ -105,6 +105,8 @@ Route::prefix('auth')->group(function (): void {
             Route::get('/', [ReceptionistOrderController::class, 'index'])->name('orders.index');
             Route::get('/delivery-employees', [ReceptionistDeliveryTaskController::class, 'employees'])
                 ->name('orders.delivery-employees.index');
+            Route::get('/delivery-tasks', [ReceptionistDeliveryTaskController::class, 'tasks'])
+                ->name('orders.delivery-tasks.index');
             Route::get('/{order}/qr-image', [ReceptionistOrderController::class, 'qrImage'])->name('orders.qr-image');
             Route::get('/{order}', [ReceptionistOrderController::class, 'show'])->name('orders.show');
             Route::post('/{order}/delivery-assignments', [ReceptionistDeliveryTaskController::class, 'assign'])
@@ -120,7 +122,6 @@ Route::prefix('auth')->group(function (): void {
             Route::post('/{employee}', [LabEmployeeController::class, 'update'])->name('lab.employees.update');
             Route::delete('/{employee}', [LabEmployeeController::class, 'destroy'])->name('lab.employees.destroy');
         });
-
 
         Route::middleware(['role:lab_manager'])->prefix('lab/departments')->group(function (): void {
             Route::get('/with-employees/list', [DepartmentController::class, 'indexWithEmployees'])->name('lab.departments.with-employees.index');
