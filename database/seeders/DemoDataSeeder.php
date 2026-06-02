@@ -118,6 +118,7 @@ class DemoDataSeeder extends Seeder
         $labsData = [
             [
                 'name' => 'Sham Dental Lab',
+                'description' => 'A leading dental laboratory specializing in high-quality crowns, bridges, and digital dentistry solutions.',
                 'address' => 'Mazzeh, Damascus',
                 'latitude' => 33.5102,
                 'longitude' => 36.2384,
@@ -125,6 +126,7 @@ class DemoDataSeeder extends Seeder
             ],
             [
                 'name' => 'Elite Dental Lab',
+                'description' => 'Premium dental prosthetics crafted with advanced technologies and aesthetic precision.',
                 'address' => 'Abu Rummaneh, Damascus',
                 'latitude' => 33.5138,
                 'longitude' => 36.2765,
@@ -132,6 +134,7 @@ class DemoDataSeeder extends Seeder
             ],
             [
                 'name' => 'Smile Tech Lab',
+                'description' => 'Specialized in innovative orthodontic appliances and modern cosmetic smile makeovers.',
                 'address' => 'Kafar Souseh, Damascus',
                 'latitude' => 33.4862,
                 'longitude' => 36.2921,
@@ -139,6 +142,7 @@ class DemoDataSeeder extends Seeder
             ],
             [
                 'name' => 'Golden Crown Lab',
+                'description' => 'Providing reliable, durable, and affordable dental restorations for clinics across Damascus.',
                 'address' => 'Baramkeh, Damascus',
                 'latitude' => 33.5077,
                 'longitude' => 36.2788,
@@ -146,6 +150,7 @@ class DemoDataSeeder extends Seeder
             ],
             [
                 'name' => 'Future Dental Lab',
+                'description' => 'Your partner in digital smile design (DSD) and full-arch implant rehabilitations.',
                 'address' => 'Bab Touma, Damascus',
                 'latitude' => 33.5130,
                 'longitude' => 36.3062,
@@ -153,6 +158,7 @@ class DemoDataSeeder extends Seeder
             ],
             [
                 'name' => 'Bright Smile Lab',
+                'description' => 'Expert technicians focusing on removable dentures and flexible partials.',
                 'address' => 'Midan, Damascus',
                 'latitude' => 33.4973,
                 'longitude' => 36.3005,
@@ -160,6 +166,7 @@ class DemoDataSeeder extends Seeder
             ],
             [
                 'name' => 'Advanced Dental Lab',
+                'description' => 'Equipped with the latest CAD/CAM milling systems to ensure micro-precision and rapid delivery.',
                 'address' => 'Dummar, Damascus',
                 'latitude' => 33.5444,
                 'longitude' => 36.2321,
@@ -167,6 +174,7 @@ class DemoDataSeeder extends Seeder
             ],
             [
                 'name' => 'Pearl Dental Lab',
+                'description' => 'Dedicated to natural-looking zirconia restorations and high-end porcelain veneers.',
                 'address' => 'Jaramana, Damascus',
                 'latitude' => 33.4771,
                 'longitude' => 36.3387,
@@ -176,6 +184,7 @@ class DemoDataSeeder extends Seeder
             // Labs inactive
             [
                 'name' => 'Inactive Dental Lab 1',
+                'description' => 'This laboratory is currently closed for maintenance and upgrading facilities.',
                 'address' => 'Qudsaya, Damascus',
                 'latitude' => 33.5480,
                 'longitude' => 36.2145,
@@ -184,6 +193,7 @@ class DemoDataSeeder extends Seeder
             ],
             [
                 'name' => 'Inactive Dental Lab 2',
+                'description' => 'Temporary inactive due to administrative and relicensing procedures.',
                 'address' => 'Harasta, Damascus',
                 'latitude' => 33.5583,
                 'longitude' => 36.3656,
@@ -196,6 +206,7 @@ class DemoDataSeeder extends Seeder
         foreach ($labsData as $index => $labData) {
             $labs[] = Lab::query()->create([
                 'name' => $labData['name'],
+                'description' => $labData['description'] ?? null,
                 'phone' => '+9631100' . str_pad((string) ($index + 1), 4, '0', STR_PAD_LEFT),
                 'address' => $labData['address'],
                 'latitude' => $labData['latitude'],
