@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\DentalCompensationTypePriceResource;
+use App\Http\Resources\DentalCompensationTypeResource;
 use App\Http\Resources\ToothShadeResource;
 use App\Http\Responses\ApiResponse;
 use App\Http\Services\LabPricingService;
@@ -40,4 +41,28 @@ class LabPricingController extends Controller
             200,
         );
     }
+
+
+
+
+    public function materials(Lab $lab): JsonResponse
+    {
+        if (! data_get($lab, 'is_active', true)) {
+            return $this->apiResponse->error(__('messages.not_found'), 404);
+        }
+
+
+        $materials = $lab->dentalCompensationTypes()
+            ->orderBy('category')
+            ->orderBy('name')
+            ->get();
+
+        return $this->apiResponse->success(
+            DentalCompensationTypeResource::collection($materials),
+            __('messages.retrieved_successfully'),
+            200
+        );
+    }
+
+
 }

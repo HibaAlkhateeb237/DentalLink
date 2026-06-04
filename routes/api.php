@@ -86,6 +86,8 @@ Route::prefix('auth')->group(function (): void {
             Route::get('/{lab}/portfolio', [LabPortfolioController::class, 'index'])->name('labs.portfolio.index');
             Route::post('/{lab}/portfolio', [LabPortfolioController::class, 'store'])->name('labs.portfolio.store');
             Route::get('/{lab}/pricing', [LabPricingController::class, 'show'])->name('labs.pricing.show');
+
+            Route::get('/{lab}/materials', [LabPricingController::class, 'materials'])->name('labs.materials.index');
         });
 
         Route::get('/tooth-shades', [ToothShadeController::class, 'index'])->name('tooth-shades.index');
