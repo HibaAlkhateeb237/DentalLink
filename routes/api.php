@@ -5,6 +5,7 @@
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\DentalCompensationTypeController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\DepartmentManagerTaskController;
 use App\Http\Controllers\LabController;
 use App\Http\Controllers\LabEmployeeController;
 use App\Http\Controllers\LabPortfolioController;
@@ -145,6 +146,22 @@ Route::prefix('auth')->group(function (): void {
             Route::post('orders/qr/{qr}/finish', [LabTechnicianTaskController::class, 'finishByQr'])->name('lab.technician.orders.qr.finish');
         });
         // =======================================================================================================
+
+
+
+        // ====================================department_manager===================================================
+
+
+        Route::middleware(['role:department_manager'])->prefix('department_manager')->group(function (): void {
+            Route::get('/tasks', [DepartmentManagerTaskController::class, 'index'])
+                ->name('department.manager.tasks.index');
+        });
+
+
+
+        // =======================================================================================================
+
+
 
     });
 });
