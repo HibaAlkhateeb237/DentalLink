@@ -97,7 +97,7 @@ class LabTechnicianTaskService
             ->select(['id', 'order_id', 'department_id', 'user_id', 'approved_at', 'status', 'created_at'])
             ->with([
                 'department:id,name,time_allowed',
-                'order:id,priority,dental_compensation_type_price_id',
+                'order:id,priority,dental_compensation_type_price_id,serial_number,case_type,notes',
                 'order.dentalCompensationTypePrice:id,dental_compensation_type_id',
                 'order.dentalCompensationTypePrice.dentalCompensationType:id,name,code',
                 'workSessions:id,task_id,start_time,end_time,status',
