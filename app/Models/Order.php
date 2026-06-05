@@ -118,4 +118,22 @@ class Order extends Model
     {
         return $this->hasOne(PortfolioCase::class);
     }
+
+    public function currentTask(): ?Task
+    {
+        if (! $this->relationLoaded('tasks')) {
+            return null;
+        }
+
+        return $this->tasks
+            ->first(fn (Task $task): bool => in_array($task->status, ['assigned', 'in_progress'], true))
+            ?? $this->tasks
+                ->sortByDesc('id')
+                ->first();
+    }
+
+    public function currentDepartment(): ?Department
+    {
+        return $this->currentTask()?->department;
+    }
 }

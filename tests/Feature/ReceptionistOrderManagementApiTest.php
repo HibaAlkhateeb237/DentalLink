@@ -13,6 +13,7 @@ use App\Models\OrderTooth;
 use App\Models\Role;
 use App\Models\ToothShade;
 use App\Models\User;
+use App\Models\Task;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Database\Seeders\ToothShadeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -24,6 +25,7 @@ use Tests\TestCase;
 
 class ReceptionistOrderManagementApiTest extends TestCase
 {
+     
     use RefreshDatabase;
 
     public function test_receptionist_can_view_orders_list_with_filters(): void
@@ -44,6 +46,14 @@ class ReceptionistOrderManagementApiTest extends TestCase
         ]);
 
         $this->attachReceptionistToLab($receptionist, $lab);
+
+        $cadDepartment = Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'CAD/CAM',
+            'description' => 'Digital design department',
+            'is_management' => false,
+            'time_allowed' => 8,
+        ]);
 
         $type = DentalCompensationType::query()->create([
             'lab_id' => $lab->id,
@@ -89,6 +99,14 @@ class ReceptionistOrderManagementApiTest extends TestCase
             'uploaded_at' => now(),
         ]);
 
+        Task::query()->create([
+            'order_id' => $matchingOrder->id,
+            'department_id' => $cadDepartment->id,
+            'user_id' => null,
+            'status' => 'in_progress',
+            'approved_at' => now(),
+        ]);
+
         Order::query()->create([
             'user_id' => $doctorTwo->id,
             'lab_id' => $lab->id,
@@ -115,7 +133,11 @@ class ReceptionistOrderManagementApiTest extends TestCase
             ->assertJsonPath('data.data.0.tooth_shade_name', $shade->name)
             ->assertJsonPath('data.data.0.material_type', $type->name)
             ->assertJsonPath('data.data.0.teeth.0', 12)
-            ->assertJsonPath('data.data.0.files.0.file_type', 'image/png');
+            ->assertJsonPath('data.data.0.files.0.file_type', 'image/png')
+            ->assertJsonPath('data.data.0.lab.departments.0.name', 'Front Desk')
+            ->assertJsonPath('data.data.0.lab.departments.1.name', 'CAD/CAM')
+            ->assertJsonPath('data.data.0.current_department.name', 'CAD/CAM')
+            ->assertJsonPath('data.data.0.current_department.task_status', 'in_progress');
     }
 
     public function test_receptionist_can_view_order_details(): void
@@ -440,7 +462,7 @@ class ReceptionistOrderManagementApiTest extends TestCase
         $order = $order->refresh();
 
         $this->assertNotNull($order->qr_image_path);
-        Storage::disk('public')->assertExists($order->qr_image_path);
+        $this->assertTrue(Storage::disk('public')->exists($order->qr_image_path));
     }
 
     public function test_non_receptionist_cannot_access_receptionist_order_routes(): void

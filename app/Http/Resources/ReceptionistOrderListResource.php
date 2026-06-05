@@ -9,6 +9,8 @@ class ReceptionistOrderListResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $currentTask = $this->currentTask();
+
         return [
             'id' => $this->id,
             'qr_code' => $this->qr_code,
@@ -52,6 +54,24 @@ class ReceptionistOrderListResource extends JsonResource
                     'name' => $this->lab->name,
                     'phone' => $this->lab->phone,
                     'address' => $this->lab->address,
+                    'departments' => $this->lab->relationLoaded('departments')
+                        ? $this->lab->departments->map(fn ($department): array => [
+                            'id' => $department->id,
+                            'name' => $department->name,
+                            'description' => $department->description,
+                            'is_management' => (bool) $department->is_management,
+                            'time_allowed' => $department->time_allowed,
+                        ])->values()
+                        : [],
+                ],
+            'current_department' => $currentTask === null || $currentTask->department === null
+                ? null
+                : [
+                    'id' => $currentTask->department->id,
+                    'name' => $currentTask->department->name,
+                    'description' => $currentTask->department->description,
+                    'time_allowed' => $currentTask->department->time_allowed,
+                    'task_status' => $currentTask->status,
                 ],
         ];
     }

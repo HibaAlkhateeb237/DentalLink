@@ -23,11 +23,14 @@ class ReceptionistOrderService
             ->with([
                 'user:id,name,email,phone,location',
                 'lab:id,name,phone,address',
+                'lab.departments:id,lab_id,name,description,is_management,time_allowed',
                 'toothShade:id,name',
                 'dentalCompensationTypePrice:id,dental_compensation_type_id',
                 'dentalCompensationTypePrice.dentalCompensationType:id,name',
                 'orderTeeth:id,order_id,tooth_number',
                 'orderFiles:id,order_id,file_path,file_type,uploaded_at',
+                'tasks:id,order_id,department_id,status,created_at',
+                'tasks.department:id,name,lab_id',
             ])
             ->withCount('orderTeeth')
             ->withSum('payments as paid_amount', 'payment_order.amount');
@@ -46,7 +49,7 @@ class ReceptionistOrderService
 
         $user = Auth::user();
 
-        if ($user !== null) {
+        if ($user instanceof User) {
             $user->loadMissing('departmentUserRoles.department');
 
             $labIds = $user->departmentUserRoles
@@ -100,6 +103,7 @@ class ReceptionistOrderService
         return $order->load([
             'user:id,name,email,phone,location',
             'lab:id,name,phone,address',
+            'lab.departments:id,lab_id,name,description,is_management,time_allowed',
             'orderTeeth:id,order_id,tooth_number,notes',
             'orderFiles:id,order_id,file_path,file_type,uploaded_at',
             'tasks:id,order_id,department_id,user_id,approved_at,status',
