@@ -303,15 +303,98 @@ class AuthApiTest extends TestCase
 
         $login
             ->assertOk()
-            ->assertJsonStructure(['success', 'status', 'message', 'data' => ['token', 'user', 'roles', 'lab_id']])
+            ->assertJsonStructure(['success', 'status', 'message', 'data' => ['token', 'user', 'roles', 'lab_id', 'departments']])
             ->assertJsonPath('data.lab_id', $lab->id);
+
+        $this->assertCount(1, $login->json('data.departments'));
+        $this->assertSame($department->id, $login->json('data.departments.0.id'));
+        $this->assertSame('Prosthetics', $login->json('data.departments.0.name'));
 
         $token = $login->json('data.token');
 
-        $logout = $this->withHeader('Authorization', 'Bearer '.$token)
+        $logout = $this->withHeader('Authorization', 'Bearer ' . $token)
             ->postJson('/api/auth/logout');
 
         $logout->assertOk();
+    }
+
+    public function test_user_with_multiple_department_assignments_gets_all_departments_on_login(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'multi-department@example.com',
+            'password' => 'password123',
+        ]);
+
+        $lab = Lab::query()->create([
+            'name' => 'Multi Department Lab',
+            'license_number' => 'LAB-002',
+            'phone' => '+201111111111',
+            'address' => 'Alexandria, Egypt',
+            'latitude' => 31.2000924,
+            'longitude' => 29.9187387,
+            'is_active' => true,
+        ]);
+
+        $firstDepartment = Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'CAD/CAM',
+            'description' => 'Digital design',
+            'is_management' => false,
+        ]);
+
+        $secondDepartment = Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'Ceramics',
+            'description' => 'Ceramic finishing',
+            'is_management' => false,
+        ]);
+
+        $role = Role::query()->create([
+            'name' => 'lab_technician',
+            'guard_name' => 'sanctum',
+        ]);
+
+        DepartmentUserRole::query()->create([
+            'user_id' => $user->id,
+            'role_id' => $role->id,
+            'department_id' => $firstDepartment->id,
+        ]);
+
+        DepartmentUserRole::query()->create([
+            'user_id' => $user->id,
+            'role_id' => $role->id,
+            'department_id' => $secondDepartment->id,
+        ]);
+
+        $login = $this->postJson('/api/auth/login', [
+            'email' => 'multi-department@example.com',
+            'password' => 'password123',
+        ]);
+
+        $login
+            ->assertOk()
+            ->assertJsonCount(2, 'data.departments')
+            ->assertJsonPath('data.departments.0.id', $firstDepartment->id)
+            ->assertJsonPath('data.departments.1.id', $secondDepartment->id);
+    }
+
+    public function test_login_omits_departments_for_non_lab_employees(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'doctor-login@example.com',
+            'password' => 'password123',
+        ]);
+
+        $login = $this->postJson('/api/auth/login', [
+            'email' => 'doctor-login@example.com',
+            'password' => 'password123',
+        ]);
+
+        $login
+            ->assertOk()
+            ->assertJsonPath('data.lab_id', null);
+
+        $this->assertArrayNotHasKey('departments', $login->json('data'));
     }
 
     public function test_login_with_invalid_email_format_returns_bad_request(): void

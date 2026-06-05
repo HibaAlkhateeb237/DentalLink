@@ -226,13 +226,30 @@ class AuthController extends Controller
             ->values()
             ->first();
 
+        $departments = $user->departmentUserRoles
+            ->map(static fn($departmentUserRole): array => [
+                'id' => $departmentUserRole->department?->id,
+                'name' => $departmentUserRole->department?->name,
+                'lab_id' => $departmentUserRole->department?->lab_id,
+            ])
+            ->filter(static fn(array $department): bool => $department['id'] !== null)
+            ->unique('id')
+            ->values()
+            ->all();
+
+        $responseData = [
+            'token' => $result['token'],
+            'user' => AuthUserResource::make($user)->resolve(),
+            'roles' => $user->effectiveRoleNames(),
+            'lab_id' => $labId,
+        ];
+
+        if ($departments !== []) {
+            $responseData['departments'] = $departments;
+        }
+
         return $this->apiResponse->success(
-            [
-                'token' => $result['token'],
-                'user' => AuthUserResource::make($user)->resolve(),
-                'roles' => $user->effectiveRoleNames(),
-                'lab_id' => $labId,
-            ],
+            $responseData,
             __('auth.logged_in_successfully'),
             200,
         );
