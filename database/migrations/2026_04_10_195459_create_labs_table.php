@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('license_number')->nullable()->unique();
             $table->string('phone');
             $table->text('address');
+            $table->text('description')->nullable();
             $table->decimal('latitude', 10, 7);
             $table->decimal('longitude', 10, 7);
             $table->string('photo')->nullable();

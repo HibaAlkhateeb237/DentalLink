@@ -5,6 +5,7 @@
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\DentalCompensationTypeController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\DepartmentManagerTaskController;
 use App\Http\Controllers\LabController;
 use App\Http\Controllers\LabEmployeeController;
 use App\Http\Controllers\LabPortfolioController;
@@ -85,6 +86,8 @@ Route::prefix('auth')->group(function (): void {
             Route::get('/{lab}/portfolio', [LabPortfolioController::class, 'index'])->name('labs.portfolio.index');
             Route::post('/{lab}/portfolio', [LabPortfolioController::class, 'store'])->name('labs.portfolio.store');
             Route::get('/{lab}/pricing', [LabPricingController::class, 'show'])->name('labs.pricing.show');
+
+            Route::get('/{lab}/materials', [LabPricingController::class, 'materials'])->name('labs.materials.index');
         });
 
         Route::get('/tooth-shades', [ToothShadeController::class, 'index'])->name('tooth-shades.index');
@@ -145,6 +148,22 @@ Route::prefix('auth')->group(function (): void {
             Route::post('orders/qr/{qr}/finish', [LabTechnicianTaskController::class, 'finishByQr'])->name('lab.technician.orders.qr.finish');
         });
         // =======================================================================================================
+
+
+
+        // ====================================department_manager===================================================
+
+
+        Route::middleware(['role:department_manager'])->prefix('department_manager')->group(function (): void {
+            Route::get('/tasks', [DepartmentManagerTaskController::class, 'index'])
+                ->name('department.manager.tasks.index');
+        });
+
+
+
+        // =======================================================================================================
+
+
 
     });
 });

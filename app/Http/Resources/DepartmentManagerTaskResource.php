@@ -5,7 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class TechnicianTaskResource extends JsonResource
+class DepartmentManagerTaskResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
@@ -22,19 +22,22 @@ class TechnicianTaskResource extends JsonResource
         return [
             'id' => $this->id,
             'status' => $this->status,
-            //           'approved_at' => $this->approved_at,
-            //            'department' => $this->department === null ? null : [
-            //               'id' => $this->department->id,
-            //               'name' => $this->department->name,
-            //                'time_allowed_hours' => $departmentTimeAllowedHours,
-            //            ],
+            'department' => $this->department === null ? null : [
+                'id' => $this->department->id,
+                'name' => $this->department->name,
+                'time_allowed_hours' => $departmentTimeAllowedHours,
+            ],
+            'technician' => $this->user === null ? null : [
+                'id' => $this->user->id,
+                'name' => $this->user->name,
+            ],
             'order' => $this->order === null ? null : [
                 'id' => $this->order->id,
-                'serial_number'=> $this->order->serial_number,
+                'serial_number' => $this->order->serial_number,
                 'priority' => $this->order->priority,
-                 'case_type'=> $this->order->case_type,
+                'case_type' => $this->order->case_type,
                 'material_type' => $this->order->dentalCompensationTypePrice?->dentalCompensationType?->name,
-                'notes'=> $this->order->notes,
+                'notes' => $this->order->notes,
             ],
             'worked_minutes' => $workedMinutes,
             'remaining_minutes' => $remainingMinutes,
