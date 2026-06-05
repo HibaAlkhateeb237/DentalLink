@@ -288,7 +288,7 @@ class DemoDataSeeder extends Seeder
             ]);
         }
 
-        for ($index = 1; $index <= 4; $index++) {
+        for ($index = 1; $index <= 20; $index++) {
             $usersByRole['department_manager'][] = User::query()->create([
                 'name' => 'Department Manager ' . $index,
                 'email' => 'department.manager' . $index . '@demo.local',
@@ -404,6 +404,8 @@ class DemoDataSeeder extends Seeder
         return $departmentsByLab;
     }
 
+
+
     /**
      * @param  array<string, array<int, User>>  $usersByRole
      * @param  array<int, array<int, Department>>  $departmentsByLab
@@ -440,14 +442,25 @@ class DemoDataSeeder extends Seeder
         sort($labIds);
         $firstLabId = $labIds[0] ?? null;
 
-        $departmentCounter = 0;
         $receptionistCounter = 0;
+
+        // عداد لمعرفة المخبر الحالي لسحب مدراء جدد من المصفوفة
+        $labCounter = 0;
+
         foreach ($departmentsByLab as $labId => $departments) {
             $labName = $labsById[$labId]->name ?? null;
             $labTechnicians = $labName !== null ? ($techniciansByLab[$labName] ?? []) : [];
             $technicianCounter = 0;
 
+            // حجز مديرين اثنين فريدين لهذا المخبر تحديداً بناءً على ترتيب المخبر
+            $manager1 = $managers[($labCounter * 2) % count($managers)];
+            $manager2 = $managers[(($labCounter * 2) + 1) % count($managers)];
+
+            // عداد للأقسام التشغيلية الفعلية داخل المخبر الحالي لتطبيق قاعدة (كل 2 لمدير)
+            $operationalDeptIndex = 0;
+
             foreach ($departments as $department) {
+                // تخطي قسم الاستقبال
                 if ($firstLabId !== null && $labId === $firstLabId && $department->name === 'Reception') {
                     if ($receptionistRoleId !== null && ! empty($receptionists)) {
                         $receptionistCount = min(2, count($receptionists));
@@ -467,13 +480,25 @@ class DemoDataSeeder extends Seeder
                     continue;
                 }
 
-                $manager = $managers[$departmentCounter % count($managers)];
+                // تخطي قسم الإدارة العامة لأنه مخصص لـ Lab Manager وليس لمدير القسم
+                if ($department->is_management) {
+                    continue;
+                }
+
+                // تطبيق قاعدة قسمين لكل مدير:
+                // أول قسمين (0 و 1) يأخذهما المدير الأول. القسم الثالث (2) يأخذه المدير الثاني.
+                $assignedManager = ($operationalDeptIndex < 2) ? $manager1 : $manager2;
+
                 DepartmentUserRole::query()->firstOrCreate([
-                    'user_id' => $manager->id,
+                    'user_id' => $assignedManager->id,
                     'role_id' => $managerRoleId,
                     'department_id' => $department->id,
                 ]);
 
+                // زيادة عداد الأقسام التشغيلية لتوزيع القسم التالي على المدير الصحيح
+                $operationalDeptIndex++;
+
+                // إسناد الفنيين (Technicians) للأقسام كما هي دون تغيير
                 $technician = $labTechnicians[$technicianCounter] ?? null;
 
                 if ($technician !== null) {
@@ -487,11 +512,13 @@ class DemoDataSeeder extends Seeder
                 }
 
                 $technicianCounter++;
-                $departmentCounter++;
             }
+
+            // الانتقال للمخبر القادم وزيادة العداد لسحب طاقم مدراء جديد بالكامل
+            $labCounter++;
         }
 
-        // Assign lab managers to Management departments
+        // إسناد مدراء المخابر لأقسام الـ Management الأساسية (باقي الكود كما هو)
         $labManagerRoleId = Role::query()->where('name', 'lab_manager')->where('guard_name', 'sanctum')->value('id');
         if ($labManagerRoleId !== null && ! empty($usersByRole['lab_manager'])) {
             $managementDepartments = Department::query()
@@ -524,6 +551,8 @@ class DemoDataSeeder extends Seeder
 
         return $technicianIdsByDepartment;
     }
+
+
 
     /**
      * @param  array<int, User>  $doctors
