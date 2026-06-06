@@ -4,6 +4,9 @@ namespace App\Support;
 
 final class TaskStatus
 {
+
+    public const PENDING_ASSIGNMENT = 'pending_assignment';
+
     public const ASSIGNED = 'assigned';
 
     public const IN_PROGRESS = 'in_progress';
@@ -13,6 +16,7 @@ final class TaskStatus
     public const COMPLETED = 'completed';
 
     public const ALL = [
+        self::PENDING_ASSIGNMENT,
         self::ASSIGNED,
         self::IN_PROGRESS,
         self::PENDING_REVIEW,
