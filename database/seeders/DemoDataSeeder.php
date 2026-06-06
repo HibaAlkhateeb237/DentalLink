@@ -700,7 +700,7 @@ class DemoDataSeeder extends Seeder
     private function seedTasksAndWorkSessions(array $orders, array $departmentsByLab, array $technicianIdsByDepartment): void
     {
         $taskStatusByOrderStatus = [
-            OrderStatus::PENDING => TaskStatus::ASSIGNED,
+            OrderStatus::PENDING => TaskStatus::PENDING_ASSIGNMENT,
             OrderStatus::IN_PROGRESS => TaskStatus::IN_PROGRESS,
             OrderStatus::COMPLETED => TaskStatus::COMPLETED,
             OrderStatus::TRY_ON => TaskStatus::IN_PROGRESS,
@@ -709,28 +709,37 @@ class DemoDataSeeder extends Seeder
 
         foreach ($orders as $orderIndex => $order) {
             $departments = $departmentsByLab[$order->lab_id] ?? [];
-            $taskStatus = $taskStatusByOrderStatus[$order->status] ?? TaskStatus::ASSIGNED;
+            $taskStatus = $taskStatusByOrderStatus[$order->status] ?? TaskStatus::PENDING_ASSIGNMENT;
 
             foreach (array_slice($departments, 0, 2) as $departmentIndex => $department) {
                 $technicianId = $technicianIdsByDepartment[$department->id] ?? null;
 
-                if ($technicianId === null) {
-                    continue;
+                $currentUserId = $taskStatus === TaskStatus::PENDING_ASSIGNMENT ? null : $technicianId;
+
+                $currentStatus = $taskStatus;
+                if ($orderIndex % 3 === 0 && $order->status === OrderStatus::IN_PROGRESS) {
+                    $currentStatus = TaskStatus::PENDING_REVIEW;
+                    $currentUserId = $technicianId;
                 }
+
 
                 $task = Task::query()->create([
                     'order_id' => $order->id,
                     'department_id' => $department->id,
-                    'user_id' => $technicianId,
-                    'approved_at' => $taskStatus === TaskStatus::COMPLETED
+                    'user_id' => $currentUserId,
+                    'approved_at' => $currentStatus === TaskStatus::COMPLETED
                         ? now()->subHours(rand(1, 48))
                         : null,
-                    'status' => $taskStatus,
+                    'status' => $currentStatus,
                 ]);
 
-                switch ($taskStatus) {
+                switch ($currentStatus) {
+                    case TaskStatus::PENDING_ASSIGNMENT:
+                        // بانتظار التعيين: لا توجد جلسات عمل ولا يوجد موظف بعد
+                        break;
+
                     case TaskStatus::ASSIGNED:
-                        // Assigned tasks are not started yet, so no work sessions should exist.
+                        // مُسندة ولكن لم تبدأ بعد
                         break;
 
                     case TaskStatus::IN_PROGRESS:
@@ -742,6 +751,21 @@ class DemoDataSeeder extends Seeder
                             'note' => 'Work in progress',
                         ]);
                         break;
+
+
+
+                    case TaskStatus::PENDING_REVIEW:
+
+                        TaskWorkSession::query()->create([
+                            'task_id' => $task->id,
+                            'start_time' => now()->subHours(4),
+                            'end_time' => now()->subHours(1),
+                            'status' => 'completed',
+                            'note' => 'Finished by technician, awaiting manager evaluation',
+                        ]);
+                        break;
+
+
 
                     case TaskStatus::COMPLETED:
                         TaskWorkSession::query()->create([
