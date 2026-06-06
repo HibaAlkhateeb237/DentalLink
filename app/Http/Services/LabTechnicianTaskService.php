@@ -9,6 +9,7 @@ use App\Models\Task;
 use App\Models\TaskWorkSession;
 use App\Models\User;
 use App\Repositories\TaskRepository;
+use App\Support\TaskStatus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -82,7 +83,7 @@ class LabTechnicianTaskService
             $session->status = 'completed';
             $session->save();
 
-            $task->status = 'completed';
+            $task->status = TaskStatus::PENDING_REVIEW;
             $task->save();
 
             return $session;
