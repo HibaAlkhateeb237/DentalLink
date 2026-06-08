@@ -6,8 +6,10 @@ use App\Models\Department;
 use App\Models\DepartmentUserRole;
 use App\Models\Task;
 use App\Models\User;
+use App\Support\TaskStatus;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 class TaskRepository
 {
@@ -82,4 +84,69 @@ class TaskRepository
             ->latest('id')
             ->paginate($perPage);
     }
+
+
+
+
+
+
+
+
+
+
+
+    public function isUserAdminOfDepartment(int $userId, int $departmentId): bool
+    {
+
+        return DB::table('department_user_roles')
+            ->join('roles', 'department_user_roles.role_id', '=', 'roles.id')
+            ->where('department_user_roles.user_id', $userId)
+            ->where('department_user_roles.department_id', $departmentId)
+            ->where('roles.name', 'department_manager')
+            ->exists();
+    }
+
+
+
+
+    public function findNextDepartment(Department $currentDepartment): ?Department
+    {
+        return Department::query()->where('lab_id', $currentDepartment['lab_id'])
+            ->where('sort_order', '>', $currentDepartment['sort_order'])
+            ->where('sort_order', '>', 0)
+            ->orderBy('sort_order', 'asc')
+            ->first();
+    }
+
+
+    public function completeTask(Task $task): void
+    {
+        $task->update([
+            'status' => TaskStatus::COMPLETED,
+            'approved_at' => now(),
+        ]);
+    }
+
+
+    public function createNextStageTask(int $orderId, int $nextDepartmentId): Task
+    {
+        return Task::query()->create([
+            'order_id'      => $orderId,
+            'department_id' => $nextDepartmentId,
+            'user_id'       => null,
+            'status'        => TaskStatus::PENDING_ASSIGNMENT,
+        ]);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
 }

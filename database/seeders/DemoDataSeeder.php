@@ -566,7 +566,7 @@ class DemoDataSeeder extends Seeder
     private function seedOrders(array $doctors, array $labs): array
     {
         $statuses = OrderStatus::ALL;
-        $priorities = ['normal', 'normal', 'urgent'];
+        $priorities = ['normal', 'urgent'];
         $types = ['digital', 'physical', 'hybrid'];
 
         $caseTypes = ['normal', 'implant', 'bridge'];
@@ -703,99 +703,132 @@ class DemoDataSeeder extends Seeder
      */
     private function seedTasksAndWorkSessions(array $orders, array $departmentsByLab, array $technicianIdsByDepartment): void
     {
-        $taskStatusByOrderStatus = [
-            OrderStatus::PENDING => TaskStatus::PENDING_ASSIGNMENT,
-            OrderStatus::IN_PROGRESS => TaskStatus::IN_PROGRESS,
-            OrderStatus::COMPLETED => TaskStatus::COMPLETED,
-            OrderStatus::TRY_ON => TaskStatus::IN_PROGRESS,
-            OrderStatus::RESEND_WRONG_IMPRESSION => TaskStatus::ASSIGNED,
-        ];
+        // 1. جلب أقسام المخبر الأول فقط لضمان الترتيب الثابت (1: Ceramics, 2: Orthodontics, 3: Implants)
+        $firstLabDepartments = $departmentsByLab[1] ?? [];
 
-        foreach ($orders as $orderIndex => $order) {
-            $departments = $departmentsByLab[$order->lab_id] ?? [];
-            $taskStatus = $taskStatusByOrderStatus[$order->status] ?? TaskStatus::PENDING_ASSIGNMENT;
+        // 2. فلترة المصفوفة أو جلب أول 5 طلبات تابعة للمخبر الأول حصراً (lab_id = 1)
+        $firstLabOrders = collect($orders)->where('lab_id', 1)->take(5)->values();
 
-            foreach (array_slice($departments, 0, 2) as $departmentIndex => $department) {
-                $technicianId = $technicianIdsByDepartment[$department->id] ?? null;
-
-                $currentUserId = $taskStatus === TaskStatus::PENDING_ASSIGNMENT ? null : $technicianId;
-
-                $currentStatus = $taskStatus;
-                if ($orderIndex % 3 === 0 && $order->status === OrderStatus::IN_PROGRESS) {
-                    $currentStatus = TaskStatus::PENDING_REVIEW;
-                    $currentUserId = $technicianId;
-                }
-
-
-                $task = Task::query()->create([
-                    'order_id' => $order->id,
-                    'department_id' => $department->id,
-                    'user_id' => $currentUserId,
-                    'approved_at' => $currentStatus === TaskStatus::COMPLETED
-                        ? now()->subHours(rand(1, 48))
-                        : null,
-                    'status' => $currentStatus,
-                ]);
-
-                switch ($currentStatus) {
-                    case TaskStatus::PENDING_ASSIGNMENT:
-                        // بانتظار التعيين: لا توجد جلسات عمل ولا يوجد موظف بعد
-                        break;
-
-                    case TaskStatus::ASSIGNED:
-                        // مُسندة ولكن لم تبدأ بعد
-                        break;
-
-                    case TaskStatus::IN_PROGRESS:
-                        TaskWorkSession::query()->create([
-                            'task_id' => $task->id,
-                            'start_time' => now()->subHours(6),
-                            'end_time' => null,
-                            'status' => 'active',
-                            'note' => 'Work in progress',
-                        ]);
-                        break;
-
-
-
-                    case TaskStatus::PENDING_REVIEW:
-
-                        TaskWorkSession::query()->create([
-                            'task_id' => $task->id,
-                            'start_time' => now()->subHours(4),
-                            'end_time' => now()->subHours(1),
-                            'status' => 'completed',
-                            'note' => 'Finished by technician, awaiting manager evaluation',
-                        ]);
-                        break;
-
-
-
-                    case TaskStatus::COMPLETED:
-                        TaskWorkSession::query()->create([
-                            'task_id' => $task->id,
-                            'start_time' => now()->subHours(12),
-                            'end_time' => now()->subHours(10),
-                            'status' => 'completed',
-                            'note' => 'Initial work session',
-                        ]);
-
-                        TaskWorkSession::query()->create([
-                            'task_id' => $task->id,
-                            'start_time' => now()->subHours(9),
-                            'end_time' => now()->subHours(8),
-                            'status' => 'completed',
-                            'note' => 'Finishing work session',
-                        ]);
-                        break;
-
-                    default:
-                        break;
-                }
-            }
+        // تأكدي من وجود الأقسام والطلبات الكافية لتجنب خطأ الـ Index Undefined
+        if (count($firstLabDepartments) < 3 || $firstLabOrders->count() < 5) {
+            return;
         }
-    }
 
+        $ceramics = $firstLabDepartments[0];
+        $orthodontics = $firstLabDepartments[1];
+        $implants = $firstLabDepartments[2];
+
+        // جلب معرّفات الفنيين لكل قسم في المخبر الأول
+        $techCeramics = $technicianIdsByDepartment[$ceramics->id] ?? null;
+        $techOrtho = $technicianIdsByDepartment[$orthodontics->id] ?? null;
+        $techImplants = $technicianIdsByDepartment[$implants->id] ?? null;
+
+        // --- [الطلب الأول: بانتظار الإسناد في قسم Ceramics] ---
+        $order1 = $firstLabOrders[0];
+        $order1->update(['status' => OrderStatus::PENDING]);
+        Task::query()->create([
+            'order_id' => $order1->id,
+            'department_id' => $ceramics->id,
+            'user_id' => null, // لم يُسند بعد ليعبئ تبويب "مهام للإسناد"
+            'status' => TaskStatus::PENDING_ASSIGNMENT,
+        ]);
+
+        // --- [الطلب الثاني: تم الإسناد للفني ولكن لم يبدأ بعد] ---
+        $order2 = $firstLabOrders[1];
+        $order2->update(['status' => OrderStatus::IN_PROGRESS]);
+        Task::query()->create([
+            'order_id' => $order2->id,
+            'department_id' => $ceramics->id,
+            'user_id' => $techCeramics,
+            'status' => TaskStatus::ASSIGNED,
+        ]);
+
+        // --- [الطلب الثالث: قيد العمل عليه من قبل فني Ceramics] ---
+        $order3 = $firstLabOrders[2];
+        $order3->update(['status' => OrderStatus::IN_PROGRESS]);
+        $task3 = Task::query()->create([
+            'order_id' => $order3->id,
+            'department_id' => $ceramics->id,
+            'user_id' => $techCeramics,
+            'status' => TaskStatus::IN_PROGRESS,
+        ]);
+        TaskWorkSession::query()->create([
+            'task_id' => $task3->id,
+            'start_time' => now()->subHours(2),
+            'end_time' => null,
+            'status' => 'active',
+            'note' => 'العمل جاري على تلبسية الزيركون',
+        ]);
+
+        // --- [الطلب الرابع: انتهى الفني وينتظر تقييم المدير (شاشتكِ المرفقة)] ---
+        $order4 = $firstLabOrders[3];
+        $order4->update(['status' => OrderStatus::IN_PROGRESS]);
+        $task4 = Task::query()->create([
+            'order_id' => $order4->id,
+            'department_id' => $ceramics->id,
+            'user_id' => $techCeramics,
+            'status' => TaskStatus::PENDING_REVIEW, // يظهر في تبويب "بحاجة لتقييم"
+        ]);
+        TaskWorkSession::query()->create([
+            'task_id' => $task4->id,
+            'start_time' => now()->subHours(4),
+            'end_time' => now()->subHours(1),
+            'status' => 'completed',
+            'note' => 'تم إنهاء النحت والتجهيز بالكامل ميكانيكياً',
+        ]);
+
+        // --- [الطلب الخامس: مرّ بالأقسام بالكامل وهو الآن منتهٍ ومكتمل] ---
+        $order5 = $firstLabOrders[4];
+        $order5->update(['status' => OrderStatus::COMPLETED]);
+
+        // 1. مهمة Ceramics المنتهية تاريخياً
+        $task5 = Task::query()->create([
+            'order_id' => $order5->id,
+            'department_id' => $ceramics->id,
+            'user_id' => $techCeramics,
+            'status' => TaskStatus::COMPLETED,
+            'approved_at' => now()->subDays(2),
+        ]);
+        TaskWorkSession::query()->create([
+            'task_id' => $task5->id,
+            'start_time' => now()->subDays(2)->subHours(5),
+            'end_time' => now()->subDays(2)->subHours(2),
+            'status' => 'completed',
+            'note' => 'تم الانتهاء من صب ونحت الخزف بنجاح',
+        ]);
+
+        // 2. مهمة Orthodontics المنتهية تاريخياً
+        $task6 = Task::query()->create([
+            'order_id' => $order5->id,
+            'department_id' => $orthodontics->id,
+            'user_id' => $techOrtho,
+            'status' => TaskStatus::COMPLETED,
+            'approved_at' => now()->subDays(1),
+        ]);
+        TaskWorkSession::query()->create([
+            'task_id' => $task6->id,
+            'start_time' => now()->subDays(1)->subHours(4),
+            'end_time' => now()->subDays(1)->subHours(1),
+            'status' => 'completed',
+            'note' => 'تم تجهيز أسلاك وتقويم الحالة بالكامل',
+        ]);
+
+        // 3. مهمة Implants المنتهية تاريخياً (آخر قسم)
+        $task7 = Task::query()->create([
+            'order_id' => $order5->id,
+            'department_id' => $implants->id,
+            'user_id' => $techImplants,
+            'status' => TaskStatus::COMPLETED,
+            'approved_at' => now()->subHours(5),
+        ]);
+        TaskWorkSession::query()->create([
+            'task_id' => $task7->id,
+            'start_time' => now()->subHours(9),
+            'end_time' => now()->subHours(5),
+            'status' => 'completed',
+            'note' => 'إنهاء تحضير دعم الزرعة النهائي وإرسالها للمدير للتقييم الأخير',
+        ]);
+    }
     /**
      * @param  array<int, Order>  $orders
      */

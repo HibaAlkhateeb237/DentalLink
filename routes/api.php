@@ -12,9 +12,9 @@ use App\Http\Controllers\LabPortfolioController;
 use App\Http\Controllers\LabPricingController;
 use App\Http\Controllers\LabTechnicianTaskController;
 use App\Http\Controllers\OrderController;
-use App\Http\Controllers\OrderPricingController;
 use App\Http\Controllers\ReceptionistDeliveryTaskController;
 use App\Http\Controllers\ReceptionistOrderController;
+use App\Http\Controllers\TaskWorkflowController;
 use App\Http\Controllers\ToothShadeController;
 use Illuminate\Support\Facades\Route;
 
@@ -157,6 +157,10 @@ Route::prefix('auth')->group(function (): void {
         Route::middleware(['role:department_manager'])->prefix('department_manager')->group(function (): void {
             Route::get('/tasks', [DepartmentManagerTaskController::class, 'index'])
                 ->name('department.manager.tasks.index');
+
+            Route::post('/tasks/{task}/move-forward', [TaskWorkflowController::class,'moveForward']);
+
+
         });
 
 
