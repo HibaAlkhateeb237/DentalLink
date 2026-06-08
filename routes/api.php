@@ -158,11 +158,14 @@ Route::prefix('auth')->group(function (): void {
             Route::get('/tasks', [DepartmentManagerTaskController::class, 'index'])
                 ->name('department.manager.tasks.index');
 
-            Route::post('/tasks/{task}/move-forward', [TaskWorkflowController::class,'moveForward']) ->name('department.manager.tasks.move.forward');
-
-            Route::post('/tasks/{task}/move-backward', [TaskWorkflowController::class,'moveBackward']) ->name('department.manager.tasks.move.backward');
+            Route::prefix('tasks/{task}')->group(function () {
+            Route::post('/move-forward', [TaskWorkflowController::class,'moveForward']) ->name('department.manager.tasks.move.forward');
+            Route::post('/move-backward', [TaskWorkflowController::class,'moveBackward']) ->name('department.manager.tasks.move.backward');
+            Route::post('/assign', [TaskWorkflowController::class, 'assignTechnician']) ->name('department.manager.tasks.assign.technician');;
+            });
 
             Route::get('/departments/{departmentId}/technicians', [TaskWorkflowController::class, 'getTechnicians']) ->name('department.manager.getTechnicians');;
+
 
 
         });

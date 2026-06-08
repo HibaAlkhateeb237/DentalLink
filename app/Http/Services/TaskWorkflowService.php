@@ -146,4 +146,55 @@ class TaskWorkflowService
 
 
 
+
+
+    public function assignTechnician(Task $task, int $technicianId): string
+    {
+        $currentUserId = Auth::id();
+
+
+        $isAuthorized = $this->taskRepository->isUserAdminOfDepartment($currentUserId, $task['department_id']);
+        if (!$isAuthorized) {
+            throw new HttpException(403, 'عذراً، ليس لديك صلاحية إدارة هذا القسم.');
+        }
+
+
+        if ($task['status'] !== TaskStatus::PENDING_ASSIGNMENT && $task['status'] !== TaskStatus::ASSIGNED) {
+            throw new HttpException(400, 'لا يمكن تعديل إسناد هذه المهمة في حالتها الحالية.');
+        }
+
+
+        $isTechInDept = DB::table('department_user_roles')
+            ->where('department_id', $task['department_id'])
+            ->where('user_id', $technicianId)
+            ->exists();
+
+        if (!$isTechInDept) {
+            throw new HttpException(400, 'الموظف المختار لا ينتمي إلى هذا القسم.');
+        }
+
+        try {
+            return DB::transaction(function () use ($task, $technicianId) {
+                $this->taskRepository->assignTechnicianToTask($task, $technicianId);
+                return "تم تعيين الفني بنجاح، والمهمة الآن جاهزة لبدء العمل عليها.";
+            });
+        } catch (Exception $e) {
+            if ($e instanceof HttpException) throw $e;
+            throw new HttpException(500, 'حدث خطأ أثناء عملية التعيين: ' . $e->getMessage());
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }

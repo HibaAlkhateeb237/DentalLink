@@ -8,6 +8,7 @@ use App\Http\Responses\ApiResponse;
 use App\Repositories\TaskRepository;
 use Illuminate\Http\JsonResponse;
 use Exception;
+use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class TaskWorkflowController extends Controller
@@ -76,6 +77,23 @@ class TaskWorkflowController extends Controller
 
 
 
+
+
+    public function assignTechnician(Request $request, Task $task): JsonResponse
+    {
+        $request->validate([
+            'user_id' => 'required|integer|exists:users,id'
+        ]);
+
+        try {
+            $message = $this->workflowService->assignTechnician($task, $request->input('user_id'));
+            return $this->response->success(null, $message, 200);
+        } catch (HttpException $e) {
+            return $this->response->error($e->getMessage(), $e->getStatusCode());
+        } catch (\Exception $e) {
+            return $this->response->error('حدث خطأ غير متوقع في السيرفر', 500);
+        }
+    }
 
 
 

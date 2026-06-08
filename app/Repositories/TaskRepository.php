@@ -187,6 +187,14 @@ class TaskRepository
 
 
 
+    public function assignTechnicianToTask(Task $task, int $technicianId): void
+    {
+        $task->update([
+            'user_id' => $technicianId,
+            'status'  => TaskStatus::ASSIGNED,
+        ]);
+    }
+
 
 
 
