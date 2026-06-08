@@ -162,8 +162,11 @@ Route::prefix('auth')->group(function (): void {
 
             Route::post('/tasks/{task}/move-backward', [TaskWorkflowController::class,'moveBackward']) ->name('department.manager.tasks.move.backward');
 
+            Route::get('/departments/{departmentId}/technicians', [TaskWorkflowController::class, 'getTechnicians']) ->name('department.manager.getTechnicians');;
+
 
         });
+
 
 
 

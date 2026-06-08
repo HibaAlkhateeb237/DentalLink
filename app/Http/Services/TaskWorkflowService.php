@@ -89,13 +89,13 @@ class TaskWorkflowService
     {
         $currentUserId = Auth::id();
 
-        // 1. القيد الأمني: التحقق من الصلاحية على القسم الحالي
+
         $isAuthorized = $this->taskRepository->isUserAdminOfDepartment($currentUserId, $task['department_id']);
         if (!$isAuthorized) {
             throw new HttpException(403, 'عذراً، ليس لديك صلاحية إدارة أو إرجاع المهام الخاصة بهذا القسم.');
         }
 
-        // 2. التحقق من أن المهمة الحالية في حالة مراجعة ليتمكن من إرجاعها
+
         if ($task['status'] !== TaskStatus::PENDING_REVIEW) {
             throw new HttpException(400, 'لا يمكن إرجاع هذه المهمة لأنها ليست قيد التقييم حالياً.');
         }
@@ -105,10 +105,10 @@ class TaskWorkflowService
         try {
             return DB::transaction(function () use ($task) {
 
-                // تحديث حالة المهمة الحالية لتصبح مرفوضة/معادة بدلاً من معلقة
+
                 $task->update(['status' => TaskStatus::ASSIGNED]);
 
-                // تحديث حالة الجلسة الأخيرة المرتبطة بالمهمة الحالية لتصبح معادة
+
                 $this->taskRepository->markLastSessionAsReturned($task['id']);
 
 
@@ -126,6 +126,21 @@ class TaskWorkflowService
 
 
 
+
+    public function getTechniciansForManager(int $departmentId): \Illuminate\Support\Collection
+    {
+        $currentUserId = Auth::id();
+
+
+        $isAuthorized = $this->taskRepository->isUserAdminOfDepartment($currentUserId, $departmentId);
+
+        if (!$isAuthorized) {
+            throw new HttpException(403, 'عذراً، ليس لديك صلاحية استعراض موظفي هذا القسم.');
+        }
+
+
+        return $this->taskRepository->getTechniciansByDepartment($departmentId);
+    }
 
 
 

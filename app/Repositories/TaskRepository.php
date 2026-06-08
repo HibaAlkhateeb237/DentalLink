@@ -170,6 +170,25 @@ class TaskRepository
 
 
 
+    public function getTechniciansByDepartment(int $departmentId): \Illuminate\Support\Collection
+    {
+        return DB::table('department_user_roles')
+            ->join('users', 'department_user_roles.user_id', '=', 'users.id')
+            ->join('roles', 'department_user_roles.role_id', '=', 'roles.id')
+            ->where('department_user_roles.department_id', $departmentId)
+            ->where('roles.name', 'lab_technician')
+            ->select('users.id', 'users.name', 'users.email')
+            ->get();
+    }
+
+
+
+
+
+
+
+
+
 
 
 }

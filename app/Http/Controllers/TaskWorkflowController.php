@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Services\TaskWorkflowService;
 use App\Models\Task;
 use App\Http\Responses\ApiResponse;
+use App\Repositories\TaskRepository;
 use Illuminate\Http\JsonResponse;
 use Exception;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -14,10 +15,12 @@ class TaskWorkflowController extends Controller
     protected TaskWorkflowService $workflowService;
     protected ApiResponse $response;
 
-    public function __construct(TaskWorkflowService $workflowService, ApiResponse $response)
+    public function __construct(TaskWorkflowService $workflowService,TaskRepository $taskRepository, ApiResponse $response)
     {
         $this->workflowService = $workflowService;
+        $this->taskRepository = $taskRepository;
         $this->response = $response;
+
     }
 
     public function moveForward(Task $task): JsonResponse
@@ -60,7 +63,16 @@ class TaskWorkflowController extends Controller
 
 
 
+    public function getTechnicians(int $departmentId): JsonResponse
+    {
+        $technicians = $this->workflowService->getTechniciansForManager($departmentId);
 
+        return $this->response->success(
+            $technicians,
+            'تم جلب قائمة الفنيين للقسم بنجاح.',
+            200
+        );
+    }
 
 
 
