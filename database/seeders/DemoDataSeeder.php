@@ -360,6 +360,7 @@ class DemoDataSeeder extends Seeder
 
         foreach ($labs as $lab) {
             $departmentsByLab[$lab->id] = [];
+            $sortOrder = 1;
 
             // Create operational departments
             foreach ($departmentNames as $name) {
@@ -367,6 +368,7 @@ class DemoDataSeeder extends Seeder
                     'lab_id' => $lab->id,
                     'name' => $name,
                     'description' => $name . ' department for ' . $lab->name,
+                    'sort_order' => $sortOrder++,
                 ]);
             }
 
@@ -375,6 +377,7 @@ class DemoDataSeeder extends Seeder
                     'lab_id' => $lab->id,
                     'name' => 'Reception',
                     'description' => 'Reception department for ' . $lab->name,
+                    'sort_order' => 0,
                 ]);
             }
 
@@ -383,6 +386,7 @@ class DemoDataSeeder extends Seeder
                 'lab_id' => $lab->id,
                 'name' => 'Management',
                 'is_management' => true,
+                'sort_order' => 0, // قيمة ثابتة تدل على أنه ليس جزءاً من مسار الحركة التصنيعية
             ]);
 
             foreach ($compensationTypes as $index => $typeName) {

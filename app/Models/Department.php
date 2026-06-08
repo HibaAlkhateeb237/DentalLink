@@ -14,6 +14,7 @@ class Department extends Model
     protected $fillable = [
         'lab_id',
         'name',
+        'sort_order',
         'description',
         'is_management',
         'time_allowed',
