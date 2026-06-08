@@ -19,7 +19,7 @@ return new class extends Migration
                 ->cascadeOnDelete();
             $table->dateTime('start_time');
             $table->dateTime('end_time')->nullable();
-            $table->enum('status', ['active', 'paused', 'completed', 'cancelled'])->default('active');
+            $table->enum('status', ['active', 'paused', 'completed', 'returned'])->default('active');
             $table->text('note')->nullable();
             $table->timestamps();
 

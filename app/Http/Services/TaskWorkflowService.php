@@ -71,7 +71,7 @@ class TaskWorkflowService
                 'task' => null
             ];*/
 
-            // إرجاع رسالة اكتمال الطلب كلياً
+
             return "تم إنهاء المرحلة الأخيرة بنجاح، والطلب الآن مكتمل بالكامل وجاهز للتسليم!";
         });
             }catch (Exception $e) {
@@ -79,6 +79,53 @@ class TaskWorkflowService
             throw new HttpException(500, 'حدث خطأ أثناء معالجة سير العمل: ' . $e->getMessage());
         }
     }
+
+
+
+
+
+
+    public function moveBackward(Task $task): string
+    {
+        $currentUserId = Auth::id();
+
+        // 1. القيد الأمني: التحقق من الصلاحية على القسم الحالي
+        $isAuthorized = $this->taskRepository->isUserAdminOfDepartment($currentUserId, $task['department_id']);
+        if (!$isAuthorized) {
+            throw new HttpException(403, 'عذراً، ليس لديك صلاحية إدارة أو إرجاع المهام الخاصة بهذا القسم.');
+        }
+
+        // 2. التحقق من أن المهمة الحالية في حالة مراجعة ليتمكن من إرجاعها
+        if ($task['status'] !== TaskStatus::PENDING_REVIEW) {
+            throw new HttpException(400, 'لا يمكن إرجاع هذه المهمة لأنها ليست قيد التقييم حالياً.');
+        }
+
+
+
+        try {
+            return DB::transaction(function () use ($task) {
+
+                // تحديث حالة المهمة الحالية لتصبح مرفوضة/معادة بدلاً من معلقة
+                $task->update(['status' => TaskStatus::ASSIGNED]);
+
+                // تحديث حالة الجلسة الأخيرة المرتبطة بالمهمة الحالية لتصبح معادة
+                $this->taskRepository->markLastSessionAsReturned($task['id']);
+
+
+                return "تم إرجاع المهمة بنجاح إلى الفني المكلّف في قسم ({$task->department->name}) لإعادة العمل.";
+            });
+
+        } catch (Exception $e) {
+            if ($e instanceof HttpException) {
+                throw $e;
+            }
+            throw new HttpException(500, 'حدث خطأ أثناء معالجة إرجاع الطلب: ' . $e->getMessage());
+        }
+    }
+
+
+
+
 
 
 

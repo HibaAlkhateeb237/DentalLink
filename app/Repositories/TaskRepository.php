@@ -144,6 +144,29 @@ class TaskRepository
 
 
 
+    public function findPreviousDepartment(Department $currentDepartment): ?Department
+    {
+        return Department::query()->where('lab_id', $currentDepartment['lab_id'])
+            ->where('sort_order', '<', $currentDepartment['sort_order'])
+            ->where('sort_order', '>', 0)
+            ->orderBy('sort_order', 'desc')
+            ->first();
+    }
+
+
+    public function markLastSessionAsReturned(int $taskId): void
+    {
+        DB::table('task_work_sessions')
+            ->where('task_id', $taskId)
+            ->latest('id')
+            ->take(1)
+            ->update([
+                'status' => 'returned',
+                'note' => "تم إرجاع المرحلة من قبل الإدارة"
+            ]);
+    }
+
+
 
 
 

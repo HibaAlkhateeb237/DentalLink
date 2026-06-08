@@ -158,7 +158,9 @@ Route::prefix('auth')->group(function (): void {
             Route::get('/tasks', [DepartmentManagerTaskController::class, 'index'])
                 ->name('department.manager.tasks.index');
 
-            Route::post('/tasks/{task}/move-forward', [TaskWorkflowController::class,'moveForward']);
+            Route::post('/tasks/{task}/move-forward', [TaskWorkflowController::class,'moveForward']) ->name('department.manager.tasks.move.forward');
+
+            Route::post('/tasks/{task}/move-backward', [TaskWorkflowController::class,'moveBackward']) ->name('department.manager.tasks.move.backward');
 
 
         });

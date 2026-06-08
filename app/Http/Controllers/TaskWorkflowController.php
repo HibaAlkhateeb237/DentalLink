@@ -38,4 +38,35 @@ class TaskWorkflowController extends Controller
             return $this->response->error('حدث خطأ غير متوقع في السيرفر', 500);
         }
     }
+
+
+
+
+
+    public function moveBackward(Task $task): JsonResponse
+    {
+        try {
+
+            $message = $this->workflowService->moveBackward($task);
+
+            return $this->response->success(null, $message, 200);
+
+        } catch (HttpException $e) {
+            return $this->response->error($e->getMessage(), $e->getStatusCode());
+        } catch (\Exception $e) {
+            return $this->response->error('حدث خطأ غير متوقع في السيرفر', 500);
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
 }
