@@ -19,8 +19,11 @@ class DepartmentManagerTaskIndexRequest extends FormRequest
         return [
             'status' => ['nullable', 'string', 'in:pending_assignment,assigned,in_progress,pending_review,completed'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+
+            'priority' => ['nullable', 'string', 'in:normal,urgent'],
         ];
     }
+
 
     protected function failedValidation(Validator $validator): void
     {

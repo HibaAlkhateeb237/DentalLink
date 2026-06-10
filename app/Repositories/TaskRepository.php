@@ -42,7 +42,7 @@ class TaskRepository
     /**
      * Paginate tasks by department ids and optional status
      */
-    public function paginateByDepartmentIds(array $departmentIds, ?string $status, int $perPage = 15): LengthAwarePaginator
+    public function paginateByDepartmentIds(array $departmentIds, ?string $status, int $perPage = 15, ?string $priority = null): LengthAwarePaginator
     {
         $statuses = $status === null ? [ 'pending_assignment','assigned', 'in_progress','pending_review', 'completed'] : [$status];
 
@@ -59,6 +59,13 @@ class TaskRepository
             ])
             ->whereIn('department_id', $departmentIds)
             ->whereIn('status', $statuses)
+
+            ->when($priority, function ($query) use ($priority) {
+                return $query->whereHas('order', function ($q) use ($priority) {
+                    $q->where('priority', $priority);
+                });
+            })
+
             ->latest('id')
             ->paginate($perPage);
     }

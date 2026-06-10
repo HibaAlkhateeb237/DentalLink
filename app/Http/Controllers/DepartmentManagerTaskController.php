@@ -31,6 +31,7 @@ class DepartmentManagerTaskController extends Controller
             $user,
             $validated['status'] ?? null,
             $perPage,
+            $validated['priority'] ?? null,
         );
 
         // Get managed departments for context

@@ -22,11 +22,11 @@ class DepartmentManagerTaskService
     /**
      * Get paginated tasks across all managed departments
      */
-    public function paginateManagedTasks(User $user, ?string $status = null, int $perPage = 15): LengthAwarePaginator
+    public function paginateManagedTasks(User $user, ?string $status = null, int $perPage = 15,?string $priority = null): LengthAwarePaginator
     {
         $departmentIds = $this->tasks->getManagedDepartmentIds($user);
 
-        return $this->tasks->paginateByDepartmentIds($departmentIds, $status, $perPage);
+        return $this->tasks->paginateByDepartmentIds($departmentIds, $status, $perPage,$priority);
     }
 
     /**
