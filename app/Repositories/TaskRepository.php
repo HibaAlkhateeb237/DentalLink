@@ -44,13 +44,14 @@ class TaskRepository
      */
     public function paginateByDepartmentIds(array $departmentIds, ?string $status, int $perPage = 15): LengthAwarePaginator
     {
-        $statuses = $status === null ? ['assigned', 'in_progress', 'completed'] : [$status];
+        $statuses = $status === null ? [ 'pending_assignment','assigned', 'in_progress','pending_review', 'completed'] : [$status];
 
         return Task::query()
             ->select(['id', 'order_id', 'department_id', 'user_id', 'approved_at', 'status', 'created_at'])
             ->with([
                 'department:id,name,time_allowed',
-                'order:id,priority,dental_compensation_type_price_id,serial_number,case_type,notes',
+                'order:id,user_id,priority,dental_compensation_type_price_id,serial_number,case_type,notes,patient_name,received_at,delivered_at',
+                'order.user:id,name',
                 'order.dentalCompensationTypePrice:id,dental_compensation_type_id',
                 'order.dentalCompensationTypePrice.dentalCompensationType:id,name,code',
                 'workSessions:id,task_id,start_time,end_time,status',

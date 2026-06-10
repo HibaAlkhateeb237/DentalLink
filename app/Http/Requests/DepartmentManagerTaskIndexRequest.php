@@ -17,7 +17,7 @@ class DepartmentManagerTaskIndexRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['nullable', 'string', 'in:assigned,in_progress,completed'],
+            'status' => ['nullable', 'string', 'in:pending_assignment,assigned,in_progress,pending_review,completed'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }
