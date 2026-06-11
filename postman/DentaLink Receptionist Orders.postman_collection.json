@@ -167,6 +167,55 @@
                 "description": "Marks an order for doctor resubmission. This only stores the internal resubmission flag and reason; notifications are not sent yet."
             },
             "response": []
+        },
+        {
+            "name": "Update Order Status",
+            "request": {
+                "method": "POST",
+                "header": [{
+                        "key": "Accept",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    },
+                    {
+                        "key": "X-Locale",
+                        "value": "en",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"status\": \"in_progress\",\n  \"notes\": \"Order is being processed\"\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/api/auth/orders/{{order_id}}/status",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "auth",
+                        "orders",
+                        "{{order_id}}",
+                        "status"
+                    ]
+                },
+                "description": "Updates order status. Status must be one of: pending, new, in_progress, try_on, resend_wrong_impression, completed. Notes are optional."
+            },
+            "response": []
         }
     ],
     "event": [],
