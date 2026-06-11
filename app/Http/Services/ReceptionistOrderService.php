@@ -134,6 +134,49 @@ class ReceptionistOrderService
     }
 
     /**
+     * Update order status and optional notes via a single transactional path and record history.
+     *
+     * @param  array{status?:string,notes?:string|null}  $data
+     */
+    public function updateStatusAndDetails(Order $order, array $data, ?User $actor = null): Order
+    {
+        $actorId = $actor?->id ?? Auth::id();
+
+        $toStatus = $data['status'] ?? $order->status;
+
+        if (! in_array($toStatus, OrderStatus::ALL, true)) {
+            throw ValidationException::withMessages(['status' => ['Invalid status provided.']]);
+        }
+
+        DB::transaction(function () use ($order, $data, $actorId): void {
+            if (isset($data['status'])) {
+                $from = $order->status;
+
+                $order->status = $data['status'];
+
+                OrderStatusHistory::create([
+                    'order_id' => $order->id,
+                    'from_status' => $from,
+                    'to_status' => $data['status'],
+                    'changed_by' => $actorId,
+                    'reason' => $data['notes'] ?? null,
+                    'metadata' => [
+                        'triggered_via' => 'api',
+                    ],
+                ]);
+            }
+
+            if (array_key_exists('notes', $data)) {
+                $order->notes = $data['notes'];
+            }
+
+            $order->save();
+        });
+
+        return $this->getOrderDetails($order->fresh());
+    }
+
+    /**
      * Update order status via a single transactional path and record history.
      */
     public function updateStatus(Order $order, string $toStatus, ?string $reason = null, ?User $actor = null): Order

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ReceptionistOrderIndexRequest;
 use App\Http\Requests\ReceptionistOrderResubmissionRequest;
+use App\Http\Requests\ReceptionistOrderStatusUpdateRequest;
 use App\Http\Resources\ReceptionistOrderDetailsResource;
 use App\Http\Resources\ReceptionistOrderListResource;
 use App\Http\Responses\ApiResponse;
@@ -72,6 +73,31 @@ class ReceptionistOrderController extends Controller
                 'order' => ReceptionistOrderDetailsResource::make($updatedOrder)->resolve(),
             ],
             __('orders.resubmission_marked_successfully'),
+            200,
+        );
+    }
+
+    public function updateStatus(ReceptionistOrderStatusUpdateRequest $request, Order $order): JsonResponse
+    {
+        Gate::authorize('view', $order);
+
+        $user = $request->user();
+
+        if ($user === null) {
+            return $this->apiResponse->error(__('auth.unauthenticated'), 401);
+        }
+
+        $updatedOrder = $this->receptionistOrderService->updateStatusAndDetails(
+            $order,
+            $request->validated(),
+            $user,
+        );
+
+        return $this->apiResponse->success(
+            [
+                'order' => ReceptionistOrderDetailsResource::make($updatedOrder)->resolve(),
+            ],
+            __('orders.status_updated_successfully'),
             200,
         );
     }

@@ -112,10 +112,11 @@ Route::prefix('auth')->group(function (): void {
                 ->name('orders.delivery-tasks.index');
             Route::get('/{order}/qr-image', [ReceptionistOrderController::class, 'qrImage'])->name('orders.qr-image');
             Route::get('/{order}', [ReceptionistOrderController::class, 'show'])->name('orders.show');
+            Route::post('/{order}/status', [ReceptionistOrderController::class, 'updateStatus'])->name('orders.status.update');
             Route::post('/{order}/delivery-assignments', [ReceptionistDeliveryTaskController::class, 'assign'])
                 ->name('orders.delivery-assignments.store');
-            Route::post('/{order}/resubmission', [ReceptionistOrderController::class, 'markForResubmission'])
-                ->name('orders.resubmission.store');
+            // Route::post('/{order}/resubmission', [ReceptionistOrderController::class, 'markForResubmission'])
+            //  ->name('orders.resubmission.store');
         });
 
         Route::middleware(['role:lab_manager'])->prefix('lab/employees')->group(function (): void {
