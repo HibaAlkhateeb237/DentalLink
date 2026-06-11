@@ -149,33 +149,23 @@ Route::prefix('auth')->group(function (): void {
         });
         // =======================================================================================================
 
-
-
         // ====================================department_manager===================================================
-
 
         Route::middleware(['role:department_manager'])->prefix('department_manager')->group(function (): void {
             Route::get('/tasks', [DepartmentManagerTaskController::class, 'index'])
                 ->name('department.manager.tasks.index');
 
             Route::prefix('tasks/{task}')->group(function () {
-            Route::post('/move-forward', [TaskWorkflowController::class,'moveForward']) ->name('department.manager.tasks.move.forward');
-            Route::post('/move-backward', [TaskWorkflowController::class,'moveBackward']) ->name('department.manager.tasks.move.backward');
-            Route::post('/assign', [TaskWorkflowController::class, 'assignTechnician']) ->name('department.manager.tasks.assign.technician');;
+                Route::post('/move-forward', [TaskWorkflowController::class, 'moveForward'])->name('department.manager.tasks.move.forward');
+                Route::post('/move-backward', [TaskWorkflowController::class, 'moveBackward'])->name('department.manager.tasks.move.backward');
+                Route::post('/assign', [TaskWorkflowController::class, 'assignTechnician'])->name('department.manager.tasks.assign.technician');
             });
 
-            Route::get('/departments/{departmentId}/technicians', [TaskWorkflowController::class, 'getTechnicians']) ->name('department.manager.getTechnicians');;
-
-
+            Route::get('/departments/{departmentId}/technicians', [TaskWorkflowController::class, 'getTechnicians'])->name('department.manager.getTechnicians');
 
         });
 
-
-
-
         // =======================================================================================================
-
-
 
     });
 });

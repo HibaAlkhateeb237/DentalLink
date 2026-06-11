@@ -44,7 +44,7 @@ class TaskRepository
      */
     public function paginateByDepartmentIds(array $departmentIds, ?string $status, int $perPage = 15, ?string $priority = null): LengthAwarePaginator
     {
-        $statuses = $status === null ? [ 'pending_assignment','assigned', 'in_progress','pending_review', 'completed'] : [$status];
+        $statuses = $status === null ? ['pending_assignment', 'assigned', 'in_progress', 'pending_review', 'completed'] : [$status];
 
         return Task::query()
             ->select(['id', 'order_id', 'department_id', 'user_id', 'approved_at', 'status', 'created_at'])
@@ -93,16 +93,6 @@ class TaskRepository
             ->paginate($perPage);
     }
 
-
-
-
-
-
-
-
-
-
-
     public function isUserAdminOfDepartment(int $userId, int $departmentId): bool
     {
 
@@ -114,9 +104,6 @@ class TaskRepository
             ->exists();
     }
 
-
-
-
     public function findNextDepartment(Department $currentDepartment): ?Department
     {
         return Department::query()->where('lab_id', $currentDepartment['lab_id'])
@@ -126,7 +113,6 @@ class TaskRepository
             ->first();
     }
 
-
     public function completeTask(Task $task): void
     {
         $task->update([
@@ -135,22 +121,15 @@ class TaskRepository
         ]);
     }
 
-
     public function createNextStageTask(int $orderId, int $nextDepartmentId): Task
     {
         return Task::query()->create([
-            'order_id'      => $orderId,
+            'order_id' => $orderId,
             'department_id' => $nextDepartmentId,
-            'user_id'       => null,
-            'status'        => TaskStatus::PENDING_ASSIGNMENT,
+            'user_id' => null,
+            'status' => TaskStatus::PENDING_ASSIGNMENT,
         ]);
     }
-
-
-
-
-
-
 
     public function findPreviousDepartment(Department $currentDepartment): ?Department
     {
@@ -161,7 +140,6 @@ class TaskRepository
             ->first();
     }
 
-
     public function markLastSessionAsReturned(int $taskId): void
     {
         DB::table('task_work_sessions')
@@ -170,13 +148,9 @@ class TaskRepository
             ->take(1)
             ->update([
                 'status' => 'returned',
-                'note' => "تم إرجاع المرحلة من قبل الإدارة"
+                'note' => 'تم إرجاع المرحلة من قبل الإدارة',
             ]);
     }
-
-
-
-
 
     public function getTechniciansByDepartment(int $departmentId): \Illuminate\Support\Collection
     {
@@ -189,22 +163,11 @@ class TaskRepository
             ->get();
     }
 
-
-
-
-
-
-
     public function assignTechnicianToTask(Task $task, int $technicianId): void
     {
         $task->update([
             'user_id' => $technicianId,
-            'status'  => TaskStatus::ASSIGNED,
+            'status' => TaskStatus::ASSIGNED,
         ]);
     }
-
-
-
-
-
 }

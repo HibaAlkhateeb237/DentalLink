@@ -425,6 +425,6 @@ class LabService
 
     private function generateLabLicenseNumber(int $labId): string
     {
-        return 'LAB-' . now()->format('Ymd') . '-' . str_pad((string) $labId, 6, '0', STR_PAD_LEFT);
+        return 'LAB-'.now()->format('Ymd').'-'.str_pad((string) $labId, 6, '0', STR_PAD_LEFT);
     }
 }

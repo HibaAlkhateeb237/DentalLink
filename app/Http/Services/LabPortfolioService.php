@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 class LabPortfolioService
 {
     public function __construct(
-        private  LabPortfolioRepository $labPortfolioRepository,
+        private LabPortfolioRepository $labPortfolioRepository,
     ) {}
 
     public function getPublishedPortfolioByLab(Lab $lab, int $perPage = 15): LengthAwarePaginator

@@ -49,7 +49,7 @@ class OrderSeeder extends Seeder
                 $order = Order::query()->create([
                     'user_id' => $userIds[$globalIndex % $userCount],
                     'lab_id' => $labId,
-                    'name' => 'طلب رقم ' . ($globalIndex + 1),
+                    'name' => 'طلب رقم '.($globalIndex + 1),
                     'qr_code' => (string) Str::uuid(),
                     'priority' => $priorityCycle[$globalIndex % count($priorityCycle)],
                     'status' => $statusCycle[$globalIndex % count($statusCycle)],
@@ -74,7 +74,7 @@ class OrderSeeder extends Seeder
                 $order = Order::query()->create([
                     'user_id' => $userIds[$globalIndex % $userCount],
                     'lab_id' => $fallbackLabId,
-                    'name' => 'طلب رقم ' . ($globalIndex + 1),
+                    'name' => 'طلب رقم '.($globalIndex + 1),
                     'qr_code' => (string) Str::uuid(),
                     'priority' => $priorityCycle[$globalIndex % count($priorityCycle)],
                     'status' => $statusCycle[$globalIndex % count($statusCycle)],
@@ -100,7 +100,7 @@ class OrderSeeder extends Seeder
                 ->size(300)
                 ->build();
 
-            $path = 'orders/' . $order->qr_code . '/qr.png';
+            $path = 'orders/'.$order->qr_code.'/qr.png';
             Storage::disk('public')->put($path, $result->getString());
 
             $order->forceFill([

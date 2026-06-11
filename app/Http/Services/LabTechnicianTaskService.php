@@ -10,12 +10,14 @@ use App\Models\TaskWorkSession;
 use App\Models\User;
 use App\Repositories\TaskRepository;
 use App\Support\TaskStatus;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\DB;
 
 class LabTechnicianTaskService
 {
     public function __construct(private TaskRepository $tasks) {}
+
     public function canViewDepartment(User $user, Department $department): bool
     {
         return DepartmentUserRole::query()
@@ -30,7 +32,7 @@ class LabTechnicianTaskService
     /**
      * Start a work session for the authenticated technician using an order QR code.
      *
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
+     * @throws ModelNotFoundException
      */
     public function startTaskByQr(User $user, string $qr): TaskWorkSession
     {
@@ -59,7 +61,7 @@ class LabTechnicianTaskService
     /**
      * Finish the currently active work session for the authenticated technician using an order QR code.
      *
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
+     * @throws ModelNotFoundException
      */
     public function finishTaskByQr(User $user, string $qr): TaskWorkSession
     {

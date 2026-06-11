@@ -2,9 +2,9 @@
 
 namespace App\Http\Resources;
 
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Carbon\Carbon;
 
 class DepartmentManagerTaskResource extends JsonResource
 {
@@ -39,7 +39,6 @@ class DepartmentManagerTaskResource extends JsonResource
             ],
         ];
 
-
         if ($this->status === 'pending_assignment') {
             $data['assignment_context'] = [
 
@@ -47,7 +46,6 @@ class DepartmentManagerTaskResource extends JsonResource
                 'delivery_date' => $this->order?->delivered_at ? Carbon::parse($this->order->delivered_at)->format('Y-m-d h:i A') : null,
             ];
         }
-
 
         if (in_array($this->status, ['assigned', 'in_progress'])) {
             $data['progress_context'] = [
@@ -63,20 +61,16 @@ class DepartmentManagerTaskResource extends JsonResource
             ];
         }
 
-
         if ($this->status === 'pending_review') {
             $data['review_context'] = [
                 'technician_name' => $this->user?->name,
                 'doctor_name' => $this->order?->user?->name ?? 'طبيب غير معروف',
-              //  'last_session_note' => $this->workSessions?->last()?->note,
+                //  'last_session_note' => $this->workSessions?->last()?->note,
 
             ];
         }
 
-
-
         if ($this->status === 'completed') {
-
 
             $totalMinutes = (int) $workedMinutes;
 
@@ -84,11 +78,16 @@ class DepartmentManagerTaskResource extends JsonResource
             $hours = floor(($totalMinutes % (24 * 60)) / 60);
             $minutes = $totalMinutes % 60;
 
-
             $durationParts = [];
-            if ($days > 0) $durationParts[] = "{$days} أيام";
-            if ($hours > 0) $durationParts[] = "{$hours} ساعة";
-            if ($minutes > 0 || empty($durationParts)) $durationParts[] = "{$minutes} دقيقة";
+            if ($days > 0) {
+                $durationParts[] = "{$days} أيام";
+            }
+            if ($hours > 0) {
+                $durationParts[] = "{$hours} ساعة";
+            }
+            if ($minutes > 0 || empty($durationParts)) {
+                $durationParts[] = "{$minutes} دقيقة";
+            }
 
             $totalDurationText = implode(' و ', $durationParts);
 
@@ -101,5 +100,3 @@ class DepartmentManagerTaskResource extends JsonResource
         return $data;
     }
 }
-
-

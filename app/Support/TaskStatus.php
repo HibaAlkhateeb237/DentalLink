@@ -4,7 +4,6 @@ namespace App\Support;
 
 final class TaskStatus
 {
-
     public const PENDING_ASSIGNMENT = 'pending_assignment';
 
     public const ASSIGNED = 'assigned';

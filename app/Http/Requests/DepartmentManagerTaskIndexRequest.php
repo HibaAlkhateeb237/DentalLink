@@ -24,7 +24,6 @@ class DepartmentManagerTaskIndexRequest extends FormRequest
         ];
     }
 
-
     protected function failedValidation(Validator $validator): void
     {
         throw new HttpResponseException(response()->json([

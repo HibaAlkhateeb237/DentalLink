@@ -56,7 +56,7 @@ class LabController extends Controller
         $limit = $this->resolveHomeLimit($request);
 
         $labs = $this->labService->getTopRatedLabs($limit)
-            ->filter(fn($lab) => data_get($lab, 'is_active', true));
+            ->filter(fn ($lab) => data_get($lab, 'is_active', true));
 
         $resource = LabResource::collection($labs)->toArray(request());
 
@@ -77,7 +77,7 @@ class LabController extends Controller
         }
 
         $labs = $this->labService->getNearbyLabs((int) $doctorId, $limit)
-            ->filter(fn($lab) => data_get($lab, 'is_active', true));
+            ->filter(fn ($lab) => data_get($lab, 'is_active', true));
 
         $resource = LabResource::collection($labs)->toArray(request());
 
@@ -89,7 +89,7 @@ class LabController extends Controller
         $limit = $this->resolveHomeLimit($request);
 
         $labs = $this->labService->getSuggestedLabs($limit)
-            ->filter(fn($lab) => data_get($lab, 'is_active', true));
+            ->filter(fn ($lab) => data_get($lab, 'is_active', true));
 
         $resource = LabResource::collection($labs)->toArray(request());
 
@@ -101,7 +101,7 @@ class LabController extends Controller
         $limit = $this->resolveHomeLimit($request);
 
         $labs = $this->labService->getMostOrderedLabs($limit)
-            ->filter(fn($lab) => data_get($lab, 'is_active', true));
+            ->filter(fn ($lab) => data_get($lab, 'is_active', true));
 
         $resource = LabResource::collection($labs)->toArray(request());
 

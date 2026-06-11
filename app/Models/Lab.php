@@ -12,7 +12,7 @@ class Lab extends Model
 
     protected $fillable = [
         'name',
-         'description',
+        'description',
         'license_number',
         'phone',
         'address',

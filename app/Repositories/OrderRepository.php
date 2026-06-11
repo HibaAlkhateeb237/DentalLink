@@ -18,7 +18,7 @@ use Illuminate\Support\Str;
 class OrderRepository
 {
     public function __construct(
-        private  LabPricingRepository $labPricingRepository,
+        private LabPricingRepository $labPricingRepository,
     ) {}
 
     /**
@@ -66,7 +66,6 @@ class OrderRepository
                     'notes' => $tooth['notes'] ?? null,
                 ];
             }, $data['teeth']));
-
 
             $urgentMultiplier = (float) ($pricingSetting?->vip_urgent_multiplier ?? 1.25);
 
@@ -139,7 +138,7 @@ class OrderRepository
             }
 
             return $order->fresh()->load([
-                 'lab',
+                'lab',
                 'toothShade',
                 'dentalCompensationTypePrice.dentalCompensationType',
                 'orderTeeth',

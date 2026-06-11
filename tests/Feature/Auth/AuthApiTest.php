@@ -312,7 +312,7 @@ class AuthApiTest extends TestCase
 
         $token = $login->json('data.token');
 
-        $logout = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $logout = $this->withHeader('Authorization', 'Bearer '.$token)
             ->postJson('/api/auth/logout');
 
         $logout->assertOk();

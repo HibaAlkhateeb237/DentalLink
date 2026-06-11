@@ -15,9 +15,10 @@ class TechnicianTaskResource extends JsonResource
         $remainingMinutes = $allowedMinutes - $workedMinutes;
         $overdueMinutes = $remainingMinutes < 0 ? $remainingMinutes : 0;
 
-        if($remainingMinutes<0)
-            $remainingMinutes=0;
-        $overdueMinutes=abs($overdueMinutes);
+        if ($remainingMinutes < 0) {
+            $remainingMinutes = 0;
+        }
+        $overdueMinutes = abs($overdueMinutes);
 
         return [
             'id' => $this->id,
@@ -30,11 +31,11 @@ class TechnicianTaskResource extends JsonResource
             //            ],
             'order' => $this->order === null ? null : [
                 'id' => $this->order->id,
-                'serial_number'=> $this->order->serial_number,
+                'serial_number' => $this->order->serial_number,
                 'priority' => $this->order->priority,
-                 'case_type'=> $this->order->case_type,
+                'case_type' => $this->order->case_type,
                 'material_type' => $this->order->dentalCompensationTypePrice?->dentalCompensationType?->name,
-                'notes'=> $this->order->notes,
+                'notes' => $this->order->notes,
             ],
             'worked_minutes' => $workedMinutes,
             'remaining_minutes' => $remainingMinutes,
