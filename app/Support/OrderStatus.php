@@ -6,6 +6,8 @@ final class OrderStatus
 {
     public const PENDING = 'pending';
 
+    public const NEW = 'new';
+
     public const IN_PROGRESS = 'in_progress';
 
     public const TRY_ON = 'try_on';
@@ -18,6 +20,7 @@ final class OrderStatus
     /** @var string[] */
     public const ALL = [
         self::PENDING,
+        self::NEW,
         self::IN_PROGRESS,
         self::TRY_ON,
         self::RESEND_WRONG_IMPRESSION,

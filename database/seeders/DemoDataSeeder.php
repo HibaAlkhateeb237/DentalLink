@@ -614,6 +614,37 @@ class DemoDataSeeder extends Seeder
             }
         }
 
+        foreach ($labs as $lab) {
+            $doctor = $doctors[array_rand($doctors)];
+            $patientName = $patientNames[array_rand($patientNames)];
+            $type = $types[array_rand($types)];
+            $caseType = $caseTypes[array_rand($caseTypes)];
+            $price = 150 + random_int(0, 5) * 45;
+
+            $order = Order::query()->create([
+                'user_id' => $doctor->id,
+                'lab_id' => $lab->id,
+                'patient_name' => $patientName,
+                'qr_code' => (string) Str::uuid(),
+                'priority' => 'normal',
+                'status' => OrderStatus::NEW,
+                'order_type' => $type,
+                'case_type' => $caseType,
+                'notes' => 'New demo order for '.$lab->name,
+                'price' => $price,
+                'remaining_amount' => $price,
+                'serial_number' => null,
+                'received_at' => now(),
+                'delivered_at' => now()->addDays(3),
+            ]);
+
+            $order->serial_number = sprintf('ORD-%06d', $order->id);
+            $order->save();
+
+            $this->seedOrderQrImage($order);
+            $orders[] = $order->fresh();
+        }
+
         return $orders;
     }
 
