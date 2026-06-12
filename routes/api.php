@@ -97,10 +97,10 @@ Route::prefix('auth')->group(function (): void {
             Route::get('/', [OrderController::class, 'index'])->name('doctor.orders.index');
             Route::get('/{order}', [OrderController::class, 'show'])->name('doctor.orders.show');
 
+            Route::get('/{order}/track', [OrderController::class, 'track'])->name('doctor.orders.track');
+
             //  Route::post('/{order}/pricing/calculate', [OrderPricingController::class, 'calculate'])->name('orders.pricing.calculate');
         });
-
-        // http://127.0.0.1:8000/api/top-rated
 
         // ----------------------------------Doctor-----------------------------------------------------------------
 

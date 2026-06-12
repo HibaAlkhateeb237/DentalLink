@@ -590,7 +590,8 @@ class DemoDataSeeder extends Seeder
                 $deliveredAt = $receivedAt->addDays($priority === 'urgent' ? 2 : 3);
 
                 $order = Order::query()->create([
-                    'user_id' => $doctor->id,
+                    'user_id' => 12,
+                        //$doctor->id,
                     'lab_id' => $lab->id,
                     'patient_name' => $patientNames[$index % count($patientNames)],
                     'qr_code' => (string) Str::uuid(),
@@ -754,7 +755,7 @@ class DemoDataSeeder extends Seeder
         ]);
         TaskWorkSession::query()->create([
             'task_id' => $task3->id,
-            'start_time' => now()->subHours(2),
+            'start_time' => now()->subHours(1),
             'end_time' => null,
             'status' => 'active',
             'note' => 'العمل جاري على تلبسية الزيركون',

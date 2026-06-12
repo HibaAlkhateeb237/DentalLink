@@ -9,6 +9,7 @@ use App\Models\Task;
 use App\Models\TaskWorkSession;
 use App\Models\User;
 use App\Repositories\TaskRepository;
+use App\Support\OrderStatus;
 use App\Support\TaskStatus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -39,18 +40,21 @@ class LabTechnicianTaskService
         $task = Task::query()
             ->where('order_id', $order->id)
             ->where('user_id', $user->id)
-            ->whereIn('status', ['assigned', 'in_progress'])
+            ->whereIn('status', ['assigned'])
             ->firstOrFail();
 
-        return DB::transaction(function () use ($task) {
+        return DB::transaction(function () use ($task, $order) {
             $session = TaskWorkSession::query()->create([
                 'task_id' => $task->id,
                 'start_time' => now(),
                 'status' => 'active',
             ]);
 
-            $task->status = 'in_progress';
+            $task->status = TaskStatus::IN_PROGRESS;
             $task->save();
+
+            $order->status = OrderStatus::IN_PROGRESS;
+            $order->save();
 
             return $session;
         });
@@ -68,7 +72,7 @@ class LabTechnicianTaskService
         $task = Task::query()
             ->where('order_id', $order->id)
             ->where('user_id', $user->id)
-            ->whereIn('status', ['in_progress', 'assigned'])
+            ->whereIn('status', ['in_progress'])
             ->firstOrFail();
 
         return DB::transaction(function () use ($task) {

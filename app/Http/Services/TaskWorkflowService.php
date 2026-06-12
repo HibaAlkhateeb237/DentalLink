@@ -159,8 +159,8 @@ class TaskWorkflowService
         }
 
 
-        if ($task['status'] !== TaskStatus::PENDING_ASSIGNMENT && $task['status'] !== TaskStatus::ASSIGNED) {
-            throw new HttpException(400, 'لا يمكن تعديل إسناد هذه المهمة في حالتها الحالية.');
+        if ($task['status'] !== TaskStatus::PENDING_ASSIGNMENT ) {
+            throw new HttpException(400, 'لا يمكن إسناد هذه المهمة في حالتها الحالية.');
         }
 
 
