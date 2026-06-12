@@ -30,7 +30,7 @@ class LabResource extends JsonResource
             'longitude' => $this->longitude,
             'rating' => filled($rating) ? number_format((float) $rating, 2, '.', '') : null,
             'reviews_count' => $this->reviews_count ?? 0,
-            'orders_count' => $this->whenCounted('orders'),
+            'orders_count' => isset($this->orders_count) ? (int) $this->orders_count : null,
             'photo' => $this->toPublicUrl($this->photo ?? null),
         ];
     }
