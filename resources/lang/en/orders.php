@@ -19,4 +19,5 @@ return [
     'delivery_assigned_successfully' => 'Delivery employee assigned successfully',
     'delivery_user_invalid' => 'Selected delivery employee is not available for this lab',
     'delivery_already_assigned' => 'This order already has an active delivery assignment',
+    'status_updated_successfully' => 'Order status updated successfully',
 ];

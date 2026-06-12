@@ -147,7 +147,7 @@ class DepartmentApiTest extends TestCase
             ]);
         }
 
-        $response = $this->getJson('/api/auth/lab/departments/' . $department->id . '/with-employees?employees_per_page=2&employees_page=1');
+        $response = $this->getJson('/api/auth/lab/departments/'.$department->id.'/with-employees?employees_per_page=2&employees_page=1');
 
         $response
             ->assertOk()
@@ -160,7 +160,7 @@ class DepartmentApiTest extends TestCase
             ->assertJsonPath('data.department.employees.meta.per_page', 2)
             ->assertJsonPath('data.department.employees.meta.current_page', 1)
             ->assertJsonPath('data.department.employees.meta.total', 5)
-            ->assertJsonPath('data.department.employees.links.first', url('/api/auth/lab/departments/' . $department->id . '/with-employees?employees_per_page=2&employees_page=1'));
+            ->assertJsonPath('data.department.employees.links.first', url('/api/auth/lab/departments/'.$department->id.'/with-employees?employees_per_page=2&employees_page=1'));
     }
 
     public function test_lab_manager_can_show_department(): void
@@ -174,7 +174,7 @@ class DepartmentApiTest extends TestCase
             'is_management' => false,
         ]);
 
-        $response = $this->getJson('/api/auth/lab/departments/' . $department->id);
+        $response = $this->getJson('/api/auth/lab/departments/'.$department->id);
 
         $response
             ->assertOk()
@@ -274,7 +274,7 @@ class DepartmentApiTest extends TestCase
             'is_management' => false,
         ]);
 
-        $response = $this->deleteJson('/api/auth/lab/departments/' . $department->id);
+        $response = $this->deleteJson('/api/auth/lab/departments/'.$department->id);
 
         $response
             ->assertOk()
@@ -308,7 +308,7 @@ class DepartmentApiTest extends TestCase
             'department_id' => $department->id,
         ]);
 
-        $response = $this->deleteJson('/api/auth/lab/departments/' . $department->id);
+        $response = $this->deleteJson('/api/auth/lab/departments/'.$department->id);
 
         $response
             ->assertStatus(422)
@@ -331,7 +331,7 @@ class DepartmentApiTest extends TestCase
             'is_management' => false,
         ]);
 
-        $response = $this->putJson('/api/auth/lab/departments/' . $department->id, [
+        $response = $this->putJson('/api/auth/lab/departments/'.$department->id, [
             'name' => 'Design Updated',
             'description' => 'Updated description',
         ]);
@@ -365,7 +365,7 @@ class DepartmentApiTest extends TestCase
             'is_management' => false,
         ]);
 
-        $response = $this->putJson('/api/auth/lab/departments/' . $department->id, [
+        $response = $this->putJson('/api/auth/lab/departments/'.$department->id, [
             'name' => 'Ceramics',
         ]);
 
@@ -398,7 +398,7 @@ class DepartmentApiTest extends TestCase
 
         Sanctum::actingAs($user);
 
-        $response = $this->putJson('/api/auth/lab/departments/' . $department->id, [
+        $response = $this->putJson('/api/auth/lab/departments/'.$department->id, [
             'name' => 'Design Updated',
         ]);
 
@@ -429,7 +429,7 @@ class DepartmentApiTest extends TestCase
 
         Sanctum::actingAs($user);
 
-        $response = $this->deleteJson('/api/auth/lab/departments/' . $department->id);
+        $response = $this->deleteJson('/api/auth/lab/departments/'.$department->id);
 
         $response->assertForbidden();
     }
@@ -473,7 +473,7 @@ class DepartmentApiTest extends TestCase
 
         Sanctum::actingAs($user);
 
-        $response = $this->getJson('/api/auth/lab/departments/' . $department->id);
+        $response = $this->getJson('/api/auth/lab/departments/'.$department->id);
 
         $response->assertForbidden();
     }

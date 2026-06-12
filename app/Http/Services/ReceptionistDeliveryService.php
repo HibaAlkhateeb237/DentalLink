@@ -111,6 +111,8 @@ class ReceptionistDeliveryService
         }
 
         $deliveryTask = DB::transaction(function () use ($order, $deliveryUser): DeliveryTask {
+            $order->update(['status' => 'pending']);
+
             return DeliveryTask::query()->create([
                 'order_id' => $order->id,
                 'user_id' => $deliveryUser->id,

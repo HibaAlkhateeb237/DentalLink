@@ -220,19 +220,19 @@ class AuthController extends Controller
         $user->loadMissing('departmentUserRoles.department.lab');
 
         $labId = $user->departmentUserRoles
-            ->map(static fn($departmentUserRole): ?int => $departmentUserRole->department?->lab_id ?? $departmentUserRole->department?->lab?->id)
+            ->map(static fn ($departmentUserRole): ?int => $departmentUserRole->department?->lab_id ?? $departmentUserRole->department?->lab?->id)
             ->filter()
             ->unique()
             ->values()
             ->first();
 
         $departments = $user->departmentUserRoles
-            ->map(static fn($departmentUserRole): array => [
+            ->map(static fn ($departmentUserRole): array => [
                 'id' => $departmentUserRole->department?->id,
                 'name' => $departmentUserRole->department?->name,
                 'lab_id' => $departmentUserRole->department?->lab_id,
             ])
-            ->filter(static fn(array $department): bool => $department['id'] !== null)
+            ->filter(static fn (array $department): bool => $department['id'] !== null)
             ->unique('id')
             ->values()
             ->all();
@@ -396,17 +396,17 @@ class AuthController extends Controller
 
     private function throttleKey(Request $request): string
     {
-        return Str::transliterate(Str::lower($request->string('email')->toString()) . '|' . $request->ip());
+        return Str::transliterate(Str::lower($request->string('email')->toString()).'|'.$request->ip());
     }
 
     private function registerOtpThrottleKey(Request $request): string
     {
-        return Str::transliterate('register-otp-send|' . Str::lower($request->string('email')->toString()) . '|' . $request->ip());
+        return Str::transliterate('register-otp-send|'.Str::lower($request->string('email')->toString()).'|'.$request->ip());
     }
 
     private function verifyOtpThrottleKey(Request $request): string
     {
-        return Str::transliterate('register-otp-verify|' . Str::lower($request->string('email')->toString()) . '|' . $request->ip());
+        return Str::transliterate('register-otp-verify|'.Str::lower($request->string('email')->toString()).'|'.$request->ip());
     }
 
     private function applyLocale(Request $request): void

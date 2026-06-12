@@ -61,8 +61,8 @@ class DepartmentUpdateRequest extends FormRequest
     {
         $failedRules = $validator->failed();
         $hasUniqueConflict = collect($failedRules)
-            ->flatMap(fn(array $rules): array => array_keys($rules))
-            ->contains(fn(string $rule): bool => $rule === 'Unique');
+            ->flatMap(fn (array $rules): array => array_keys($rules))
+            ->contains(fn (string $rule): bool => $rule === 'Unique');
 
         $status = $hasUniqueConflict ? 409 : 400;
 

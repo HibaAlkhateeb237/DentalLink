@@ -19,4 +19,5 @@ return [
     'delivery_assigned_successfully' => 'تم تعيين موظف التوصيل بنجاح.',
     'delivery_user_invalid' => 'موظف التوصيل المختار غير متاح لهذا المخبر.',
     'delivery_already_assigned' => 'تم تعيين توصيل لهذا الطلب مسبقًا.',
+    'status_updated_successfully' => 'تم تحديث حالة الطلب بنجاح',
 ];

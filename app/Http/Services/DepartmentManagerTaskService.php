@@ -6,6 +6,7 @@ use App\Models\Department;
 use App\Models\User;
 use App\Repositories\TaskRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 
 class DepartmentManagerTaskService
 {
@@ -14,7 +15,7 @@ class DepartmentManagerTaskService
     /**
      * Get all departments where user has department_manager role
      */
-    public function getManagedDepartments(User $user): \Illuminate\Database\Eloquent\Collection
+    public function getManagedDepartments(User $user): Collection
     {
         return $this->tasks->getManagedDepartments($user);
     }
@@ -22,11 +23,11 @@ class DepartmentManagerTaskService
     /**
      * Get paginated tasks across all managed departments
      */
-    public function paginateManagedTasks(User $user, ?string $status = null, int $perPage = 15,?string $priority = null): LengthAwarePaginator
+    public function paginateManagedTasks(User $user, ?string $status = null, int $perPage = 15, ?string $priority = null): LengthAwarePaginator
     {
         $departmentIds = $this->tasks->getManagedDepartmentIds($user);
 
-        return $this->tasks->paginateByDepartmentIds($departmentIds, $status, $perPage,$priority);
+        return $this->tasks->paginateByDepartmentIds($departmentIds, $status, $perPage, $priority);
     }
 
     /**

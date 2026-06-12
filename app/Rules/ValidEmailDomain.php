@@ -4,6 +4,7 @@ namespace App\Rules;
 
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Translation\PotentiallyTranslatedString;
 
 class ValidEmailDomain implements ValidationRule
 {
@@ -24,7 +25,7 @@ class ValidEmailDomain implements ValidationRule
     /**
      * Run the validation rule.
      *
-     * @param \Closure(string): \Illuminate\Translation\PotentiallyTranslatedString $fail
+     * @param  Closure(string): PotentiallyTranslatedString  $fail
      */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
@@ -35,7 +36,7 @@ class ValidEmailDomain implements ValidationRule
         $domain = substr($value, strrpos($value, '@') + 1);
 
         if (in_array(strtolower($domain), self::REJECTED_DOMAINS, true)) {
-            $fail('The :attribute must not use the domain ' . $domain . '.');
+            $fail('The :attribute must not use the domain '.$domain.'.');
         }
     }
 }

@@ -7,6 +7,7 @@ use App\Models\DentalCompensationTypePrice;
 use App\Models\DepartmentUserRole;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -52,7 +53,7 @@ class DentalCompensationTypeService
 
                 return $comp->fresh();
             });
-        } catch (\Illuminate\Database\QueryException $e) {
+        } catch (QueryException $e) {
             if ($e->getCode() === '23000' && str_contains($e->getMessage(), 'dental_compensation_types_lab_id_name_unique')) {
                 throw ValidationException::withMessages([
                     'name' => [__('messages.duplicate_compensation_name', ['name' => $data['name']])],
@@ -100,7 +101,7 @@ class DentalCompensationTypeService
 
     public function delete(DentalCompensationType $comp, User $user): void
     {
-        DB::transaction(fn() => $comp->delete());
+        DB::transaction(fn () => $comp->delete());
     }
 
     private function resolveManagerLabId(User $user): int

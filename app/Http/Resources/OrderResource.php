@@ -17,8 +17,7 @@ class OrderResource extends JsonResource
             // 'qr_url' => route('orders.show-qr', ['qr' => $this->qr_code]),
             //   'qr_url' => url('/api/auth/lab/technician/orders/qr/'.$this->qr_code),
 
-
-            'lab_name' => $this->whenLoaded('lab', function() {
+            'lab_name' => $this->whenLoaded('lab', function () {
                 return $this->lab->name;
             }),
             'case_type' => $this->case_type,

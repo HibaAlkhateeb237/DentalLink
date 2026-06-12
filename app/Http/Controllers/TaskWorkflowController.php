@@ -2,21 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Responses\ApiResponse;
 use App\Http\Services\TaskWorkflowService;
 use App\Models\Task;
-use App\Http\Responses\ApiResponse;
 use App\Repositories\TaskRepository;
-use Illuminate\Http\JsonResponse;
 use Exception;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class TaskWorkflowController extends Controller
 {
     protected TaskWorkflowService $workflowService;
+
     protected ApiResponse $response;
 
-    public function __construct(TaskWorkflowService $workflowService,TaskRepository $taskRepository, ApiResponse $response)
+    public function __construct(TaskWorkflowService $workflowService, TaskRepository $taskRepository, ApiResponse $response)
     {
         $this->workflowService = $workflowService;
         $this->taskRepository = $taskRepository;
@@ -37,15 +38,11 @@ class TaskWorkflowController extends Controller
         } catch (HttpException $e) {
 
             return $this->response->error($e->getMessage(), $e->getStatusCode());
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
 
             return $this->response->error('حدث خطأ غير متوقع في السيرفر', 500);
         }
     }
-
-
-
-
 
     public function moveBackward(Task $task): JsonResponse
     {
@@ -57,12 +54,10 @@ class TaskWorkflowController extends Controller
 
         } catch (HttpException $e) {
             return $this->response->error($e->getMessage(), $e->getStatusCode());
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return $this->response->error('حدث خطأ غير متوقع في السيرفر', 500);
         }
     }
-
-
 
     public function getTechnicians(int $departmentId): JsonResponse
     {
@@ -75,28 +70,20 @@ class TaskWorkflowController extends Controller
         );
     }
 
-
-
-
-
     public function assignTechnician(Request $request, Task $task): JsonResponse
     {
         $request->validate([
-            'user_id' => 'required|integer|exists:users,id'
+            'user_id' => 'required|integer|exists:users,id',
         ]);
 
         try {
             $message = $this->workflowService->assignTechnician($task, $request->input('user_id'));
+
             return $this->response->success(null, $message, 200);
         } catch (HttpException $e) {
             return $this->response->error($e->getMessage(), $e->getStatusCode());
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return $this->response->error('حدث خطأ غير متوقع في السيرفر', 500);
         }
     }
-
-
-
-
-
 }

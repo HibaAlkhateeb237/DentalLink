@@ -42,15 +42,11 @@ class LabPricingController extends Controller
         );
     }
 
-
-
-
     public function materials(Lab $lab): JsonResponse
     {
         if (! data_get($lab, 'is_active', true)) {
             return $this->apiResponse->error(__('messages.not_found'), 404);
         }
-
 
         $materials = $lab->dentalCompensationTypes()
             ->orderBy('category')
@@ -63,6 +59,4 @@ class LabPricingController extends Controller
             200
         );
     }
-
-
 }

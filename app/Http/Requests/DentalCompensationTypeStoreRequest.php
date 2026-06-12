@@ -2,13 +2,14 @@
 
 namespace App\Http\Requests;
 
+use App\Models\DentalCompensationType;
 use Illuminate\Foundation\Http\FormRequest;
 
 class DentalCompensationTypeStoreRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user() && $this->user()->can('create', \App\Models\DentalCompensationType::class);
+        return $this->user() && $this->user()->can('create', DentalCompensationType::class);
     }
 
     public function rules(): array
