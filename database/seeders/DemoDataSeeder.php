@@ -312,14 +312,23 @@ class DemoDataSeeder extends Seeder
             }
         }
 
-        for ($index = 1; $index <= 4; $index++) {
+
+
+
+        for ($index = 1; $index <= 10; $index++) {
+
+            $correspondingLab = $labs[($index - 1) % count($labs)];
+
             $usersByRole['delivery'][] = User::query()->create([
                 'name' => 'Delivery '.$index,
                 'email' => 'delivery'.$index.'@demo.local',
                 'phone' => '09996'.str_pad((string) $index, 5, '0', STR_PAD_LEFT),
                 'password' => 'Password@123',
+                'lab_name' => $correspondingLab->name,
             ]);
         }
+
+
 
         foreach ($usersByRole as $roleName => $users) {
             $roleId = $roles[$roleName]->id ?? null;
@@ -382,6 +391,16 @@ class DemoDataSeeder extends Seeder
                 ]);
             }
 
+
+
+            $departmentsByLab[$lab->id][] = Department::query()->create([
+                'lab_id' => $lab->id,
+                'name' => 'Delivery',
+                'description' => 'Delivery and Logistics department for '.$lab->name,
+                'sort_order' => 0,
+            ]);
+
+
             // Create Management department for lab manager
             Department::query()->create([
                 'lab_id' => $lab->id,
@@ -389,6 +408,8 @@ class DemoDataSeeder extends Seeder
                 'is_management' => true,
                 'sort_order' => 0, // قيمة ثابتة تدل على أنه ليس جزءاً من مسار الحركة التصنيعية
             ]);
+
+
 
             foreach ($compensationTypes as $index => $typeName) {
                 $code = Str::slug($typeName, '_');
@@ -419,6 +440,7 @@ class DemoDataSeeder extends Seeder
         $managerRoleId = Role::query()->where('name', 'department_manager')->where('guard_name', 'sanctum')->value('id');
         $technicianRoleId = Role::query()->where('name', 'lab_technician')->where('guard_name', 'sanctum')->value('id');
         $receptionistRoleId = Role::query()->where('name', 'receptionist')->where('guard_name', 'sanctum')->value('id');
+        $deliveryRoleId = Role::query()->where('name', 'delivery')->where('guard_name', 'sanctum')->value('id');
 
         if ($managerRoleId === null || $technicianRoleId === null) {
             return [];
@@ -427,6 +449,8 @@ class DemoDataSeeder extends Seeder
         $managers = array_values($usersByRole['department_manager']);
         $technicians = array_values($usersByRole['lab_technician']);
         $receptionists = array_values($usersByRole['receptionist']);
+        $deliveries = array_values($usersByRole['delivery']);
+
         $labsById = collect($labs)->keyBy('id');
 
         $techniciansByLab = [];
@@ -437,6 +461,15 @@ class DemoDataSeeder extends Seeder
             }
 
             $techniciansByLab[$technician->lab_name][] = $technician;
+        }
+
+
+        $deliveriesByLab = [];
+        foreach ($deliveries as $delivery) {
+            if ($delivery->lab_name === null) {
+                continue;
+            }
+            $deliveriesByLab[$delivery->lab_name][] = $delivery;
         }
 
         $technicianIdsByDepartment = [];
@@ -453,6 +486,8 @@ class DemoDataSeeder extends Seeder
         foreach ($departmentsByLab as $labId => $departments) {
             $labName = $labsById[$labId]->name ?? null;
             $labTechnicians = $labName !== null ? ($techniciansByLab[$labName] ?? []) : [];
+
+            $labDeliveries = $labName !== null ? ($deliveriesByLab[$labName] ?? []) : [];
             $technicianCounter = 0;
 
             // حجز مديرين اثنين فريدين لهذا المخبر تحديداً بناءً على ترتيب المخبر
@@ -482,6 +517,24 @@ class DemoDataSeeder extends Seeder
 
                     continue;
                 }
+
+
+                // 🔥 5. الإضافة المباشرة لقسم التوصيل (Delivery) لإسناد الموظف المخصص لهذا المخبر
+                if ($department->name === 'Delivery') {
+                    if ($deliveryRoleId !== null && ! empty($labDeliveries)) {
+                        // إسناد موظف التوصيل الثابت المخصص لهذا المختبر
+                        $assignedDelivery = $labDeliveries[0];
+
+                        DepartmentUserRole::query()->firstOrCreate([
+                            'user_id'       => $assignedDelivery->id,
+                            'role_id'       => $deliveryRoleId,
+                            'department_id' => $department->id,
+                        ]);
+                    }
+                    continue;
+                }
+
+
 
                 // تخطي قسم الإدارة العامة لأنه مخصص لـ Lab Manager وليس لمدير القسم
                 if ($department->is_management) {
