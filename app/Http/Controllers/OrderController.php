@@ -47,7 +47,13 @@ class OrderController extends Controller
                 if ($status === OrderStatus::PENDING) {
 
                     $query->whereIn('status', [OrderStatus::PENDING, OrderStatus::NEW]);
-                } else {
+                }
+
+                elseif ($status === OrderStatus::RESEND_WRONG_IMPRESSION) {
+                    $query->whereIn('status', [OrderStatus::RESEND_WRONG_IMPRESSION, OrderStatus::TRY_ON]);
+                }
+
+                else {
 
                     $query->where('status', $status);
                 }
