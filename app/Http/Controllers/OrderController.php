@@ -52,7 +52,7 @@ class OrderController extends Controller
                     $query->where('status', $status);
                 }
             })
-            ->with(['toothShade', 'dentalCompensationTypePrice.dentalCompensationType', 'orderTeeth'])
+            ->with(['lab','toothShade', 'dentalCompensationTypePrice.dentalCompensationType', 'orderTeeth'])
             ->orderByDesc('created_at')
             ->paginate(15);
 
