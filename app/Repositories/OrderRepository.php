@@ -8,6 +8,7 @@ use App\Models\Lab;
 use App\Models\Order;
 use App\Models\OrderFile;
 use App\Models\User;
+use App\Support\OrderStatus;
 use Carbon\CarbonImmutable;
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Writer\PngWriter;
@@ -47,7 +48,7 @@ class OrderRepository
                 'patient_name' => $data['patient_name'] ?? null,
                 'qr_code' => (string) Str::uuid(),
                 'priority' => $data['priority'],
-                'status' => 'pending',
+                'status' => OrderStatus::NEW,
                 'order_type' => $data['order_type'] ?? 'digital',
                 'case_type' => $caseType,
                 'notes' => $data['notes'] ?? null,

@@ -12,6 +12,7 @@ use App\Http\Responses\ApiResponse;
 use App\Http\Services\DoctorOrderTrackingService;
 use App\Http\Services\OrderService;
 use App\Models\Order;
+use App\Support\OrderStatus;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -43,7 +44,13 @@ class OrderController extends Controller
         $orders = Order::query()
             ->where('user_id', $user->id)
             ->when($request->status, function ($query, $status) {
-                $query->where('status', $status);
+                if ($status === OrderStatus::PENDING) {
+
+                    $query->whereIn('status', [OrderStatus::PENDING, OrderStatus::NEW]);
+                } else {
+
+                    $query->where('status', $status);
+                }
             })
             ->with(['toothShade', 'dentalCompensationTypePrice.dentalCompensationType', 'orderTeeth'])
             ->orderByDesc('created_at')
