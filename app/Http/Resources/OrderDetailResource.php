@@ -13,6 +13,7 @@ class OrderDetailResource extends JsonResource
             'id' => $this->id,
             'user_id' => $this->user_id,
             'lab_id' => $this->lab_id,
+            'lab_name'=>$this->lab->name,
             'qr_code' => $this->qr_code,
             'qr_url' => route('orders.show-qr', ['qr' => $this->qr_code]),
             'case_type' => $this->case_type,

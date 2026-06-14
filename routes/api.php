@@ -46,7 +46,6 @@ Route::prefix('auth')->group(function (): void {
     Route::post('/register/complete', [AuthController::class, 'completeRegister'])->middleware('throttle:api');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:api');
 
-    Route::get('/top-rated', [LabController::class, 'topRated'])->name('labs.top-rated');
 
     Route::middleware('auth:sanctum')->group(function (): void {
         // Dental Compensation Types API (lab_manager)
@@ -102,7 +101,7 @@ Route::prefix('auth')->group(function (): void {
             //  Route::post('/{order}/pricing/calculate', [OrderPricingController::class, 'calculate'])->name('orders.pricing.calculate');
         });
 
-        // ----------------------------------Doctor-----------------------------------------------------------------
+        // ----------------------------------receptionist-----------------------------------------------------------------
 
         Route::middleware(['role:receptionist'])->prefix('orders')->group(function (): void {
             Route::get('/', [ReceptionistOrderController::class, 'index'])->name('orders.index');

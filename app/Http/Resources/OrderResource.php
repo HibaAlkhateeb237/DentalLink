@@ -33,6 +33,9 @@ class OrderResource extends JsonResource
             // 'tooth_shade' => ToothShadeResource::make($this->whenLoaded('toothShade')),
             // 'dental_compensation_type_price' => DentalCompensationTypePriceResource::make($this->whenLoaded('dentalCompensationTypePrice')),
             // 'teeth' => OrderToothResource::collection($this->whenLoaded('orderTeeth')),
+
+            'created_at' => $this->created_at?->toISOString(),
+
         ];
     }
 }
