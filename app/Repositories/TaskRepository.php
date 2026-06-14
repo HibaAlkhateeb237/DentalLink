@@ -85,6 +85,7 @@ class TaskRepository
                 'order.dentalCompensationTypePrice:id,dental_compensation_type_id',
                 'order.dentalCompensationTypePrice.dentalCompensationType:id,name,code',
                 'workSessions:id,task_id,start_time,end_time,status',
+                'order.orderFiles',
             ])
             ->where('department_id', $department->id)
             ->where('user_id', $user->id)

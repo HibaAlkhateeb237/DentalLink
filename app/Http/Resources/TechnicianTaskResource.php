@@ -36,6 +36,11 @@ class TechnicianTaskResource extends JsonResource
                 'case_type' => $this->order->case_type,
                 'material_type' => $this->order->dentalCompensationTypePrice?->dentalCompensationType?->name,
                 'notes' => $this->order->notes,
+
+                'files' => OrderFileResource::collection($this->when($this->order->relationLoaded('orderFiles'), function () {
+                    return $this->order->orderFiles;
+                })),
+
             ],
             'worked_minutes' => $workedMinutes,
             'remaining_minutes' => $remainingMinutes,
