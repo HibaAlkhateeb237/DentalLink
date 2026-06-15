@@ -18,10 +18,19 @@ class DoctorOrderTrackingService
     public function getTrackingDetails(Order $order): array
     {
         $departments = $this->trackingRepository->getDepartmentsWithOrderTasks($order);
-
         $timeline = [];
-        $totalRemainingMinutes = 0;
-        $hasFoundCurrent = false;
+
+        $deliveryDate = $order->delivered_at ? \Carbon\Carbon::parse($order->delivered_at) : null;
+
+        $now = \Carbon\Carbon::now();
+
+        if ($deliveryDate && $deliveryDate->isFuture()) {
+            $totalRemainingMinutes = (int) $now->diffInMinutes($deliveryDate);
+        } else {
+
+            $totalRemainingMinutes = 0;
+        }
+
 
         foreach ($departments as $department) {
             $task = $department->tasks->first();
@@ -33,21 +42,16 @@ class DoctorOrderTrackingService
             if ($task && $task->status === 'completed') {
                 $stepStatus = 'completed';
                 $remainingMinutesForStep = 0;
+
             } elseif ($task && in_array($task->status, ['assigned', 'in_progress', 'pending_review'])) {
                 $stepStatus = 'current';
-                $hasFoundCurrent = true;
-
-
                 $diff = $allowedMinutes - $workedMinutes;
                 $remainingMinutesForStep = max($diff, 0);
-                $totalRemainingMinutes += $remainingMinutesForStep;
+
             } else {
 
                 $stepStatus = 'upcoming';
                 $remainingMinutesForStep = $allowedMinutes;
-
-
-                    $totalRemainingMinutes += $remainingMinutesForStep;
 
             }
 

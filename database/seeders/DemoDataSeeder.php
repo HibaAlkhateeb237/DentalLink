@@ -635,7 +635,8 @@ class DemoDataSeeder extends Seeder
                     ? ($index % 3 === 0 ? 0 : 35)
                     : $price;
 
-                $receivedAt = CarbonImmutable::now()->subDays($index % 10);
+
+                $receivedAt = CarbonImmutable::now()->subHours($index % 6);
                 $deliveredAt = $receivedAt->addDays($priority === 'urgent' ? 2 : 3);
 
                 $order = Order::query()->create([
