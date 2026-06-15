@@ -101,7 +101,7 @@ class ReceptionistDeliveryService
 
         $existingAssignment = DeliveryTask::query()
             ->where('order_id', $order->id)
-            ->whereNotIn('status', ['cancelled', 'failed'])
+            ->whereNotIn('status', ['delivered'])
             ->exists();
 
         if ($existingAssignment) {
@@ -116,7 +116,7 @@ class ReceptionistDeliveryService
             return DeliveryTask::query()->create([
                 'order_id' => $order->id,
                 'user_id' => $deliveryUser->id,
-                'status' => 'pending',
+                'status' => 'empty',
             ]);
         });
 

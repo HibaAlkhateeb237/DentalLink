@@ -58,7 +58,7 @@ class ReceptionistDeliveryAssignmentApiTest extends TestCase
         $this->assertDatabaseHas('delivery_tasks', [
             'order_id' => $order->id,
             'user_id' => $deliveryEmployee->id,
-            'status' => 'pending',
+            'status' => 'empty',
         ]);
     }
 
@@ -71,7 +71,7 @@ class ReceptionistDeliveryAssignmentApiTest extends TestCase
         $task = DeliveryTask::query()->create([
             'order_id' => $order->id,
             'user_id' => $deliveryEmployee->id,
-            'status' => 'pending',
+            'status' => 'empty',
         ]);
 
         Sanctum::actingAs($receptionist);
@@ -111,7 +111,7 @@ class ReceptionistDeliveryAssignmentApiTest extends TestCase
         DeliveryTask::query()->create([
             'order_id' => $order->id,
             'user_id' => $deliveryEmployee->id,
-            'status' => 'pending',
+            'status' => 'empty',
         ]);
 
         Sanctum::actingAs($receptionist);

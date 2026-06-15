@@ -951,7 +951,7 @@ class DemoDataSeeder extends Seeder
      */
     private function seedDeliveryTasks(array $orders, array $deliveryUsers): void
     {
-        $deliveryStatuses = ['pending', 'picked_up', 'in_transit', 'delivered', 'failed', 'cancelled'];
+        $deliveryStatuses = ['empty', 'received', 'delivered', 'en_route'];
 
         foreach ($orders as $index => $order) {
             if (! in_array($order->status, ['completed', 'delivered'], true)) {
@@ -965,7 +965,7 @@ class DemoDataSeeder extends Seeder
                 'order_id' => $order->id,
                 'user_id' => $deliveryUser->id,
                 'status' => $status,
-                'picked_at' => in_array($status, ['picked_up', 'in_transit', 'delivered'], true)
+                'picked_at' => in_array($status, ['received', 'en_route', 'delivered'], true)
                     ? now()->subDays(($index % 10) + 1)
                     : null,
                 'delivered_at' => $status === 'delivered'

@@ -22,7 +22,7 @@ return new class extends Migration
                 ->constrained('users')
                 ->cascadeOnUpdate()
                 ->nullOnDelete();
-            $table->enum('status', ['pending', 'picked_up', 'in_transit', 'delivered', 'failed', 'cancelled'])->default('pending');
+            $table->enum('status', ['empty', 'received', 'delivered', 'en_route'])->default('empty');
             $table->timestamp('picked_at')->nullable();
             $table->timestamp('delivered_at')->nullable();
             $table->timestamps();

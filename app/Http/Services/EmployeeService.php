@@ -25,10 +25,13 @@ class EmployeeService
                     ->whereHas('department', function ($departmentQuery) use ($managerLabId): void {
                         $departmentQuery->where('lab_id', $managerLabId);
                     })
-                    ->whereHas('role', function ($roleQuery): void {
+                    ->whereHas('role', function ($roleQuery) use ($managerLabId): void {
                         $roleQuery
                             ->where('guard_name', 'sanctum')
-                            ->whereIn('name', EmployeeRoles::allowed());
+                            ->where(function ($q) use ($managerLabId): void {
+                                $q->whereNull('lab_id')->whereIn('name', EmployeeRoles::system())
+                                    ->orWhere('lab_id', $managerLabId);
+                            });
                     });
             })
             ->with([
@@ -37,10 +40,13 @@ class EmployeeService
                         ->whereHas('department', function ($departmentQuery) use ($managerLabId): void {
                             $departmentQuery->where('lab_id', $managerLabId);
                         })
-                        ->whereHas('role', function ($roleQuery): void {
+                        ->whereHas('role', function ($roleQuery) use ($managerLabId): void {
                             $roleQuery
                                 ->where('guard_name', 'sanctum')
-                                ->whereIn('name', EmployeeRoles::allowed());
+                                ->where(function ($q) use ($managerLabId): void {
+                                    $q->whereNull('lab_id')->whereIn('name', EmployeeRoles::system())
+                                        ->orWhere('lab_id', $managerLabId);
+                                });
                         })
                         ->orderBy('department_id');
                 },
@@ -158,7 +164,7 @@ class EmployeeService
                     $employee->save();
                 }
 
-                $targetRole = $this->resolveTargetRole($employee, $validated);
+                $targetRole = $this->resolveTargetRole($employee, $validated, $managerLabId);
 
                 if ($targetRole !== null) {
                     if ($targetRole->name === 'department_manager') {
@@ -175,7 +181,7 @@ class EmployeeService
                                 ->where('lab_id', $managerLabId)
                                 ->pluck('id');
 
-                            $this->removeEmployeeAssignments($employee, EmployeeRoles::allowed());
+                            $this->removeEmployeeAssignments($employee, $managerLabId);
 
                             foreach ($departments as $departmentId) {
                                 DepartmentUserRole::query()->create([
@@ -194,7 +200,7 @@ class EmployeeService
                                 ->where('lab_id', $managerLabId)
                                 ->firstOrFail();
 
-                            $this->removeEmployeeAssignments($employee, EmployeeRoles::allowed());
+                            $this->removeEmployeeAssignments($employee, $managerLabId);
 
                             DepartmentUserRole::query()->create([
                                 'user_id' => $employee->id,
@@ -246,10 +252,13 @@ class EmployeeService
                     ->whereHas('department', function ($departmentQuery) use ($managerLabId): void {
                         $departmentQuery->where('lab_id', $managerLabId);
                     })
-                    ->whereHas('role', function ($roleQuery): void {
+                    ->whereHas('role', function ($roleQuery) use ($managerLabId): void {
                         $roleQuery
                             ->where('guard_name', 'sanctum')
-                            ->whereIn('name', EmployeeRoles::allowed());
+                            ->where(function ($q) use ($managerLabId): void {
+                                $q->whereNull('lab_id')->whereIn('name', EmployeeRoles::system())
+                                    ->orWhere('lab_id', $managerLabId);
+                            });
                     })
                     ->orderBy('department_id');
             },
@@ -267,7 +276,7 @@ class EmployeeService
         return $employee;
     }
 
-    private function resolveTargetRole(User $employee, array $validated): ?Role
+    private function resolveTargetRole(User $employee, array $validated, int $managerLabId): ?Role
     {
         if (array_key_exists('role_id', $validated)) {
             return Role::query()
@@ -280,7 +289,10 @@ class EmployeeService
             ->join('roles', 'roles.id', '=', 'department_user_roles.role_id')
             ->where('department_user_roles.user_id', $employee->id)
             ->where('roles.guard_name', 'sanctum')
-            ->whereIn('roles.name', EmployeeRoles::allowed())
+            ->where(function ($q) use ($managerLabId): void {
+                $q->whereNull('roles.lab_id')->whereIn('roles.name', EmployeeRoles::system())
+                    ->orWhere('roles.lab_id', $managerLabId);
+            })
             ->value('roles.id');
 
         if ($roleId === null) {
@@ -290,17 +302,17 @@ class EmployeeService
         return Role::query()->where('id', $roleId)->where('guard_name', 'sanctum')->first();
     }
 
-    /**
-     * @param  array<int, string>  $roleNames
-     */
-    private function removeEmployeeAssignments(User $employee, array $roleNames): void
+    private function removeEmployeeAssignments(User $employee, int $managerLabId): void
     {
         DepartmentUserRole::query()
             ->where('user_id', $employee->id)
-            ->whereHas('role', function ($query) use ($roleNames): void {
+            ->whereHas('role', function ($query) use ($managerLabId): void {
                 $query
                     ->where('guard_name', 'sanctum')
-                    ->whereIn('name', $roleNames);
+                    ->where(function ($q) use ($managerLabId): void {
+                        $q->whereNull('lab_id')->whereIn('name', EmployeeRoles::system())
+                            ->orWhere('lab_id', $managerLabId);
+                    });
             })
             ->delete();
     }

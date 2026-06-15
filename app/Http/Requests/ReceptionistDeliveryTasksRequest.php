@@ -14,7 +14,7 @@ class ReceptionistDeliveryTasksRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['nullable', 'string', 'max:50'],
+            'status' => ['nullable', 'string', 'in:empty,received,delivered,en_route'],
             'search' => ['nullable', 'string', 'max:255'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
