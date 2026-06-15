@@ -14,8 +14,6 @@ use Illuminate\Support\Facades\DB;
 class TaskRepository
 {
     /**
-     * Return department ids for a user with a given role name
-     *
      * @return int[]
      */
     public function getManagedDepartmentIds(User $user, string $roleName = 'department_manager'): array
@@ -29,9 +27,6 @@ class TaskRepository
             ->toArray();
     }
 
-    /**
-     * Return Department collection that the user manages
-     */
     public function getManagedDepartments(User $user, string $roleName = 'department_manager'): Collection
     {
         $ids = $this->getManagedDepartmentIds($user, $roleName);
@@ -39,9 +34,6 @@ class TaskRepository
         return Department::query()->whereIn('id', $ids)->get();
     }
 
-    /**
-     * Paginate tasks by department ids and optional status
-     */
     public function paginateByDepartmentIds(array $departmentIds, ?string $status, int $perPage = 15, ?string $priority = null): LengthAwarePaginator
     {
         $statuses = $status === null ? ['pending_assignment', 'assigned', 'in_progress', 'pending_review', 'completed'] : [$status];
@@ -70,9 +62,6 @@ class TaskRepository
             ->paginate($perPage);
     }
 
-    /**
-     * Paginate tasks for a specific department and user (technician)
-     */
     public function paginateForDepartmentAndUser(User $user, Department $department, ?string $status, int $perPage = 15): LengthAwarePaginator
     {
         $statuses = $status === null ? ['assigned', 'in_progress', 'completed'] : [$status];
@@ -96,7 +85,6 @@ class TaskRepository
 
     public function isUserAdminOfDepartment(int $userId, int $departmentId): bool
     {
-
         return DB::table('department_user_roles')
             ->join('roles', 'department_user_roles.role_id', '=', 'roles.id')
             ->where('department_user_roles.user_id', $userId)
@@ -105,7 +93,7 @@ class TaskRepository
             ->exists();
     }
 
-    public function findNextDepartment(Department $currentDepartment): ?Department
+    public function findNextDepartment(Department $currentDepartment, int $orderId): ?Department
     {
         return Department::query()->where('lab_id', $currentDepartment['lab_id'])
             ->where('sort_order', '>', $currentDepartment['sort_order'])

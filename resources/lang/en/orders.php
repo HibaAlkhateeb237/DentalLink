@@ -20,4 +20,8 @@ return [
     'delivery_user_invalid' => 'Selected delivery employee is not available for this lab',
     'delivery_already_assigned' => 'This order already has an active delivery assignment',
     'status_updated_successfully' => 'Order status updated successfully',
+    'department_route_set_successfully' => 'Order department route set successfully',
+    'route_already_locked' => 'Cannot modify department route once tasks have been created',
+    'department_not_in_lab' => 'Selected department does not belong to this lab',
+    'no_orders_for_route' => 'No orders in your lab are eligible for department routing',
 ];

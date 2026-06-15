@@ -20,4 +20,8 @@ return [
     'delivery_user_invalid' => 'موظف التوصيل المختار غير متاح لهذا المخبر.',
     'delivery_already_assigned' => 'تم تعيين توصيل لهذا الطلب مسبقًا.',
     'status_updated_successfully' => 'تم تحديث حالة الطلب بنجاح',
+    'department_route_set_successfully' => 'تم تحديد مسار الأقسام للطلب بنجاح',
+    'route_already_locked' => 'لا يمكن تعديل مسار الأقسام بعد إنشاء المهام',
+    'department_not_in_lab' => 'القسم المحدد لا ينتمي إلى هذا المخبر',
+    'no_orders_for_route' => 'لا يوجد طلبات في مخبرك مؤهلة لتحديد مسار الأقسام',
 ];

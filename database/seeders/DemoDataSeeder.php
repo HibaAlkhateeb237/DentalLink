@@ -312,9 +312,6 @@ class DemoDataSeeder extends Seeder
             }
         }
 
-
-
-
         for ($index = 1; $index <= 10; $index++) {
 
             $correspondingLab = $labs[($index - 1) % count($labs)];
@@ -327,8 +324,6 @@ class DemoDataSeeder extends Seeder
                 'lab_name' => $correspondingLab->name,
             ]);
         }
-
-
 
         foreach ($usersByRole as $roleName => $users) {
             $roleId = $roles[$roleName]->id ?? null;
@@ -391,15 +386,12 @@ class DemoDataSeeder extends Seeder
                 ]);
             }
 
-
-
             $departmentsByLab[$lab->id][] = Department::query()->create([
                 'lab_id' => $lab->id,
                 'name' => 'Delivery',
                 'description' => 'Delivery and Logistics department for '.$lab->name,
                 'sort_order' => 0,
             ]);
-
 
             // Create Management department for lab manager
             Department::query()->create([
@@ -408,8 +400,6 @@ class DemoDataSeeder extends Seeder
                 'is_management' => true,
                 'sort_order' => 0, // قيمة ثابتة تدل على أنه ليس جزءاً من مسار الحركة التصنيعية
             ]);
-
-
 
             foreach ($compensationTypes as $index => $typeName) {
                 $code = Str::slug($typeName, '_');
@@ -462,7 +452,6 @@ class DemoDataSeeder extends Seeder
 
             $techniciansByLab[$technician->lab_name][] = $technician;
         }
-
 
         $deliveriesByLab = [];
         foreach ($deliveries as $delivery) {
@@ -518,7 +507,6 @@ class DemoDataSeeder extends Seeder
                     continue;
                 }
 
-
                 // 🔥 5. الإضافة المباشرة لقسم التوصيل (Delivery) لإسناد الموظف المخصص لهذا المخبر
                 if ($department->name === 'Delivery') {
                     if ($deliveryRoleId !== null && ! empty($labDeliveries)) {
@@ -526,15 +514,14 @@ class DemoDataSeeder extends Seeder
                         $assignedDelivery = $labDeliveries[0];
 
                         DepartmentUserRole::query()->firstOrCreate([
-                            'user_id'       => $assignedDelivery->id,
-                            'role_id'       => $deliveryRoleId,
+                            'user_id' => $assignedDelivery->id,
+                            'role_id' => $deliveryRoleId,
                             'department_id' => $department->id,
                         ]);
                     }
+
                     continue;
                 }
-
-
 
                 // تخطي قسم الإدارة العامة لأنه مخصص لـ Lab Manager وليس لمدير القسم
                 if ($department->is_management) {
@@ -641,7 +628,7 @@ class DemoDataSeeder extends Seeder
 
                 $order = Order::query()->create([
                     'user_id' => 12,
-                        //$doctor->id,
+                    // $doctor->id,
                     'lab_id' => $lab->id,
                     'patient_name' => $patientNames[$index % count($patientNames)],
                     'qr_code' => (string) Str::uuid(),

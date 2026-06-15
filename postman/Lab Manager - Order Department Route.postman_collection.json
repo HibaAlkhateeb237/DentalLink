@@ -1,0 +1,136 @@
+{
+  "info": {
+    "name": "Lab Manager - Order Department Route",
+    "description": "API for lab manager to reorder departments for the lab workflow. Updates departments.sort_order instead of creating a pivot table.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Set Department Route Order",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [""],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{lab_manager_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"department_ids\": [3, 1, 2]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/lab/orders/departments",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "lab", "orders", "departments"]
+        },
+        "description": "Set the ordered department workflow for the lab. The array index determines the new sort_order (0 = first). Departments must belong to the same lab, be operational (sort_order > 0), and not management."
+      },
+      "response": [
+        {
+          "name": "Success (200)",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            { "key": "Content-Type", "value": "application/json" }
+          ],
+          "body": "{\n    \"success\": true,\n    \"status\": 200,\n    \"message\": \"Order department route set successfully\",\n    \"data\": {\n        \"total_departments_updated\": 3,\n        \"department_route\": [3, 1, 2]\n    },\n    \"errors\": null\n}"
+        },
+        {
+          "name": "Invalid Department (400)",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            { "key": "Content-Type", "value": "application/json" }
+          ],
+          "body": "{\n    \"success\": false,\n    \"status\": 400,\n    \"message\": \"Validation failed\",\n    \"data\": null,\n    \"errors\": {\n        \"department_ids.0\": [\n            \"Selected department does not belong to this lab\"\n        ]\n    }\n}"
+        },
+        {
+          "name": "Unauthenticated (401)",
+          "status": "Unauthorized",
+          "code": 401,
+          "header": [
+            { "key": "Content-Type", "value": "application/json" }
+          ],
+          "body": "{\n    \"success\": false,\n    \"status\": 401,\n    \"message\": \"Unauthenticated\",\n    \"data\": null,\n    \"errors\": null\n}"
+        }
+      ]
+    },
+    {
+      "name": "Get Lab Departments (for reference)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [""],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{lab_manager_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/auth/lab/departments",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "lab", "departments"]
+        },
+        "description": "List all departments for the lab manager's lab. Shows current sort_order."
+      },
+      "response": [
+        {
+          "name": "Success (200)",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            { "key": "Content-Type", "value": "application/json" }
+          ],
+          "body": "{\n    \"success\": true,\n    \"status\": 200,\n    \"message\": \"Departments retrieved successfully\",\n    \"data\": [\n        {\n            \"id\": 1,\n            \"name\": \"Ceramics\",\n            \"sort_order\": 2,\n            \"is_management\": false\n        },\n        {\n            \"id\": 2,\n            \"name\": \"Orthodontics\",\n            \"sort_order\": 3,\n            \"is_management\": false\n        },\n        {\n            \"id\": 3,\n            \"name\": \"Implants\",\n            \"sort_order\": 1,\n            \"is_management\": false\n        }\n    ],\n    \"errors\": null\n}"
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost",
+      "type": "string"
+    },
+    {
+      "key": "lab_manager_token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

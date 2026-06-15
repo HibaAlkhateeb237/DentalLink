@@ -8,8 +8,10 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DepartmentManagerTaskController;
 use App\Http\Controllers\LabController;
 use App\Http\Controllers\LabEmployeeController;
+use App\Http\Controllers\LabManagerOrderController;
 use App\Http\Controllers\LabPortfolioController;
 use App\Http\Controllers\LabPricingController;
+use App\Http\Controllers\LabRoleController;
 use App\Http\Controllers\LabTechnicianTaskController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ReceptionistDeliveryTaskController;
@@ -45,7 +47,6 @@ Route::prefix('auth')->group(function (): void {
     Route::post('/register/verify-otp', [AuthController::class, 'verifyRegisterOtp'])->middleware('throttle:api');
     Route::post('/register/complete', [AuthController::class, 'completeRegister'])->middleware('throttle:api');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:api');
-
 
     Route::middleware('auth:sanctum')->group(function (): void {
         // Dental Compensation Types API (lab_manager)
@@ -124,6 +125,25 @@ Route::prefix('auth')->group(function (): void {
             Route::get('/{employee}', [LabEmployeeController::class, 'show'])->name('lab.employees.show');
             Route::post('/{employee}', [LabEmployeeController::class, 'update'])->name('lab.employees.update');
             Route::delete('/{employee}', [LabEmployeeController::class, 'destroy'])->name('lab.employees.destroy');
+
+            // Employee role assignment
+            Route::get('/{employee}/roles', [LabRoleController::class, 'employeeRoles'])->name('lab.employees.roles.index');
+            Route::post('/{employee}/roles', [LabRoleController::class, 'assignEmployeeRole'])->name('lab.employees.roles.store');
+            Route::delete('/{employee}/roles/{departmentRole}', [LabRoleController::class, 'removeEmployeeRole'])->name('lab.employees.roles.destroy');
+        });
+
+        // Permissions and roles management
+        Route::middleware(['role:lab_manager'])->prefix('lab')->group(function (): void {
+            Route::get('/permissions', [LabRoleController::class, 'permissions'])->name('lab.permissions.index');
+
+            Route::prefix('roles')->group(function (): void {
+                Route::get('/matrix', [LabRoleController::class, 'matrix'])->name('lab.roles.matrix');
+                Route::put('/matrix', [LabRoleController::class, 'updateMatrix'])->name('lab.roles.matrix.update');
+                Route::get('/', [LabRoleController::class, 'index'])->name('lab.roles.index');
+                Route::post('/', [LabRoleController::class, 'store'])->name('lab.roles.store');
+                Route::put('/{role}', [LabRoleController::class, 'update'])->name('lab.roles.update');
+                Route::delete('/{role}', [LabRoleController::class, 'destroy'])->name('lab.roles.destroy');
+            });
         });
 
         Route::middleware(['role:lab_manager'])->prefix('lab/departments')->group(function (): void {
@@ -136,6 +156,10 @@ Route::prefix('auth')->group(function (): void {
             Route::put('/{department}', [DepartmentController::class, 'update'])->name('lab.departments.update');
             Route::delete('/{department}', [DepartmentController::class, 'destroy'])->name('lab.departments.destroy');
         });
+
+        // Lab manager - Bulk order department routing
+        Route::middleware(['role:lab_manager'])->post('lab/orders/departments', [LabManagerOrderController::class, 'setDepartmentRoute'])
+            ->name('lab.orders.departments.store');
 
         // ====================================lab_technician===================================================
 

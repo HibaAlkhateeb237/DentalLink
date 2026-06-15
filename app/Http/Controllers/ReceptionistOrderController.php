@@ -26,9 +26,7 @@ class ReceptionistOrderController extends Controller
     public function __construct(
         private ReceptionistOrderService $receptionistOrderService,
         private ApiResponse $apiResponse,
-    )
-    {
-    }
+    ) {}
 
     public function index(ReceptionistOrderIndexRequest $request): JsonResponse
     {
@@ -37,7 +35,7 @@ class ReceptionistOrderController extends Controller
         $orders = $this->receptionistOrderService->listOrders($request->validated());
 
         return $this->apiResponse->success(
-            $orders->through(fn(Order $order): array => ReceptionistOrderListResource::make($order)->resolve()),
+            $orders->through(fn (Order $order): array => ReceptionistOrderListResource::make($order)->resolve()),
             __('orders.retrieved_successfully'),
             200,
         );
@@ -121,23 +119,21 @@ class ReceptionistOrderController extends Controller
         $user->loadMissing('departmentUserRoles.department');
 
         $labIds = $user->departmentUserRoles
-            ->map(static fn($departmentUserRole): ?int => $departmentUserRole->department?->lab_id)
+            ->map(static fn ($departmentUserRole): ?int => $departmentUserRole->department?->lab_id)
             ->filter()
             ->unique();
 
-        if ($labIds->isEmpty() || !$labIds->contains($order->lab_id)) {
+        if ($labIds->isEmpty() || ! $labIds->contains($order->lab_id)) {
             return $this->apiResponse->error(__('auth.forbidden'), 403);
         }
 
         $path = $order->qr_image_path;
 
-        if (!filled($path) || !Storage::disk('public')->exists($path)) {
+        if (! filled($path) || ! Storage::disk('public')->exists($path)) {
             return $this->apiResponse->error(__('messages.file_not_found'), 404);
         }
 
-
         return DB::transaction(function () use ($order, $user, $path) {
-
 
             $this->receptionistOrderService->updateStatus(
                 $order,
@@ -145,7 +141,6 @@ class ReceptionistOrderController extends Controller
                 null,
                 $user,
             );
-
 
             $firstDepartment = Department::query()
                 ->where('lab_id', $order->lab_id)
@@ -167,15 +162,11 @@ class ReceptionistOrderController extends Controller
                     ]
                 );
 
-
             }
-
 
             return Storage::disk('public')->response($path, 'qr.png', [
                 'Content-Type' => 'image/png',
             ]);
         });
     }
-
-
 }
