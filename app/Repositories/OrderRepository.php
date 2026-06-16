@@ -113,7 +113,6 @@ class OrderRepository
                 // QR code generation failed; skip to allow order creation to proceed
             }
 
-
             // Handle file uploads (stl / images)
             if (! empty($data['files']) && is_array($data['files'])) {
                 foreach ($data['files'] as $file) {
@@ -122,27 +121,22 @@ class OrderRepository
                             continue;
                         }
 
-
                         $originalName = $file->getClientOriginalName();
-
 
                         $originalExtension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
 
-                           if (empty($originalExtension) || $originalExtension === 'bin') {
+                        if (empty($originalExtension) || $originalExtension === 'bin') {
 
                             $originalExtension = 'stl';
                         }
 
-
-                        $fileName = (string) Str::uuid() . '.' . $originalExtension;
-
+                        $fileName = (string) Str::uuid().'.'.$originalExtension;
 
                         $stored = Storage::disk('public')->putFileAs(
-                            'orders/' . $order->qr_code,
+                            'orders/'.$order->qr_code,
                             $file,
                             $fileName
                         );
-
 
                         $type = in_array($originalExtension, ['stl', 'zip'], true) ? 'stl' : 'image';
 

@@ -10,6 +10,7 @@ class DoctorOrderTrackRequest extends FormRequest
     {
 
         $order = $this->route('order');
+
         return $order && $order->user_id === $this->user()->id;
     }
 

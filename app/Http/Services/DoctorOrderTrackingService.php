@@ -2,8 +2,9 @@
 
 namespace App\Http\Services;
 
-use App\Models\Order;
 use App\Http\Repositories\OrderTrackingRepository;
+use App\Models\Order;
+use Carbon\Carbon;
 
 class DoctorOrderTrackingService
 {
@@ -14,15 +15,14 @@ class DoctorOrderTrackingService
         $this->trackingRepository = $trackingRepository;
     }
 
-
     public function getTrackingDetails(Order $order): array
     {
         $departments = $this->trackingRepository->getDepartmentsWithOrderTasks($order);
         $timeline = [];
 
-        $deliveryDate = $order->delivered_at ? \Carbon\Carbon::parse($order->delivered_at) : null;
+        $deliveryDate = $order->delivered_at ? Carbon::parse($order->delivered_at) : null;
 
-        $now = \Carbon\Carbon::now();
+        $now = Carbon::now();
 
         if ($deliveryDate && $deliveryDate->isFuture()) {
             $totalRemainingMinutes = (int) $now->diffInMinutes($deliveryDate);
@@ -31,13 +31,11 @@ class DoctorOrderTrackingService
             $totalRemainingMinutes = 0;
         }
 
-
         foreach ($departments as $department) {
             $task = $department->tasks->first();
 
             $allowedMinutes = ((int) ($department->time_allowed ?? 0)) * 60;
             $workedMinutes = $task ? $task->workedMinutes() : 0;
-
 
             if ($task && $task->status === 'completed') {
                 $stepStatus = 'completed';

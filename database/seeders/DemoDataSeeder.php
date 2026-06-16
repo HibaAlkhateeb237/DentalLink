@@ -21,6 +21,7 @@ use App\Models\Task;
 use App\Models\TaskWorkSession;
 use App\Models\ToothShade;
 use App\Models\User;
+use App\Support\DeliveryStatus;
 use App\Support\OrderStatus;
 use App\Support\TaskStatus;
 use Carbon\CarbonImmutable;
@@ -938,7 +939,7 @@ class DemoDataSeeder extends Seeder
      */
     private function seedDeliveryTasks(array $orders, array $deliveryUsers): void
     {
-        $deliveryStatuses = ['empty', 'received', 'delivered', 'en_route'];
+        $deliveryStatuses = DeliveryStatus::ALL;
 
         foreach ($orders as $index => $order) {
             if (! in_array($order->status, ['completed', 'delivered'], true)) {
@@ -958,7 +959,7 @@ class DemoDataSeeder extends Seeder
                 'picked_at' => in_array($status, ['received', 'en_route', 'delivered'], true)
                     ? now()->subDays(($index % 10) + 1)
                     : null,
-                'delivered_at' => $status === 'delivered'
+                'delivered_at' => $status === DeliveryStatus::DELIVERED
                     ? now()->subDays($index % 7)
                     : null,
             ]);

@@ -2,13 +2,12 @@
 
 namespace App\Http\Repositories;
 
-use App\Models\Order;
 use App\Models\Department;
+use App\Models\Order;
 use Illuminate\Database\Eloquent\Collection;
 
 class OrderTrackingRepository
 {
-
     public function getDepartmentsWithOrderTasks(Order $order): Collection
     {
         return Department::query()
@@ -21,7 +20,7 @@ class OrderTrackingRepository
                 },
                 'tasks.workSessions' => function ($query) {
                     $query->select(['id', 'task_id', 'start_time', 'end_time', 'status']);
-                }
+                },
             ])
             ->orderBy('sort_order', 'asc')
             ->get();

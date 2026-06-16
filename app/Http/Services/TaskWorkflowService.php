@@ -128,11 +128,8 @@ class TaskWorkflowService
             throw new HttpException(403, 'عذراً، ليس لديك صلاحية إدارة هذا القسم.');
         }
 
-
-
-        if ($task['status'] !== TaskStatus::PENDING_ASSIGNMENT ) {
+        if ($task['status'] !== TaskStatus::PENDING_ASSIGNMENT) {
             throw new HttpException(400, 'لا يمكن إسناد هذه المهمة في حالتها الحالية.');
-
         }
 
         $isTechInDept = DB::table('department_user_roles')
