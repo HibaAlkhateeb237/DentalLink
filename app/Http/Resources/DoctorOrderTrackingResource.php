@@ -16,18 +16,21 @@ class DoctorOrderTrackingResource extends JsonResource
             $days = floor($totalMinutes / (60 * 24));
 
 
-            $remainingMinutesAfterDays = $totalMinutes % (60 * 24);
-            $hours = floor($remainingMinutesAfterDays / 60);
-
-
-            $minutes = $remainingMinutesAfterDays % 60;
-
-
-            $countdownText = "{$days} أيام و {$hours} ساعة و {$minutes} دقيقة";
+            if ($days == 0) {
+                $countdownText = "أقل من يوم";
+            } elseif ($days == 1) {
+                $countdownText = "يوم واحد";
+            } elseif ($days == 2) {
+                $countdownText = "يومان";
+            } elseif ($days <= 10) {
+                $countdownText = "{$days} أيام";
+            } else {
+                $countdownText = "{$days} يوم";
+            }
         } else {
-            $countdownText = "0 أيام و 0 ساعة و 0 دقيقة";
+            $countdownText = "منتهي / متأخر";
+            $days = 0;
         }
-
 
         return [
             'order_id' => $this['order_id'],
