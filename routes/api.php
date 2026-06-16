@@ -3,6 +3,7 @@
 // routes/api.php
 
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\DeliveryEmployeeTaskController;
 use App\Http\Controllers\DentalCompensationTypeController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DepartmentManagerTaskController;
@@ -187,6 +188,13 @@ Route::prefix('auth')->group(function (): void {
 
             Route::get('/departments/{departmentId}/technicians', [TaskWorkflowController::class, 'getTechnicians'])->name('department.manager.getTechnicians');
 
+        });
+
+        // ====================================delivery===================================================
+
+        Route::middleware(['role:delivery'])->prefix('delivery')->group(function (): void {
+            Route::get('/tasks', [DeliveryEmployeeTaskController::class, 'index'])
+                ->name('delivery.tasks.index');
         });
 
         // =======================================================================================================

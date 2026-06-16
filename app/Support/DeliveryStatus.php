@@ -31,6 +31,14 @@ final class DeliveryStatus
         self::DELIVERED,
     ];
 
+    /** Statuses considered "assigned" (not yet delivered) */
+    public const ASSIGNED_STATUSES = [
+        self::EMPTY,
+        self::RECEIVED,
+        self::ON_THE_WAY_TO_DOCTOR,
+        self::ON_THE_WAY_TO_LAB,
+    ];
+
     private function __construct()
     {
         // static class
