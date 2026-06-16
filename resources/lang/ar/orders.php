@@ -24,4 +24,8 @@ return [
     'route_already_locked' => 'لا يمكن تعديل مسار الأقسام بعد إنشاء المهام',
     'department_not_in_lab' => 'القسم المحدد لا ينتمي إلى هذا المخبر',
     'no_orders_for_route' => 'لا يوجد طلبات في مخبرك مؤهلة لتحديد مسار الأقسام',
+
+    // Direction labels
+    'direction_to_lab' => 'إلى المخبر',
+    'direction_to_doctor' => 'إلى الطبيب',
 ];

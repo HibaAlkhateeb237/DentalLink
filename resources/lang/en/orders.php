@@ -24,4 +24,8 @@ return [
     'route_already_locked' => 'Cannot modify department route once tasks have been created',
     'department_not_in_lab' => 'Selected department does not belong to this lab',
     'no_orders_for_route' => 'No orders in your lab are eligible for department routing',
+
+    // Direction labels
+    'direction_to_lab' => 'To Lab',
+    'direction_to_doctor' => 'To Doctor',
 ];

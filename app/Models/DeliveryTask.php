@@ -14,6 +14,7 @@ class DeliveryTask extends Model
         'order_id',
         'user_id',
         'status',
+        'direction',
         'picked_at',
         'delivered_at',
     ];

@@ -622,7 +622,6 @@ class DemoDataSeeder extends Seeder
                     ? ($index % 3 === 0 ? 0 : 35)
                     : $price;
 
-
                 $receivedAt = CarbonImmutable::now()->subHours($index % 6);
                 $deliveredAt = $receivedAt->addDays($priority === 'urgent' ? 2 : 3);
 
@@ -949,10 +948,13 @@ class DemoDataSeeder extends Seeder
             $status = $deliveryStatuses[$index % count($deliveryStatuses)];
             $deliveryUser = $deliveryUsers[$index % count($deliveryUsers)];
 
+            $direction = $index % 2 === 0 ? 'to_lab' : 'to_doctor';
+
             DeliveryTask::query()->create([
                 'order_id' => $order->id,
                 'user_id' => $deliveryUser->id,
                 'status' => $status,
+                'direction' => $direction,
                 'picked_at' => in_array($status, ['received', 'en_route', 'delivered'], true)
                     ? now()->subDays(($index % 10) + 1)
                     : null,
