@@ -2,8 +2,8 @@
 
 namespace App\Http\Services;
 
-use App\Models\Order;
 use App\Http\Repositories\OrderTrackingRepository;
+use App\Models\Order;
 
 class DoctorOrderTrackingService
 {
@@ -13,7 +13,6 @@ class DoctorOrderTrackingService
     {
         $this->trackingRepository = $trackingRepository;
     }
-
 
     public function getTrackingDetails(Order $order): array
     {
@@ -38,13 +37,15 @@ class DoctorOrderTrackingService
             $allowedMinutes = ((int) ($department->time_allowed ?? 0)) * 60;
             $workedMinutes = $task ? $task->workedMinutes() : 0;
 
-
             if ($task && $task->status === 'completed') {
                 $stepStatus = 'completed';
                 $remainingMinutesForStep = 0;
 
             } elseif ($task && in_array($task->status, ['assigned', 'in_progress', 'pending_review'])) {
                 $stepStatus = 'current';
+                $hasFoundCurrent = true;
+
+
                 $diff = $allowedMinutes - $workedMinutes;
                 $remainingMinutesForStep = max($diff, 0);
 
@@ -52,6 +53,9 @@ class DoctorOrderTrackingService
 
                 $stepStatus = 'upcoming';
                 $remainingMinutesForStep = $allowedMinutes;
+
+
+                    $totalRemainingMinutes += $remainingMinutesForStep;
 
             }
 

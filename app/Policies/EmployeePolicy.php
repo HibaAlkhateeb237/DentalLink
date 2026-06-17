@@ -92,7 +92,10 @@ class EmployeePolicy
             ->where('department_user_roles.user_id', $employee->id)
             ->where('departments.lab_id', $managerLabId)
             ->where('roles.guard_name', 'sanctum')
-            ->whereIn('roles.name', EmployeeRoles::allowed())
+            ->where(function ($q) use ($managerLabId): void {
+                $q->whereNull('roles.lab_id')->whereIn('roles.name', EmployeeRoles::system())
+                    ->orWhere('roles.lab_id', $managerLabId);
+            })
             ->exists();
     }
 

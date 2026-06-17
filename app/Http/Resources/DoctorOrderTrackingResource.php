@@ -11,6 +11,7 @@ class DoctorOrderTrackingResource extends JsonResource
     {
         $totalMinutes = (int) $this['total_remaining_minutes'];
 
+
         if ($totalMinutes > 0) {
 
             $days = floor($totalMinutes / (60 * 24));
@@ -27,6 +28,11 @@ class DoctorOrderTrackingResource extends JsonResource
         } else {
             $countdownText = "0 أيام و 0 ساعة و 0 دقيقة";
         }
+
+
+        $hours = floor($totalMinutes / 60);
+        $minutes = $totalMinutes % 60;
+        $countdownText = sprintf('%02d:%02d:00', $hours, $minutes);
 
 
         return [

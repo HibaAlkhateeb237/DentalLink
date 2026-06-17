@@ -51,10 +51,13 @@ class EmployeeStoreRequest extends FormRequest
             'role_id' => [
                 'required',
                 'integer',
-                Rule::exists('roles', 'id')->where(function ($query): void {
+                Rule::exists('roles', 'id')->where(function ($query) use ($managerLabId): void {
                     $query
                         ->where('guard_name', 'sanctum')
-                        ->whereIn('name', EmployeeRoles::allowed());
+                        ->where(function ($q) use ($managerLabId): void {
+                            $q->whereNull('lab_id')->whereIn('name', EmployeeRoles::system())
+                                ->orWhere('lab_id', $managerLabId);
+                        });
                 }),
             ],
         ];

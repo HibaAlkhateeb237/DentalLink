@@ -47,18 +47,14 @@ class OrderController extends Controller
                 if ($status === OrderStatus::PENDING) {
 
                     $query->whereIn('status', [OrderStatus::PENDING, OrderStatus::NEW]);
-                }
-
-                elseif ($status === OrderStatus::RESEND_WRONG_IMPRESSION) {
+                } elseif ($status === OrderStatus::RESEND_WRONG_IMPRESSION) {
                     $query->whereIn('status', [OrderStatus::RESEND_WRONG_IMPRESSION, OrderStatus::TRY_ON]);
-                }
-
-                else {
+                } else {
 
                     $query->where('status', $status);
                 }
             })
-            ->with(['lab','toothShade', 'dentalCompensationTypePrice.dentalCompensationType', 'orderTeeth'])
+            ->with(['lab', 'toothShade', 'dentalCompensationTypePrice.dentalCompensationType', 'orderTeeth'])
             ->orderByDesc('created_at')
             ->paginate(15);
 
@@ -99,21 +95,10 @@ class OrderController extends Controller
         );
     }
 
-
-
-
-
-
     public function track(DoctorOrderTrackRequest $request, Order $order): DoctorOrderTrackingResource
     {
         $trackingData = $this->trackingService->getTrackingDetails($order);
 
         return new DoctorOrderTrackingResource($trackingData);
     }
-
-
-
-
-
-
 }
