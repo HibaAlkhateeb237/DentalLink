@@ -10,7 +10,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('delivery_tasks', function (Blueprint $table): void {
-            $table->enum('direction', DeliveryTaskDirection::ALL)
+            $table->string('direction', 20)
                 ->default(DeliveryTaskDirection::TO_LAB)
                 ->after('status');
         });

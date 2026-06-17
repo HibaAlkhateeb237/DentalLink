@@ -25,6 +25,9 @@ return [
     'department_not_in_lab' => 'القسم المحدد لا ينتمي إلى هذا المخبر',
     'no_orders_for_route' => 'لا يوجد طلبات في مخبرك مؤهلة لتحديد مسار الأقسام',
 
+    'delivery_status_updated' => 'تم تحديث حالة التوصيل بنجاح',
+    'delivery_status_transition_invalid' => 'لا يمكن تغيير حالة التوصيل إلى الحالة المطلوبة',
+
     // Direction labels
     'direction_to_lab' => 'إلى المخبر',
     'direction_to_doctor' => 'إلى الطبيب',

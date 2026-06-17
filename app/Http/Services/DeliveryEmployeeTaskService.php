@@ -2,6 +2,7 @@
 
 namespace App\Http\Services;
 
+use App\Models\DeliveryTask;
 use App\Models\User;
 use App\Support\DeliveryStatus;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -32,5 +33,22 @@ class DeliveryEmployeeTaskService
         $perPage = (int) ($validated['per_page'] ?? 15);
 
         return $query->paginate($perPage);
+    }
+
+    public function updateStatus(DeliveryTask $deliveryTask, string $newStatus): DeliveryTask
+    {
+        $updateData = ['status' => $newStatus];
+
+        if ($newStatus === DeliveryStatus::RECEIVED) {
+            $updateData['picked_at'] = now();
+        }
+
+        if ($newStatus === DeliveryStatus::DELIVERED) {
+            $updateData['delivered_at'] = now();
+        }
+
+        $deliveryTask->update($updateData);
+
+        return $deliveryTask->fresh()->load(['order.user', 'user']);
     }
 }

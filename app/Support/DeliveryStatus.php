@@ -31,6 +31,26 @@ final class DeliveryStatus
         self::DELIVERED,
     ];
 
+    /** @var array<string, string[]> */
+    public const TRANSITIONS_To_Doctor = [
+        self::EMPTY => [self::RECEIVED],
+        self::RECEIVED => [self::ON_THE_WAY_TO_DOCTOR],
+        self::ON_THE_WAY_TO_DOCTOR => [self::DELIVERED],
+        self::DELIVERED => [self::ON_THE_WAY_TO_LAB],
+
+    ];
+
+
+    public const TRANSITIONS_To_Lab = [
+        self::EMPTY => [self::ON_THE_WAY_TO_DOCTOR],
+        self::RECEIVED => [self::ON_THE_WAY_TO_LAB],
+        self::ON_THE_WAY_TO_DOCTOR => [self::RECEIVED],
+        self::ON_THE_WAY_TO_LAB => [self::DELIVERED],
+    ];
+
+
+
+
     /** Statuses considered "assigned" (not yet delivered) */
     public const ASSIGNED_STATUSES = [
         self::EMPTY,

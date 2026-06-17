@@ -3,10 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\DeliveryEmployeeTaskIndexRequest;
+use App\Http\Requests\DeliveryEmployeeUpdateStatusRequest;
 use App\Http\Resources\DeliveryEmployeeTaskResource;
-use App\Http\Resources\DeliveryTaskResource;
 use App\Http\Responses\ApiResponse;
 use App\Http\Services\DeliveryEmployeeTaskService;
+use App\Models\DeliveryTask;
 use Illuminate\Http\JsonResponse;
 
 class DeliveryEmployeeTaskController extends Controller
@@ -35,6 +36,22 @@ class DeliveryEmployeeTaskController extends Controller
         return $this->apiResponse->success(
             $payload,
             __('orders.delivery_tasks_retrieved'),
+            200,
+        );
+    }
+
+    public function updateStatus(DeliveryEmployeeUpdateStatusRequest $request, DeliveryTask $deliveryTask): JsonResponse
+    {
+        $task = $this->deliveryEmployeeTaskService->updateStatus(
+            $deliveryTask,
+            $request->validated('status'),
+        );
+
+        return $this->apiResponse->success(
+            [
+                'delivery_task' => DeliveryEmployeeTaskResource::make($task)->resolve(),
+            ],
+            __('orders.delivery_status_updated'),
             200,
         );
     }

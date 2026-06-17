@@ -195,6 +195,8 @@ Route::prefix('auth')->group(function (): void {
         Route::middleware(['role:delivery'])->prefix('delivery')->group(function (): void {
             Route::get('/tasks', [DeliveryEmployeeTaskController::class, 'index'])
                 ->name('delivery.tasks.index');
+            Route::post('/tasks/{deliveryTask}/status', [DeliveryEmployeeTaskController::class, 'updateStatus'])
+                ->name('delivery.tasks.status.update');
         });
 
         // =======================================================================================================
