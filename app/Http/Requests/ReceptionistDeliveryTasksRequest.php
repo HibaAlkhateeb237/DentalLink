@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\DeliveryStatus;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ReceptionistDeliveryTasksRequest extends FormRequest
@@ -14,7 +15,7 @@ class ReceptionistDeliveryTasksRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['nullable', 'string', 'in:empty,received,delivered,en_route'],
+            'status' => ['nullable', 'string', 'in:'.implode(',', DeliveryStatus::ALL)],
             'search' => ['nullable', 'string', 'max:255'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];

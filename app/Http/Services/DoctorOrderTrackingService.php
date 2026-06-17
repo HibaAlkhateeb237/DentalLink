@@ -4,6 +4,7 @@ namespace App\Http\Services;
 
 use App\Http\Repositories\OrderTrackingRepository;
 use App\Models\Order;
+use Carbon\Carbon;
 
 class DoctorOrderTrackingService
 {
@@ -19,9 +20,9 @@ class DoctorOrderTrackingService
         $departments = $this->trackingRepository->getDepartmentsWithOrderTasks($order);
         $timeline = [];
 
-        $deliveryDate = $order->delivered_at ? \Carbon\Carbon::parse($order->delivered_at) : null;
+        $deliveryDate = $order->delivered_at ? Carbon::parse($order->delivered_at) : null;
 
-        $now = \Carbon\Carbon::now();
+        $now = Carbon::now();
 
         if ($deliveryDate && $deliveryDate->isFuture()) {
             $totalRemainingMinutes = (int) $now->diffInMinutes($deliveryDate);
@@ -29,7 +30,6 @@ class DoctorOrderTrackingService
 
             $totalRemainingMinutes = 0;
         }
-
 
         foreach ($departments as $department) {
             $task = $department->tasks->first();
