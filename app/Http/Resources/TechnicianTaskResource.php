@@ -33,6 +33,7 @@ class TechnicianTaskResource extends JsonResource
                 'id' => $this->order->id,
                 'serial_number' => $this->order->serial_number,
                 'priority' => $this->order->priority,
+                'status' => $this->status,
                 'case_type' => $this->order->case_type,
                 'material_type' => $this->order->dentalCompensationTypePrice?->dentalCompensationType?->name,
                 'notes' => $this->order->notes,

@@ -62,7 +62,7 @@ class TaskRepository
             ->paginate($perPage);
     }
 
-    public function paginateForDepartmentAndUser(User $user, Department $department, ?string $status, int $perPage = 15): LengthAwarePaginator
+    public function paginateForDepartmentAndUser(User $user, Department $department, ?string $status,  ?string $priority , int $perPage = 15): LengthAwarePaginator
     {
         $statuses = $status === null ? ['assigned', 'in_progress', 'completed'] : [$status];
 
@@ -79,6 +79,14 @@ class TaskRepository
             ->where('department_id', $department->id)
             ->where('user_id', $user->id)
             ->whereIn('status', $statuses)
+
+            ->when($priority, function ($query) use ($priority) {
+                $query->whereHas('order', function ($q) use ($priority) {
+                    $q->where('priority', $priority);
+                });
+            })
+
+
             ->latest('id')
             ->paginate($perPage);
     }

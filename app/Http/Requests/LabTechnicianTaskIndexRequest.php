@@ -18,6 +18,7 @@ class LabTechnicianTaskIndexRequest extends FormRequest
     {
         return [
             'status' => ['nullable', 'string', 'in:assigned,in_progress,completed'],
+            'priority' => ['nullable', 'string', 'in:urgent,normal'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }

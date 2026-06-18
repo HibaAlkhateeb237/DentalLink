@@ -7,9 +7,11 @@ use App\Http\Resources\TechnicianTaskResource;
 use App\Http\Responses\ApiResponse;
 use App\Http\Services\LabTechnicianTaskService;
 use App\Models\Department;
+use App\Models\Order;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 
 class LabTechnicianTaskController extends Controller
@@ -34,6 +36,7 @@ class LabTechnicianTaskController extends Controller
             $user,
             $department,
             $validated['status'] ?? null,
+            $validated['priority'] ?? null,
             $perPage,
         );
 
@@ -81,4 +84,23 @@ class LabTechnicianTaskController extends Controller
             return $this->apiResponse->error(__('messages.not_found'), Response::HTTP_NOT_FOUND);
         }
     }
+
+
+
+    public function qrImage(Order $order): Response|JsonResponse
+    {
+        $path = $order->qr_image_path;
+
+        if (! filled($path) || ! Storage::disk('public')->exists($path)) {
+            return $this->apiResponse->error(__('messages.file_not_found'), 404);
+        }
+
+        return Storage::disk('public')->response($path, 'qr.png', [
+            'Content-Type' => 'image/png',
+        ]);
+    }
+
+
+
+
 }

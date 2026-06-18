@@ -38,7 +38,7 @@ class DeliveryEmployeeTaskResource extends JsonResource
                     ]
                     : null,
             ]),
-          /*  'delivery_user' => $this->whenLoaded('user', fn () => [
+            /*  'delivery_user' => $this->whenLoaded('user', fn () => [
                 'id' => $this->user->id,
                 'name' => $this->user->name,
                 'email' => $this->user->email,

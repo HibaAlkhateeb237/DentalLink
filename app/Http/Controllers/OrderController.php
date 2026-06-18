@@ -8,10 +8,13 @@ use App\Http\Requests\OrderStoreRequest;
 use App\Http\Resources\DoctorOrderTrackingResource;
 use App\Http\Resources\OrderDetailResource;
 use App\Http\Resources\OrderResource;
+use App\Http\Resources\OrderShortResource;
+use App\Http\Resources\TaskResource;
 use App\Http\Responses\ApiResponse;
 use App\Http\Services\DoctorOrderTrackingService;
 use App\Http\Services\OrderService;
 use App\Models\Order;
+use App\Models\Task;
 use App\Support\OrderStatus;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -83,16 +86,27 @@ class OrderController extends Controller
         );
     }
 
-    public function showByQr(string $qr): JsonResponse
+    public function showByQr(Request $request, string $qr): JsonResponse
     {
         $order = Order::query()
             ->where('qr_code', $qr)
             ->firstOrFail();
 
-        return $this->apiResponse->success(
-            OrderDetailResource::make($order),
-            __('orders.retrieved_successfully')
-        );
+        $task = Task::query()
+            ->where('order_id', $order->id)
+            ->where('user_id', $request->user()->id)
+            ->first();
+
+        if (! $task) {
+            return $this->apiResponse->error(__('You have no task associated with this order.'), 404);
+        }
+
+        $order->load(['toothShade', 'dentalCompensationTypePrice.dentalCompensationType', 'orderTeeth', 'orderFiles']);
+
+        return $this->apiResponse->success([
+            'order' => OrderShortResource::make($order),
+            'task' => TaskResource::make($task),
+        ], __('orders.retrieved_successfully'));
     }
 
     public function track(DoctorOrderTrackRequest $request, Order $order): DoctorOrderTrackingResource

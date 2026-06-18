@@ -49,6 +49,10 @@ Route::prefix('auth')->group(function (): void {
     Route::post('/register/complete', [AuthController::class, 'completeRegister'])->middleware('throttle:api');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:api');
 
+// for testing
+    Route::get('orders/{order}/qr-image/testing', [LabTechnicianTaskController::class, 'qrImage']);
+
+
     Route::middleware('auth:sanctum')->group(function (): void {
         // Dental Compensation Types API (lab_manager)
         Route::middleware(['auth:sanctum', 'role:lab_manager'])->prefix('lab/compensations')->group(function () {
