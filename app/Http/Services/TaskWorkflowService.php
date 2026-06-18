@@ -41,7 +41,7 @@ class TaskWorkflowService
 
                 $this->taskRepository->completeTask($task);
 
-                $nextDepartment = $this->taskRepository->findNextDepartment($task['department']);
+                $nextDepartment = $this->taskRepository->findNextDepartment($task['department'], $task['order_id']);
 
                 if ($nextDepartment) {
 

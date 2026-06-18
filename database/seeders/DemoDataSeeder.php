@@ -360,7 +360,7 @@ class DemoDataSeeder extends Seeder
     {
         $departmentsByLab = [];
 
-        $departmentNames = ['Ceramics', 'Orthodontics', 'Implants'];
+        $departmentNames = ['Gypsum', 'Edges', 'Design'];
         $compensationTypes = ['Zircon Crown', 'E-Max Veneer', 'Implant Abutment', 'Temporary Crown'];
         $firstLabId = $labs[0]->id ?? null;
 
@@ -727,23 +727,30 @@ class DemoDataSeeder extends Seeder
                 ->pluck('dental_compensation_type_prices.id')
                 ->values();
 
-            // Update order with shade and price
             $order->update([
                 'tooth_shade_id' => $shadeIds->get('A2'),
                 'dental_compensation_type_price_id' => $priceIds->get(0),
             ]);
 
-            OrderFile::query()->create([
-                'order_id' => $order->id,
-                'file_path' => 'orders/'.$order->id.'/scan-before.jpg',
-                'file_type' => 'before_image',
-                'uploaded_at' => $order->created_at,
-            ]);
+            $beforeSeed = 'seed-files/before-scan-'.(($index % 3) + 1).'.jpg';
+            $beforePath = 'orders/'.$order->qr_code.'/scan-before.jpg';
+            Storage::disk('public')->copy($beforeSeed, $beforePath);
 
             OrderFile::query()->create([
                 'order_id' => $order->id,
-                'file_path' => 'orders/'.$order->id.'/scan-after.jpg',
-                'file_type' => 'after_image',
+                'file_path' => $beforePath,
+                'file_type' => 'image',
+                'uploaded_at' => $order->created_at,
+            ]);
+
+            $afterSeed = 'seed-files/after-scan-'.(($index % 3) + 1).'.jpg';
+            $afterPath = 'orders/'.$order->qr_code.'/scan-after.jpg';
+            Storage::disk('public')->copy($afterSeed, $afterPath);
+
+            OrderFile::query()->create([
+                'order_id' => $order->id,
+                'file_path' => $afterPath,
+                'file_type' => 'image',
                 'uploaded_at' => $order->created_at?->addDay(),
             ]);
 
@@ -771,7 +778,7 @@ class DemoDataSeeder extends Seeder
      */
     private function seedTasksAndWorkSessions(array $orders, array $departmentsByLab, array $technicianIdsByDepartment): void
     {
-        // 1. جلب أقسام المخبر الأول فقط لضمان الترتيب الثابت (1: Ceramics, 2: Orthodontics, 3: Implants)
+        // 1. جلب أقسام المخبر الأول فقط لضمان الترتيب الثابت (1: Gypsum, 2: Edges, 3: Design)
         $firstLabDepartments = $departmentsByLab[1] ?? [];
 
         // 2. فلترة المصفوفة أو جلب أول 5 طلبات تابعة للمخبر الأول حصراً (lab_id = 1)
@@ -782,21 +789,21 @@ class DemoDataSeeder extends Seeder
             return;
         }
 
-        $ceramics = $firstLabDepartments[0];
-        $orthodontics = $firstLabDepartments[1];
-        $implants = $firstLabDepartments[2];
+        $gypsum = $firstLabDepartments[0];
+        $edges = $firstLabDepartments[1];
+        $design = $firstLabDepartments[2];
 
         // جلب معرّفات الفنيين لكل قسم في المخبر الأول
-        $techCeramics = $technicianIdsByDepartment[$ceramics->id] ?? null;
-        $techOrtho = $technicianIdsByDepartment[$orthodontics->id] ?? null;
-        $techImplants = $technicianIdsByDepartment[$implants->id] ?? null;
+        $techGypsum = $technicianIdsByDepartment[$gypsum->id] ?? null;
+        $techEdges = $technicianIdsByDepartment[$edges->id] ?? null;
+        $techDesign = $technicianIdsByDepartment[$design->id] ?? null;
 
-        // --- [الطلب الأول: بانتظار الإسناد في قسم Ceramics] ---
+        // --- [الطلب الأول: بانتظار الإسناد في قسم Gypsum] ---
         $order1 = $firstLabOrders[0];
         $order1->update(['status' => OrderStatus::PENDING]);
         Task::query()->create([
             'order_id' => $order1->id,
-            'department_id' => $ceramics->id,
+            'department_id' => $gypsum->id,
             'user_id' => null, // لم يُسند بعد ليعبئ تبويب "مهام للإسناد"
             'status' => TaskStatus::PENDING_ASSIGNMENT,
         ]);
@@ -806,18 +813,18 @@ class DemoDataSeeder extends Seeder
         $order2->update(['status' => OrderStatus::IN_PROGRESS]);
         Task::query()->create([
             'order_id' => $order2->id,
-            'department_id' => $ceramics->id,
-            'user_id' => $techCeramics,
+            'department_id' => $gypsum->id,
+            'user_id' => $techGypsum,
             'status' => TaskStatus::ASSIGNED,
         ]);
 
-        // --- [الطلب الثالث: قيد العمل عليه من قبل فني Ceramics] ---
+        // --- [الطلب الثالث: قيد العمل عليه من قبل فني Gypsum] ---
         $order3 = $firstLabOrders[2];
         $order3->update(['status' => OrderStatus::IN_PROGRESS]);
         $task3 = Task::query()->create([
             'order_id' => $order3->id,
-            'department_id' => $ceramics->id,
-            'user_id' => $techCeramics,
+            'department_id' => $gypsum->id,
+            'user_id' => $techGypsum,
             'status' => TaskStatus::IN_PROGRESS,
         ]);
         TaskWorkSession::query()->create([
@@ -833,8 +840,8 @@ class DemoDataSeeder extends Seeder
         $order4->update(['status' => OrderStatus::IN_PROGRESS]);
         $task4 = Task::query()->create([
             'order_id' => $order4->id,
-            'department_id' => $ceramics->id,
-            'user_id' => $techCeramics,
+            'department_id' => $gypsum->id,
+            'user_id' => $techGypsum,
             'status' => TaskStatus::PENDING_REVIEW, // يظهر في تبويب "بحاجة لتقييم"
         ]);
         TaskWorkSession::query()->create([
@@ -849,11 +856,11 @@ class DemoDataSeeder extends Seeder
         $order5 = $firstLabOrders[4];
         $order5->update(['status' => OrderStatus::COMPLETED]);
 
-        // 1. مهمة Ceramics المنتهية تاريخياً
+        // 1. مهمة Gypsum المنتهية تاريخياً
         $task5 = Task::query()->create([
             'order_id' => $order5->id,
-            'department_id' => $ceramics->id,
-            'user_id' => $techCeramics,
+            'department_id' => $gypsum->id,
+            'user_id' => $techGypsum,
             'status' => TaskStatus::COMPLETED,
             'approved_at' => now()->subDays(2),
         ]);
@@ -865,11 +872,11 @@ class DemoDataSeeder extends Seeder
             'note' => 'تم الانتهاء من صب ونحت الخزف بنجاح',
         ]);
 
-        // 2. مهمة Orthodontics المنتهية تاريخياً
+        // 2. مهمة Edges المنتهية تاريخياً
         $task6 = Task::query()->create([
             'order_id' => $order5->id,
-            'department_id' => $orthodontics->id,
-            'user_id' => $techOrtho,
+            'department_id' => $edges->id,
+            'user_id' => $techEdges,
             'status' => TaskStatus::COMPLETED,
             'approved_at' => now()->subDays(1),
         ]);
@@ -881,11 +888,11 @@ class DemoDataSeeder extends Seeder
             'note' => 'تم تجهيز أسلاك وتقويم الحالة بالكامل',
         ]);
 
-        // 3. مهمة Implants المنتهية تاريخياً (آخر قسم)
+        // 3. مهمة Design المنتهية تاريخياً (آخر قسم)
         $task7 = Task::query()->create([
             'order_id' => $order5->id,
-            'department_id' => $implants->id,
-            'user_id' => $techImplants,
+            'department_id' => $design->id,
+            'user_id' => $techDesign,
             'status' => TaskStatus::COMPLETED,
             'approved_at' => now()->subHours(5),
         ]);
@@ -896,6 +903,59 @@ class DemoDataSeeder extends Seeder
             'status' => 'completed',
             'note' => 'إنهاء تحضير دعم الزرعة النهائي وإرسالها للمدير للتقييم الأخير',
         ]);
+
+        // Seed tasks for all remaining orders across all labs
+        $handledIds = $firstLabOrders->pluck('id')->toArray();
+
+        foreach ($orders as $order) {
+            if (in_array($order->id, $handledIds, true)) {
+                continue;
+            }
+
+            $labDepts = collect($departmentsByLab[$order->lab_id] ?? [])
+                ->reject(fn (Department $d) => $d->is_management || in_array($d->name, ['Reception', 'Delivery']))
+                ->values();
+
+            if ($labDepts->isEmpty()) {
+                continue;
+            }
+
+            $firstDept = $labDepts[0];
+
+            match ($order->status) {
+                OrderStatus::PENDING => Task::query()->create([
+                    'order_id' => $order->id,
+                    'department_id' => $firstDept->id,
+                    'status' => TaskStatus::PENDING_ASSIGNMENT,
+                ]),
+                OrderStatus::IN_PROGRESS => Task::query()->create([
+                    'order_id' => $order->id,
+                    'department_id' => $firstDept->id,
+                    'user_id' => $technicianIdsByDepartment[$firstDept->id] ?? null,
+                    'status' => rand(0, 1) ? TaskStatus::ASSIGNED : TaskStatus::IN_PROGRESS,
+                ]),
+                OrderStatus::TRY_ON, OrderStatus::RESEND_WRONG_IMPRESSION => Task::query()->create([
+                    'order_id' => $order->id,
+                    'department_id' => $firstDept->id,
+                    'user_id' => $technicianIdsByDepartment[$firstDept->id] ?? null,
+                    'status' => rand(0, 1) ? TaskStatus::ASSIGNED : TaskStatus::IN_PROGRESS,
+                ]),
+                OrderStatus::COMPLETED => collect([$labDepts[0], $labDepts->get(1), $labDepts->get(2)])
+                    ->filter()
+                    ->each(fn (Department $dept) => Task::query()->create([
+                        'order_id' => $order->id,
+                        'department_id' => $dept->id,
+                        'user_id' => $technicianIdsByDepartment[$dept->id] ?? null,
+                        'status' => TaskStatus::COMPLETED,
+                        'approved_at' => now()->subHours(rand(1, 48)),
+                    ])),
+                default => Task::query()->create([
+                    'order_id' => $order->id,
+                    'department_id' => $firstDept->id,
+                    'status' => TaskStatus::PENDING_ASSIGNMENT,
+                ]),
+            };
+        }
     }
 
     /**

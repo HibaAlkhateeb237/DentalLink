@@ -31,6 +31,10 @@ class DoctorOrderTrackingResource extends JsonResource
             $days = 0;
         }
 
+        $hours = floor($totalMinutes / 60);
+        $minutes = $totalMinutes % 60;
+        $countdownText = sprintf('%02d:%02d:00', $hours, $minutes);
+
         return [
             'order_id' => $this['order_id'],
             'serial_number' => $this['serial_number'],

@@ -43,6 +43,8 @@ class DoctorOrderTrackingService
 
             } elseif ($task && in_array($task->status, ['assigned', 'in_progress', 'pending_review'])) {
                 $stepStatus = 'current';
+                $hasFoundCurrent = true;
+
                 $diff = $allowedMinutes - $workedMinutes;
                 $remainingMinutesForStep = max($diff, 0);
 
@@ -50,6 +52,8 @@ class DoctorOrderTrackingService
 
                 $stepStatus = 'upcoming';
                 $remainingMinutesForStep = $allowedMinutes;
+
+                $totalRemainingMinutes += $remainingMinutesForStep;
 
             }
 

@@ -59,10 +59,13 @@ class EmployeeUpdateRequest extends FormRequest
             'role_id' => [
                 'sometimes',
                 'integer',
-                Rule::exists('roles', 'id')->where(function ($query): void {
+                Rule::exists('roles', 'id')->where(function ($query) use ($managerLabId): void {
                     $query
                         ->where('guard_name', 'sanctum')
-                        ->whereIn('name', EmployeeRoles::allowed());
+                        ->where(function ($q) use ($managerLabId): void {
+                            $q->whereNull('lab_id')->whereIn('name', EmployeeRoles::system())
+                                ->orWhere('lab_id', $managerLabId);
+                        });
                 }),
             ],
         ];
@@ -111,11 +114,16 @@ class EmployeeUpdateRequest extends FormRequest
             return null;
         }
 
+        $managerLabId = $this->resolveManagerLabId();
+
         return DepartmentUserRole::query()
             ->join('roles', 'roles.id', '=', 'department_user_roles.role_id')
             ->where('department_user_roles.user_id', $employee->id)
             ->where('roles.guard_name', 'sanctum')
-            ->whereIn('roles.name', EmployeeRoles::allowed())
+            ->where(function ($q) use ($managerLabId): void {
+                $q->whereNull('roles.lab_id')->whereIn('roles.name', EmployeeRoles::system())
+                    ->orWhere('roles.lab_id', $managerLabId);
+            })
             ->value('roles.name');
     }
 

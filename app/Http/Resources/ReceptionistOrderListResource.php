@@ -22,8 +22,8 @@ class ReceptionistOrderListResource extends JsonResource
             'serial_number' => $this->serial_number,
             'received_at' => $this->received_at?->toISOString(),
             'delivered_at' => $this->delivered_at?->toISOString(),
-            'remaining_time' => $this->delivered_at
-                ? max(0, now()->diffInDays($this->delivered_at, false))
+            'remaining_days' => $this->delivered_at
+                ? max(0, (int) now()->diffInDays($this->delivered_at, false))
                 : null,
             'tooth_shade_name' => $this->toothShade?->name,
             'material_type' => $this->dentalCompensationTypePrice?->dentalCompensationType?->name,

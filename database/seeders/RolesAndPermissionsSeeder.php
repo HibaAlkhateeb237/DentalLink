@@ -17,12 +17,13 @@ class RolesAndPermissionsSeeder extends Seeder
             ->map(static fn (string $role): array => [
                 'name' => $role,
                 'guard_name' => 'sanctum',
+                'lab_id' => null,
                 'created_at' => $now,
                 'updated_at' => $now,
             ])
             ->all();
 
-        Role::query()->upsert($roleRows, ['name', 'guard_name'], ['updated_at']);
+        Role::query()->upsert($roleRows, ['name', 'guard_name', 'lab_id'], ['updated_at']);
 
         $permissionRows = collect(Rbac::permissions())
             ->map(static fn (string $permission): array => [
