@@ -35,9 +35,6 @@ class DeliveryEmployeeUpdateStatusRequest extends FormRequest
             $allowedNextStatuses = [];
         }
 
-
-
-
         return [
             'status' => [
                 'required',

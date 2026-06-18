@@ -45,7 +45,6 @@ class DoctorOrderTrackingService
                 $stepStatus = 'current';
                 $hasFoundCurrent = true;
 
-
                 $diff = $allowedMinutes - $workedMinutes;
                 $remainingMinutesForStep = max($diff, 0);
 
@@ -54,8 +53,7 @@ class DoctorOrderTrackingService
                 $stepStatus = 'upcoming';
                 $remainingMinutesForStep = $allowedMinutes;
 
-
-                    $totalRemainingMinutes += $remainingMinutesForStep;
+                $totalRemainingMinutes += $remainingMinutesForStep;
 
             }
 
