@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\OrderStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -122,6 +123,12 @@ class Order extends Model
     public function currentTask(): ?Task
     {
         if (! $this->relationLoaded('tasks')) {
+            return null;
+        }
+
+        $processingStatuses = [OrderStatus::IN_PROGRESS, OrderStatus::TRY_ON, OrderStatus::RESEND_WRONG_IMPRESSION];
+
+        if (! in_array($this->status, $processingStatuses, true)) {
             return null;
         }
 

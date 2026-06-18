@@ -9,6 +9,7 @@ Dental lab management REST API (no Blade UI). Laravel 12, PHP 8.2, Sanctum token
 | Action | Command |
 |--------|---------|
 | Full setup | `composer run setup` |
+| Seed demo data | `composer run seed:demo` |
 | Dev servers | `composer run dev` (serves + queue:listen + vite) |
 | Run all tests | `php artisan test --compact` |
 | Single test/file | `php artisan test --compact --filter=testName` or `path/to/Test.php` |
