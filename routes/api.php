@@ -15,6 +15,7 @@ use App\Http\Controllers\LabPortfolioController;
 use App\Http\Controllers\LabPricingController;
 use App\Http\Controllers\LabRoleController;
 use App\Http\Controllers\LabTechnicianTaskController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ReceptionistDeliveryTaskController;
 use App\Http\Controllers\ReceptionistOrderController;
@@ -180,8 +181,12 @@ Route::prefix('auth')->group(function (): void {
             Route::post('/device-tokens', [DeviceTokenController::class, 'store'])->name('device-tokens.store');
             Route::delete('/device-tokens/{deviceToken}', [DeviceTokenController::class, 'destroy'])->name('device-tokens.destroy');
 
+            Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+
+
         });
         // =======================================================================================================
+
 
         // ====================================department_manager===================================================
 

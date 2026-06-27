@@ -26,8 +26,8 @@ class TaskAssigned extends Notification implements ShouldQueue
     public function toFcm(object $notifiable): array
     {
         return [
-            'title' => 'مهمة جديدة',
-            'body' => 'تم إسناد مهمة جديدة لك في قسم '.($this->task->department->name ?? '').'.',
+            'title' => 'New task assigned',
+            'body' => 'You have been assigned a new task in the department '.($this->task->department->name ?? '').'.',
             'data' => [
                 'task_id' => (string) $this->task->id,
                 'order_id' => (string) $this->task->order_id,
@@ -42,7 +42,7 @@ class TaskAssigned extends Notification implements ShouldQueue
             'task_id' => $this->task->id,
             'order_id' => $this->task->order_id,
             'department_id' => $this->task->department_id,
-            'message' => 'تم إسناد مهمة جديدة لك.',
+            'message' => 'You have been assigned a new task.',
         ];
     }
 }
