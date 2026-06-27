@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'fcm' => [
+        'credentials_path' => env('FCM_CREDENTIALS_PATH'),
+    ],
+
 ];

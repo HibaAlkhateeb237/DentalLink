@@ -3,6 +3,8 @@
 namespace App\Http\Services;
 
 use App\Models\Task;
+use App\Models\User;
+use App\Notifications\Task\TaskAssigned;
 use App\Repositories\TaskRepository;
 use App\Support\OrderStatus;
 use App\Support\TaskStatus;
@@ -144,6 +146,11 @@ class TaskWorkflowService
         try {
             return DB::transaction(function () use ($task, $technicianId) {
                 $this->taskRepository->assignTechnicianToTask($task, $technicianId);
+
+                $technician = User::find($technicianId);
+                if ($technician) {
+                    $technician->notify(new TaskAssigned($task->fresh()));
+                }
 
                 return 'تم تعيين الفني بنجاح، والمهمة الآن جاهزة لبدء العمل عليها.';
             });

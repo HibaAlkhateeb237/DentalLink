@@ -7,6 +7,7 @@ use App\Http\Controllers\DeliveryEmployeeTaskController;
 use App\Http\Controllers\DentalCompensationTypeController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DepartmentManagerTaskController;
+use App\Http\Controllers\DeviceTokenController;
 use App\Http\Controllers\LabController;
 use App\Http\Controllers\LabEmployeeController;
 use App\Http\Controllers\LabManagerOrderController;
@@ -49,9 +50,8 @@ Route::prefix('auth')->group(function (): void {
     Route::post('/register/complete', [AuthController::class, 'completeRegister'])->middleware('throttle:api');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:api');
 
-// for testing
+    // for testing
     Route::get('orders/{order}/qr-image/testing', [LabTechnicianTaskController::class, 'qrImage']);
-
 
     Route::middleware('auth:sanctum')->group(function (): void {
         // Dental Compensation Types API (lab_manager)
@@ -94,6 +94,7 @@ Route::prefix('auth')->group(function (): void {
 
             Route::get('/{lab}/materials', [LabPricingController::class, 'materials'])->name('labs.materials.index');
         });
+
 
         Route::get('/tooth-shades', [ToothShadeController::class, 'index'])->name('tooth-shades.index');
 
@@ -175,6 +176,10 @@ Route::prefix('auth')->group(function (): void {
             Route::get('orders/qr/{qr}', [OrderController::class, 'showByQr'])->name('orders.show-qr');
             Route::post('orders/qr/{qr}/start', [LabTechnicianTaskController::class, 'startByQr'])->name('lab.technician.orders.qr.start');
             Route::post('orders/qr/{qr}/finish', [LabTechnicianTaskController::class, 'finishByQr'])->name('lab.technician.orders.qr.finish');
+
+            Route::post('/device-tokens', [DeviceTokenController::class, 'store'])->name('device-tokens.store');
+            Route::delete('/device-tokens/{deviceToken}', [DeviceTokenController::class, 'destroy'])->name('device-tokens.destroy');
+
         });
         // =======================================================================================================
 
