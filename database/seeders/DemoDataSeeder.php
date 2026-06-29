@@ -736,6 +736,7 @@ class DemoDataSeeder extends Seeder
             $beforePath = 'orders/'.$order->qr_code.'/scan-before.jpg';
             Storage::disk('public')->copy($beforeSeed, $beforePath);
 
+            
             OrderFile::query()->create([
                 'order_id' => $order->id,
                 'file_path' => $beforePath,
