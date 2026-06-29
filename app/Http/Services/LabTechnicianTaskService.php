@@ -96,8 +96,8 @@ class LabTechnicianTaskService
         });
     }
 
-    public function paginateDepartmentTasks(User $user, Department $department, ?string $status , ?string $priority , int $perPage = 15): LengthAwarePaginator
+    public function paginateDepartmentTasks(User $user, Department $department, ?string $status, ?string $priority, int $perPage = 15): LengthAwarePaginator
     {
-        return $this->tasks->paginateForDepartmentAndUser($user, $department, $status,   $priority, $perPage);
+        return $this->tasks->paginateForDepartmentAndUser($user, $department, $status, $priority, $perPage);
     }
 }

@@ -85,8 +85,6 @@ class LabTechnicianTaskController extends Controller
         }
     }
 
-
-
     public function qrImage(Order $order): Response|JsonResponse
     {
         $path = $order->qr_image_path;
@@ -99,8 +97,4 @@ class LabTechnicianTaskController extends Controller
             'Content-Type' => 'image/png',
         ]);
     }
-
-
-
-
 }

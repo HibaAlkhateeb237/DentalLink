@@ -98,6 +98,11 @@ class User extends Authenticatable
         return $this->hasMany(DeliveryTask::class);
     }
 
+    public function deviceTokens(): HasMany
+    {
+        return $this->hasMany(DeviceToken::class);
+    }
+
     public function departmentUserRoles(): HasMany
     {
         return $this->hasMany(DepartmentUserRole::class);
