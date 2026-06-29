@@ -23,6 +23,7 @@ class DeliveryTaskResource extends JsonResource
             'id' => $this->id,
             'order_id' => $this->order_id,
             'status' => $this->status,
+            'direction' => $this->direction,
             'assigned_at' => $this->created_at?->toDateTimeString(),
             'delivery_user' => $user === null
                 ? null

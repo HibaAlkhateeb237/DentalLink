@@ -52,6 +52,7 @@ class ReceptionistOrderManagementApiTest extends TestCase
             'description' => 'Digital design department',
             'is_management' => false,
             'time_allowed' => 8,
+            'sort_order' => 2,
         ]);
 
         $type = DentalCompensationType::query()->create([
@@ -503,6 +504,7 @@ class ReceptionistOrderManagementApiTest extends TestCase
             'name' => 'Front Desk',
             'description' => null,
             'is_management' => true,
+            'sort_order' => 1,
         ]);
 
         DepartmentUserRole::query()->create([

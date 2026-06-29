@@ -21,7 +21,7 @@ class OrderSeeder extends Seeder
         $targetOrderCount = 50;
         $statusCycle = ['pending', 'accepted', 'in_progress', 'completed', 'delivered'];
         $priorityCycle = ['normal', 'normal', 'urgent'];
-        $orderTypeCycle = ['digital', 'physical', 'hybrid'];
+        $orderTypeCycle = ['digital', 'physical'];
 
         $labIds = Lab::query()->orderBy('id')->limit(5)->pluck('id')->values();
 

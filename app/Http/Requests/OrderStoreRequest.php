@@ -38,7 +38,7 @@ class OrderStoreRequest extends FormRequest
             'tooth_shade_id' => ['required', 'integer', Rule::exists('tooth_shades', 'id')->where('is_active', true)],
             'dental_compensation_type_id' => ['required', 'integer', Rule::in($allowedTypeIds)],
             'priority' => ['required', Rule::in(['normal', 'urgent'])],
-            'order_type' => ['nullable', Rule::in(['digital', 'physical', 'hybrid'])],
+            'order_type' => ['nullable', Rule::in(['digital', 'physical'])],
             'case_type' => ['required', Rule::in(['normal', 'implant', 'bridge'])],
             'notes' => ['nullable', 'string', 'max:2000'],
             'teeth' => ['required', 'array', 'min:1', 'max:32'],
