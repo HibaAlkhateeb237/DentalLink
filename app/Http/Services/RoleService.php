@@ -43,6 +43,7 @@ class RoleService
     {
         return Role::query()
             ->where('guard_name', 'sanctum')
+            ->whereNotIn('name', ['system_admin', 'lab_manager', 'doctor'])
             ->with('permissions:id,name')
             ->orderBy('name')
             ->get()
