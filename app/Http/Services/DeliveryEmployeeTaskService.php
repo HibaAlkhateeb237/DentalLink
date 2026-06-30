@@ -27,9 +27,9 @@ class DeliveryEmployeeTaskService
         $tab = $validated['tab'] ?? 'assigned';
 
         if ($tab === 'completed') {
-            $query->where('status', DeliveryStatus::DELIVERED);
+            $query->whereNotNull('delivered_at');
         } else {
-            $query->whereIn('status', DeliveryStatus::ASSIGNED_STATUSES);
+            $query->whereNull('delivered_at');
         }
 
         if (! empty($validated['direction'])) {
