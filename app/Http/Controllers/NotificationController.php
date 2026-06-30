@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Http\Resources\NotificationResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
@@ -17,15 +17,15 @@ class NotificationController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-       $user = $request->user();
+        $user = $request->user();
 
-       $notifications = Notification::query()->where('notifiable_type', User::class)
+        $notifications = Notification::query()->where('notifiable_type', User::class)
             ->where('notifiable_id', $user->id)
             ->latest()
             ->get();
 
         return $this->apiResponse->success(
-                 NotificationResource::collection($notifications),
+            NotificationResource::collection($notifications),
             __('notifications.retrieved_successfully'),
         );
     }

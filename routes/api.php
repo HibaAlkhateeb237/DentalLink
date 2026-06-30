@@ -96,7 +96,6 @@ Route::prefix('auth')->group(function (): void {
             Route::get('/{lab}/materials', [LabPricingController::class, 'materials'])->name('labs.materials.index');
         });
 
-
         Route::get('/tooth-shades', [ToothShadeController::class, 'index'])->name('tooth-shades.index');
 
         Route::middleware(['role:doctor'])->prefix('doctor/orders')->group(function (): void {
@@ -107,8 +106,6 @@ Route::prefix('auth')->group(function (): void {
             Route::get('/{order}/track', [OrderController::class, 'track'])->name('doctor.orders.track');
             //  Route::post('/{order}/pricing/calculate', [OrderPricingController::class, 'calculate'])->name('orders.pricing.calculate');
         });
-
-
 
         // ----------------------------------receptionist-----------------------------------------------------------------
 
@@ -179,10 +176,8 @@ Route::prefix('auth')->group(function (): void {
             Route::post('orders/qr/{qr}/start', [LabTechnicianTaskController::class, 'startByQr'])->name('lab.technician.orders.qr.start');
             Route::post('orders/qr/{qr}/finish', [LabTechnicianTaskController::class, 'finishByQr'])->name('lab.technician.orders.qr.finish');
 
-
         });
         // =======================================================================================================
-
 
         // ====================================department_manager===================================================
 
@@ -205,9 +200,9 @@ Route::prefix('auth')->group(function (): void {
         Route::middleware(['role:delivery'])->prefix('delivery')->group(function (): void {
             Route::get('/tasks', [DeliveryEmployeeTaskController::class, 'index'])
                 ->name('delivery.tasks.index');
-            Route::post('/tasks/{deliveryTask}/status', [DeliveryEmployeeTaskController::class, 'updateStatus'])
-                ->name('delivery.tasks.status.update');
-        });
+            Route::post('/tasks/status/bulk', [DeliveryEmployeeTaskController::class, 'bulkUpdateStatus'])
+                ->name('delivery.tasks.status.bulk-update');
+              });
 
         // =======================================================================================================
 
@@ -216,11 +211,8 @@ Route::prefix('auth')->group(function (): void {
             Route::post('/device-tokens', [DeviceTokenController::class, 'store'])->name('device-tokens.store');
             Route::delete('/device-tokens/{deviceToken}', [DeviceTokenController::class, 'destroy'])->name('device-tokens.destroy');
 
-
-
         });
 
-
-        //==========================================================================
+        // ==========================================================================
     });
 });

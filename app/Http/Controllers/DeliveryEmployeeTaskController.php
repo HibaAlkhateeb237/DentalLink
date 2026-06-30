@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\DeliveryEmployeeBulkUpdateStatusRequest;
 use App\Http\Requests\DeliveryEmployeeTaskIndexRequest;
 use App\Http\Requests\DeliveryEmployeeUpdateStatusRequest;
 use App\Http\Resources\DeliveryEmployeeTaskResource;
+use App\Http\Resources\DeliveryTaskResource;
 use App\Http\Responses\ApiResponse;
 use App\Http\Services\DeliveryEmployeeTaskService;
 use App\Models\DeliveryTask;
@@ -40,18 +42,24 @@ class DeliveryEmployeeTaskController extends Controller
         );
     }
 
-    public function updateStatus(DeliveryEmployeeUpdateStatusRequest $request, DeliveryTask $deliveryTask): JsonResponse
+
+    public function bulkUpdateStatus(DeliveryEmployeeBulkUpdateStatusRequest $request): JsonResponse
     {
-        $task = $this->deliveryEmployeeTaskService->updateStatus(
-            $deliveryTask,
-            $request->validated('status'),
+        $validated = $request->validated();
+        $deliveryTaskIds = $validated['delivery_task_ids'];
+        $newStatus = $validated['status'];
+
+        $tasks = $this->deliveryEmployeeTaskService->bulkUpdateStatus(
+            $deliveryTaskIds,
+            $newStatus,
+            $request->user(),
         );
 
         return $this->apiResponse->success(
             [
-                'delivery_task' => DeliveryEmployeeTaskResource::make($task)->resolve(),
+                'updated_tasks' => DeliveryTaskResource::collection($tasks)->resolve(),
             ],
-            __('orders.delivery_status_updated'),
+            __('orders.delivery_tasks_updated'),
             200,
         );
     }

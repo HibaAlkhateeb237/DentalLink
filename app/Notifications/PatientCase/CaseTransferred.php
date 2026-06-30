@@ -31,7 +31,7 @@ class CaseTransferred extends Notification implements ShouldQueue
     {
         return [
             'title' => 'Patient Case Transfer',
-            'body' => 'Patient "'.($this->order->patient_name ?? 'Unknown Patient').'" case has been transferred from '. $this->fromDepartmentName . ' to ' . $this->toDepartmentName . '.',
+            'body' => 'Patient "'.($this->order->patient_name ?? 'Unknown Patient').'" case has been transferred from '.$this->fromDepartmentName.' to '.$this->toDepartmentName.'.',
             'data' => [
                 'order_id' => (string) $this->order->id,
                 'from_department' => $this->fromDepartmentName,
@@ -49,6 +49,6 @@ class CaseTransferred extends Notification implements ShouldQueue
             'from_department' => $this->fromDepartmentName,
             'to_department' => $this->toDepartmentName,
             'message' => 'The case of patient "'.($this->order->patient_name ?? 'Unknown Patient').'" has moved from '.$this->fromDepartmentName.' department to '.$this->toDepartmentName.' department.',
-            ];
+        ];
     }
 }

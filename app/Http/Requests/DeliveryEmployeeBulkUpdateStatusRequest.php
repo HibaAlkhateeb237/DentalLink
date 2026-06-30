@@ -2,44 +2,35 @@
 
 namespace App\Http\Requests;
 
-use App\Models\DeliveryTask;
 use App\Support\DeliveryStatus;
-use App\Support\DeliveryTaskDirection;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class DeliveryEmployeeUpdateStatusRequest extends FormRequest
+class DeliveryEmployeeBulkUpdateStatusRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $deliveryTask = $this->route('deliveryTask');
-
-        if (! $deliveryTask instanceof DeliveryTask) {
-            return false;
-        }
-
-        return $this->user()?->can('update', $deliveryTask) ?? false;
+        return $this->user()?->hasPermission('delivery.update-status') ?? false;
     }
 
     public function rules(): array
     {
-        $deliveryTask = $this->route('deliveryTask');
-        $currentStatus = $deliveryTask->status;
-
-        if ($deliveryTask->direction === DeliveryTaskDirection::TO_DOCTOR) {
-            $allowedNextStatuses = DeliveryStatus::TRANSITIONS_To_Doctor[$currentStatus] ?? [];
-        } elseif ($deliveryTask->direction === DeliveryTaskDirection::TO_LAB) {
-            $allowedNextStatuses = DeliveryStatus::TRANSITIONS_To_Lab[$currentStatus] ?? [];
-        } else {
-            $allowedNextStatuses = [];
-        }
-
         return [
+            'delivery_task_ids' => [
+                'required',
+                'array',
+                'min:1',
+            ],
+            'delivery_task_ids.*' => [
+                'required',
+                'integer',
+                'exists:delivery_tasks,id',
+            ],
             'status' => [
                 'required',
                 'string',
-                'in:'.implode(',', $allowedNextStatuses),
+                'in:'.implode(',', DeliveryStatus::ALL),
             ],
         ];
     }
@@ -47,7 +38,10 @@ class DeliveryEmployeeUpdateStatusRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'status.in' => __('orders.delivery_status_transition_invalid'),
+            'delivery_task_ids.required' => __('orders.delivery_task_ids_required'),
+            'delivery_task_ids.min' => __('orders.delivery_task_ids_min_one'),
+            'delivery_task_ids.*.exists' => __('orders.delivery_task_id_not_found'),
+            'status.in' => __('orders.delivery_status_invalid'),
         ];
     }
 

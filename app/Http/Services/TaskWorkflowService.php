@@ -2,11 +2,11 @@
 
 namespace App\Http\Services;
 
+use App\Models\Department;
 use App\Models\Task;
 use App\Models\User;
-use App\Models\Department;
-use App\Notifications\Task\TaskAssigned;
 use App\Notifications\PatientCase\CaseTransferred;
+use App\Notifications\Task\TaskAssigned;
 use App\Repositories\TaskRepository;
 use App\Support\OrderStatus;
 use App\Support\TaskStatus;
@@ -152,18 +152,18 @@ class TaskWorkflowService
         }
     }
 
-public function notifyDoctorsAboutCaseTransfer(Task $task, Department $fromDepartment, Department $toDepartment): void
-{
-    $order = $task->order;
-    $doctor = $order->user;
-    if ($doctor) {
-        $doctor->notify(
-            new CaseTransferred(
-                $order,
-                $fromDepartment->name,
-                $toDepartment->name
-            )
-        );
+    public function notifyDoctorsAboutCaseTransfer(Task $task, Department $fromDepartment, Department $toDepartment): void
+    {
+        $order = $task->order;
+        $doctor = $order->user;
+        if ($doctor) {
+            $doctor->notify(
+                new CaseTransferred(
+                    $order,
+                    $fromDepartment->name,
+                    $toDepartment->name
+                )
+            );
+        }
     }
-}
 }
