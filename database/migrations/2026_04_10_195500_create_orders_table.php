@@ -26,7 +26,7 @@ return new class extends Migration
 
             $table->string('status')->default('pending');
 
-            $table->enum('order_type', ['digital', 'physical', 'hybrid'])->default('digital');
+            $table->enum('order_type', ['digital', 'physical'])->default('digital');
             $table->text('notes')->nullable();
             $table->decimal('price', 10, 2)->default(0);
             $table->decimal('remaining_amount', 10, 2)->default(0);

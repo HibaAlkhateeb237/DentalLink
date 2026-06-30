@@ -605,7 +605,7 @@ class DemoDataSeeder extends Seeder
     {
         $statuses = OrderStatus::ALL;
         $priorities = ['normal', 'urgent'];
-        $types = ['digital', 'physical', 'hybrid'];
+        $types = ['digital', 'physical'];
 
         $caseTypes = ['normal', 'implant', 'bridge'];
         $patientNames = ['Ali', 'Ahmad', 'Omar', 'Laila', 'Nour', 'Yousef'];
@@ -735,6 +735,7 @@ class DemoDataSeeder extends Seeder
             $beforeSeed = 'seed-files/before-scan-'.(($index % 3) + 1).'.jpg';
             $beforePath = 'orders/'.$order->qr_code.'/scan-before.jpg';
             Storage::disk('public')->copy($beforeSeed, $beforePath);
+
 
             OrderFile::query()->create([
                 'order_id' => $order->id,
