@@ -105,9 +105,10 @@ Route::prefix('auth')->group(function (): void {
             Route::get('/{order}', [OrderController::class, 'show'])->name('doctor.orders.show');
 
             Route::get('/{order}/track', [OrderController::class, 'track'])->name('doctor.orders.track');
-
             //  Route::post('/{order}/pricing/calculate', [OrderPricingController::class, 'calculate'])->name('orders.pricing.calculate');
         });
+
+
 
         // ----------------------------------receptionist-----------------------------------------------------------------
 
@@ -178,11 +179,6 @@ Route::prefix('auth')->group(function (): void {
             Route::post('orders/qr/{qr}/start', [LabTechnicianTaskController::class, 'startByQr'])->name('lab.technician.orders.qr.start');
             Route::post('orders/qr/{qr}/finish', [LabTechnicianTaskController::class, 'finishByQr'])->name('lab.technician.orders.qr.finish');
 
-            Route::post('/device-tokens', [DeviceTokenController::class, 'store'])->name('device-tokens.store');
-            Route::delete('/device-tokens/{deviceToken}', [DeviceTokenController::class, 'destroy'])->name('device-tokens.destroy');
-
-            Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
-
 
         });
         // =======================================================================================================
@@ -215,5 +211,16 @@ Route::prefix('auth')->group(function (): void {
 
         // =======================================================================================================
 
+        Route::middleware(['role:doctor,lab_technician'])->prefix('notifications')->group(function (): void {
+            Route::get('/', [NotificationController::class, 'index'])->name('notifications.index');
+            Route::post('/device-tokens', [DeviceTokenController::class, 'store'])->name('device-tokens.store');
+            Route::delete('/device-tokens/{deviceToken}', [DeviceTokenController::class, 'destroy'])->name('device-tokens.destroy');
+
+
+
+        });
+
+
+        //==========================================================================
     });
 });

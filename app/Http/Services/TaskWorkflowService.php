@@ -4,7 +4,9 @@ namespace App\Http\Services;
 
 use App\Models\Task;
 use App\Models\User;
+use App\Models\Department;
 use App\Notifications\Task\TaskAssigned;
+use App\Notifications\PatientCase\CaseTransferred;
 use App\Repositories\TaskRepository;
 use App\Support\OrderStatus;
 use App\Support\TaskStatus;
@@ -40,34 +42,22 @@ class TaskWorkflowService
 
         try {
             return DB::transaction(function () use ($task) {
-
                 $this->taskRepository->completeTask($task);
 
+                $currentDepartment = $task['department'];
                 $nextDepartment = $this->taskRepository->findNextDepartment($task['department'], $task['order_id']);
 
                 if ($nextDepartment) {
 
                     $newTask = $this->taskRepository->createNextStageTask($task['order_id'], $nextDepartment['id']);
-
-                    /*   return [
-                           'is_order_completed' => false,
-                           'next_department' => $nextDepartment['name'],
-                           'task' => $newTask
-                       ];*/
+                    $this->notifyDoctorsAboutCaseTransfer($task, $currentDepartment, $nextDepartment);
 
                     return "تم إنهاء المهمة ونقلها إلى القسم التالي: ({$nextDepartment['name']}).";
-
                 }
 
                 $task->order()->update([
                     'status' => OrderStatus::COMPLETED,
                 ]);
-
-                /*  return [
-                      'is_order_completed' => true,
-                      'next_department' => null,
-                      'task' => null
-                  ];*/
 
                 return 'تم إنهاء المرحلة الأخيرة بنجاح، والطلب الآن مكتمل بالكامل وجاهز للتسليم!';
             });
@@ -161,4 +151,19 @@ class TaskWorkflowService
             throw new HttpException(500, 'حدث خطأ أثناء عملية التعيين: '.$e->getMessage());
         }
     }
+
+public function notifyDoctorsAboutCaseTransfer(Task $task, Department $fromDepartment, Department $toDepartment): void
+{
+    $order = $task->order;
+    $doctor = $order->user;
+    if ($doctor) {
+        $doctor->notify(
+            new CaseTransferred(
+                $order,
+                $fromDepartment->name,
+                $toDepartment->name
+            )
+        );
+    }
+}
 }
