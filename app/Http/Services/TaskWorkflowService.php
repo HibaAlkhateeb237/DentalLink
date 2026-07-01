@@ -5,11 +5,13 @@ namespace App\Http\Services;
 use App\Models\Department;
 use App\Models\Task;
 use App\Models\User;
+use App\Notifications\Order\OrderProcessingStarted;
 use App\Notifications\PatientCase\CaseTransferred;
 use App\Notifications\Task\TaskAssigned;
 use App\Repositories\TaskRepository;
 use App\Support\OrderStatus;
 use App\Support\TaskStatus;
+use App\Http\Services\OrderNotificationService;
 use Exception;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -19,10 +21,14 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 class TaskWorkflowService
 {
     protected TaskRepository $taskRepository;
+    protected OrderNotificationService $orderNotificationService;
 
-    public function __construct(TaskRepository $taskRepository)
-    {
+    public function __construct(
+        TaskRepository $taskRepository,
+        OrderNotificationService $orderNotificationService
+    ) {
         $this->taskRepository = $taskRepository;
+        $this->orderNotificationService = $orderNotificationService;
     }
 
     public function moveForward(Task $task): string
@@ -58,6 +64,8 @@ class TaskWorkflowService
                 $task->order()->update([
                     'status' => OrderStatus::COMPLETED,
                 ]);
+
+                $this->orderNotificationService->notifyOrderCompleted($task->order);
 
                 return 'تم إنهاء المرحلة الأخيرة بنجاح، والطلب الآن مكتمل بالكامل وجاهز للتسليم!';
             });
