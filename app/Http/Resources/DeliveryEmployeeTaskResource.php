@@ -9,7 +9,7 @@ class DeliveryEmployeeTaskResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        return [
+        $array = [
             'id' => $this->id,
             'order_id' => $this->order_id,
             'status' => $this->status,
@@ -27,16 +27,7 @@ class DeliveryEmployeeTaskResource extends JsonResource
                 'notes' => $this->order->notes,
                 'price' => $this->order->price,
                 'created_at' => $this->order->created_at?->toISOString(),
-                'doctor' => $this->order->relationLoaded('user')
-                    ? [
-                        'id' => $this->order->user->id,
-                        'name' => $this->order->user->name,
-                        'phone' => $this->order->user->phone,
-                        'location' => $this->order->user->location,
-                        'location_lat' => $this->order->user->location_lat,
-                        'location_lng' => $this->order->user->location_lng,
-                    ]
-                    : null,
+               
             ]),
             /*  'delivery_user' => $this->whenLoaded('user', fn () => [
                 'id' => $this->user->id,
@@ -45,5 +36,7 @@ class DeliveryEmployeeTaskResource extends JsonResource
                 'phone' => $this->user->phone,
             ]),*/
         ];
+
+        return $array;
     }
 }

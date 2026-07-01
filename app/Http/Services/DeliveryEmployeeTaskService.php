@@ -2,6 +2,7 @@
 
 namespace App\Http\Services;
 
+use App\Http\Resources\DeliveryEmployeeTaskResource;
 use App\Models\DeliveryTask;
 use App\Models\User;
 use App\Support\DeliveryStatus;
@@ -39,6 +40,74 @@ class DeliveryEmployeeTaskService
         $perPage = (int) ($validated['per_page'] ?? 15);
 
         return $query->paginate($perPage);
+    }
+
+    public function getGroupedTasks(User $deliveryUser, array $validated): array
+    {
+        $tasks = $deliveryUser->deliveryTasks()
+            ->with(['order.user', 'user'])
+            ->orderByDesc('id');
+
+        $tab = $validated['tab'] ?? 'assigned';
+
+        if ($tab === 'completed') {
+            $tasks->whereNotNull('delivered_at');
+        } else {
+            $tasks->whereNull('delivered_at');
+        }
+
+        if (! empty($validated['direction'])) {
+            $tasks->where('direction', $validated['direction']);
+        }
+
+        $perPage = (int) ($validated['per_page'] ?? 15);
+
+        $paginated = $tasks->paginate($perPage);
+
+        $groupedTasks = [];
+        foreach ($paginated as $task) {
+            $doctorId = $task->order->user->id;
+            $doctorName = $task->order->user->name;
+            $doctorPhone = $task->order->user->phone;
+            $doctorLocation = $task->order->user->location;
+            $doctorLocationLat = $task->order->user->location_lat;
+            $doctorLocationLng = $task->order->user->location_lng;
+            $doctor = [
+                'id' => $doctorId,
+                'name' => $doctorName,
+                'phone' => $doctorPhone,
+                'location' => $doctorLocation,
+                'location_lat' => $doctorLocationLat,
+                'location_lng' => $doctorLocationLng,
+            ];
+
+            $groupKey = $doctorId . '_' . $task->status;
+
+            if (! isset($groupedTasks[$groupKey])) {
+                $groupedTasks[$groupKey] = [
+                    'doctor' => $doctor,
+                    'status' => $task->status,
+                    'tasks_count' => 0,
+                    'tasks' => [],
+                ];
+            }
+
+            $groupedTasks[$groupKey]['tasks_count']++;
+            $groupedTasks[$groupKey]['tasks'][] = DeliveryEmployeeTaskResource::make($task)->toArray($request = request());
+        }
+
+        return [
+            'data' => array_values($groupedTasks),
+            'links' => $paginated->linkCollection()->toArray(),
+            'meta' => [
+                'current_page' => $paginated->currentPage(),
+                'from' => $paginated->firstItem(),
+                'to' => $paginated->lastItem(),
+                'last_page' => $paginated->lastPage(),
+                'per_page' => $paginated->perPage(),
+                'total' => $paginated->total(),
+            ],
+        ];
     }
 
 public function bulkUpdateStatus(

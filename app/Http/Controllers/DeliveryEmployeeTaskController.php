@@ -27,16 +27,14 @@ class DeliveryEmployeeTaskController extends Controller
             return $this->apiResponse->error(__('auth.unauthenticated'), 401);
         }
 
-        $tasks = $this->deliveryEmployeeTaskService->listTasks($user, $request->validated());
-        $resourceData = DeliveryEmployeeTaskResource::collection($tasks)->response()->getData(true);
-        $payload = array_merge(
-            ['tasks' => $resourceData['data']], // غيري الاسم هنا إلى tasks لتكون واضحة للفرونت
-            ['links' => $resourceData['links'] ?? null],
-            ['meta' => $resourceData['meta'] ?? null]
-        );
+        $groupedTasks = $this->deliveryEmployeeTaskService->getGroupedTasks($user, $request->validated());
 
         return $this->apiResponse->success(
-            $payload,
+            [
+                'tasks' => $groupedTasks['data'],
+                'links' => $groupedTasks['links'],
+                'meta' => $groupedTasks['meta'],
+            ],
             __('orders.delivery_tasks_retrieved'),
             200,
         );
