@@ -52,7 +52,6 @@ class ReceptionistOrderManagementApiTest extends TestCase
             'description' => 'Digital design department',
             'is_management' => false,
             'time_allowed' => 8,
-            'sort_order' => 2,
         ]);
 
         $type = DentalCompensationType::query()->create([
@@ -163,7 +162,7 @@ class ReceptionistOrderManagementApiTest extends TestCase
             'qr_code' => (string) Str::uuid(),
             'priority' => 'normal',
             'status' => 'pending',
-            'order_type' => 'hybrid',
+            'order_type' => 'physical',
             'notes' => 'Needs careful margin finishing.',
             'price' => 230,
             'remaining_amount' => 230,
@@ -504,7 +503,6 @@ class ReceptionistOrderManagementApiTest extends TestCase
             'name' => 'Front Desk',
             'description' => null,
             'is_management' => true,
-            'sort_order' => 1,
         ]);
 
         DepartmentUserRole::query()->create([
