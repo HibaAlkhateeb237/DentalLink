@@ -202,7 +202,7 @@ Route::prefix('auth')->group(function (): void {
                 ->name('delivery.tasks.index');
             Route::post('/tasks/status/bulk', [DeliveryEmployeeTaskController::class, 'bulkUpdateStatus'])
                 ->name('delivery.tasks.status.bulk-update');
-              });
+        });
 
         // =======================================================================================================
 

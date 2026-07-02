@@ -60,12 +60,10 @@ class DeliveryEmployeeTaskService
             $tasks->where('direction', $validated['direction']);
         }
 
-        $perPage = (int) ($validated['per_page'] ?? 15);
-
-        $paginated = $tasks->paginate($perPage);
+        $tasks = $tasks->get();
 
         $groupedTasks = [];
-        foreach ($paginated as $task) {
+        foreach ($tasks as $task) {
             $doctorId = $task->order->user->id;
             $doctorName = $task->order->user->name;
             $doctorPhone = $task->order->user->phone;
@@ -98,15 +96,6 @@ class DeliveryEmployeeTaskService
 
         return [
             'data' => array_values($groupedTasks),
-            'links' => $paginated->linkCollection()->toArray(),
-            'meta' => [
-                'current_page' => $paginated->currentPage(),
-                'from' => $paginated->firstItem(),
-                'to' => $paginated->lastItem(),
-                'last_page' => $paginated->lastPage(),
-                'per_page' => $paginated->perPage(),
-                'total' => $paginated->total(),
-            ],
         ];
     }
 

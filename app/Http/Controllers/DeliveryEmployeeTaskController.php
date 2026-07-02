@@ -32,8 +32,6 @@ class DeliveryEmployeeTaskController extends Controller
         return $this->apiResponse->success(
             [
                 'tasks' => $groupedTasks['data'],
-                'links' => $groupedTasks['links'],
-                'meta' => $groupedTasks['meta'],
             ],
             __('orders.delivery_tasks_retrieved'),
             200,

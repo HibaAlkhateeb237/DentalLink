@@ -19,7 +19,6 @@ class DeliveryEmployeeTaskIndexRequest extends FormRequest
         return [
             'tab' => ['nullable', 'string', 'in:assigned,completed'],
             'direction' => ['nullable', 'string', 'in:'.implode(',', DeliveryTaskDirection::ALL)],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }
 
