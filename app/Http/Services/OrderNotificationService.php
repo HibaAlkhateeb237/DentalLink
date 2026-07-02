@@ -11,11 +11,13 @@ class OrderNotificationService
 {
     public function __construct(private OrderRepository $orders) {}
 
-    public function notifyOrderProcessingStarted(Order $order, string $triggerType = 'manual'): void
+    public function notifyOrderProcessingStarted(Order $order, string $triggerType = 'manual', bool $sendNotification = true): void
     {
-        $doctor = $order->user;
-        if ($doctor) {
-            $doctor->notify(new OrderProcessingStarted($order, $triggerType));
+        if ($sendNotification) {
+            $doctor = $order->user;
+            if ($doctor) {
+                $doctor->notify(new OrderProcessingStarted($order, $triggerType));
+            }
         }
     }
 

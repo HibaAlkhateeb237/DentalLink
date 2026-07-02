@@ -20,16 +20,10 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class TaskWorkflowService
 {
-    protected TaskRepository $taskRepository;
-    protected OrderNotificationService $orderNotificationService;
-
     public function __construct(
-        TaskRepository $taskRepository,
-        OrderNotificationService $orderNotificationService
-    ) {
-        $this->taskRepository = $taskRepository;
-        $this->orderNotificationService = $orderNotificationService;
-    }
+        private TaskRepository $taskRepository,
+        private OrderNotificationService $orderNotificationService
+    ) {}
 
     public function moveForward(Task $task): string
     {
