@@ -173,7 +173,7 @@ class TaskRepository
             ->where('order_id', $task->order_id)
             ->join('departments', 'tasks.department_id', '=', 'departments.id')
             ->orderBy('departments.sort_order', 'asc')
-            ->select('tasks.id')   
+            ->select('tasks.id')
             ->value('tasks.id');
 
         return (int) $firstTaskId === (int) $task->id;

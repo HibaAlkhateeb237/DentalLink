@@ -9,7 +9,6 @@ use App\Models\Task;
 use App\Models\TaskWorkSession;
 use App\Models\User;
 use App\Repositories\TaskRepository;
-use App\Http\Services\OrderNotificationService;
 use App\Support\OrderStatus;
 use App\Support\TaskStatus;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -62,7 +61,6 @@ class LabTechnicianTaskService
             $order->status = OrderStatus::IN_PROGRESS;
             $order->save();
 
-        
             if ($this->tasks->isFirstTaskForOrder($task)) {
                 $this->orderNotificationService->notifyOrderProcessingStarted($order, 'technician_qr_scan');
             }

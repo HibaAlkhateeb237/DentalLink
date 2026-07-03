@@ -27,7 +27,7 @@ class DeliveryEmployeeTaskResource extends JsonResource
                 'notes' => $this->order->notes,
                 'price' => $this->order->price,
                 'created_at' => $this->order->created_at?->toISOString(),
-               
+
             ]),
             /*  'delivery_user' => $this->whenLoaded('user', fn () => [
                 'id' => $this->user->id,
