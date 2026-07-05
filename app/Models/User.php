@@ -167,6 +167,17 @@ class User extends Authenticatable
             ->contains($departmentId);
     }
 
+    public function hasAnyRole(array|string $roles, ?int $departmentId = null): bool
+    {
+        if (is_string($roles)) {
+            $roles = [$roles];
+        }
+
+        return collect($roles)
+            ->filter(static fn (string $roleName): bool => $roleName !== '')
+            ->some(static fn (string $roleName): bool => $this->hasRole($roleName, $departmentId));
+    }
+
     /**
      * @return Collection<int, string>
      */

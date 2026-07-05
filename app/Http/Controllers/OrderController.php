@@ -88,6 +88,8 @@ class OrderController extends Controller
 
     public function showByQr(Request $request, string $qr): JsonResponse
     {
+        $isDepartmentManagerRoute = $request->routeIs('department.manager.orders.show-qr');
+
         $order = Order::query()
             ->where('qr_code', $qr)
             ->firstOrFail();
@@ -97,7 +99,7 @@ class OrderController extends Controller
             ->where('user_id', $request->user()->id)
             ->first();
 
-        if (! $task) {
+        if (! $task && ! $isDepartmentManagerRoute) {
             return $this->apiResponse->error(__('You have no task associated with this order.'), 404);
         }
 
@@ -105,7 +107,7 @@ class OrderController extends Controller
 
         return $this->apiResponse->success([
             'order' => OrderShortResource::make($order),
-            'task' => TaskResource::make($task),
+            'task' => $task ? TaskResource::make($task) : null,
         ], __('orders.retrieved_successfully'));
     }
 

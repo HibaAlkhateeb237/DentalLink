@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Http\Repositories\LabPricingRepository;
+use App\Http\Services\OrderNotificationService;
 use App\Models\DentalCompensationTypePrice;
 use App\Models\Lab;
 use App\Models\Order;
@@ -20,6 +21,7 @@ class OrderRepository
 {
     public function __construct(
         private LabPricingRepository $labPricingRepository,
+        private OrderNotificationService $notificationService,
     ) {}
 
     /**
@@ -93,6 +95,11 @@ class OrderRepository
             $order->remaining_amount = $totalPrice;
             $order->serial_number = sprintf('ORD-%06d', $order->id);
             $order->save();
+
+            // Notify receptionist about new order after the order is committed.
+            DB::afterCommit(function () use ($order): void {
+                $this->notificationService->notifyReceptionist($order, sendNotification: true);
+            });
 
             try {
                 $qrData = route('orders.show-qr', ['qr' => $order->qr_code]);

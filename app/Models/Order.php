@@ -132,11 +132,11 @@ class Order extends Model
             return null;
         }
 
-        return $this->tasks
-            ->first(fn (Task $task): bool => in_array($task->status, ['assigned', 'in_progress'], true))
-            ?? $this->tasks
-                ->sortByDesc('id')
-                ->first();
+        $tasks = $this->tasks;
+        return $tasks
+            ->filter(fn (Task $task): bool => in_array($task->status, ['assigned', 'in_progress'], true))
+            ->sortByDesc('id')
+            ->first();
     }
 
     public function currentDepartment(): ?Department

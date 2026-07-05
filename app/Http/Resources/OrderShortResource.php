@@ -15,7 +15,9 @@ class OrderShortResource extends JsonResource
             'priority' => $this->priority,
             'status' => $this->status,
             'case_type' => $this->case_type,
-            'material_type' => $this->dentalCompensationTypePrice?->dentalCompensationType?->name,
+            'material_type' => $this->whenLoaded('dentalCompensationTypePrice.dentalCompensationType', function () {
+                return $this->dentalCompensationTypePrice?->dentalCompensationType?->name;
+            }),
             'notes' => $this->notes,
             'files' => OrderFileResource::collection($this->whenLoaded('orderFiles')),
 
