@@ -4,14 +4,18 @@ namespace Tests\Feature;
 
 use App\Models\DentalCompensationType;
 use App\Models\DentalCompensationTypePrice;
+use App\Models\Department;
+use App\Models\DepartmentUserRole;
 use App\Models\Lab;
 use App\Models\Role;
 use App\Models\ToothShade;
 use App\Models\User;
+use App\Notifications\Order\OrderNew;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Database\Seeders\ToothShadeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Notification;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -175,6 +179,92 @@ class DoctorOrderCreationApiTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.qr_code', $qrCode)
             ->assertJsonPath('data.lab_id', $lab->id);
+    }
+
+    public function test_doctor_order_creation_notifies_receptionist_for_the_same_lab(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $this->seed(ToothShadeSeeder::class);
+
+        $lab = Lab::query()->create([
+            'name' => 'Order Lab',
+            'phone' => '1111111',
+            'address' => 'Address',
+            'latitude' => 33.5138070,
+            'longitude' => 36.2765279,
+            'is_active' => true,
+        ]);
+
+        $department = Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'Front Desk',
+            'description' => null,
+            'is_management' => true,
+        ]);
+
+        $receptionist = User::factory()->create();
+        $receptionistRoleId = Role::query()->where('name', 'receptionist')->where('guard_name', 'sanctum')->value('id');
+
+        if ($receptionistRoleId !== null) {
+            DepartmentUserRole::query()->create([
+                'user_id' => $receptionist->id,
+                'role_id' => $receptionistRoleId,
+                'department_id' => $department->id,
+            ]);
+        }
+
+        $type = DentalCompensationType::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'فل زيركون عادي',
+            'description' => null,
+            'code' => 'full_zircon_standard',
+            'category' => 'zircon',
+        ]);
+
+        DentalCompensationTypePrice::query()->create([
+            'dental_compensation_type_id' => $type->id,
+            'base_price' => 10.50,
+            'effective_from' => '2026-04-15',
+            'is_active' => true,
+        ]);
+
+        $shade = ToothShade::query()->where('code', 'A1')->firstOrFail();
+
+        $doctor = User::factory()->create();
+        $doctorRoleId = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->value('id');
+
+        if ($doctorRoleId !== null) {
+            $doctor->roles()->syncWithoutDetaching([$doctorRoleId]);
+        }
+
+        Notification::fake();
+
+        Sanctum::actingAs($doctor);
+
+        $response = $this->postJson('/api/auth/doctor/orders', [
+            'lab_id' => $lab->id,
+            'patient_name' => 'محمد',
+            'tooth_shade_id' => $shade->id,
+            'dental_compensation_type_id' => $type->id,
+            'priority' => 'normal',
+            'order_type' => 'digital',
+            'case_type' => 'implant',
+            'teeth' => [
+                [
+                    'tooth_number' => 11,
+                ],
+            ],
+        ]);
+
+        $response->assertCreated();
+
+        Notification::assertSentTo(
+            $receptionist,
+            OrderNew::class,
+            function (OrderNew $notification) use ($lab): bool {
+                return $notification->order->lab_id === $lab->id;
+            }
+        );
     }
 
     public function test_it_rejects_materials_from_other_labs(): void

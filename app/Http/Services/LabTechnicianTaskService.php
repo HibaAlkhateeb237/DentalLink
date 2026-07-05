@@ -17,7 +17,10 @@ use Illuminate\Support\Facades\DB;
 
 class LabTechnicianTaskService
 {
-    public function __construct(private TaskRepository $tasks) {}
+    public function __construct(
+        private TaskRepository $tasks,
+        private OrderNotificationService $orderNotificationService
+    ) {}
 
     public function canViewDepartment(User $user, Department $department): bool
     {
@@ -57,6 +60,10 @@ class LabTechnicianTaskService
 
             $order->status = OrderStatus::IN_PROGRESS;
             $order->save();
+
+            if ($this->tasks->isFirstTaskForOrder($task)) {
+                $this->orderNotificationService->notifyOrderProcessingStarted($order, 'technician_qr_scan');
+            }
 
             return $session;
         });

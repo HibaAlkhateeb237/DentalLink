@@ -5,6 +5,7 @@ namespace App\Http\Services;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\User;
+use App\Notifications\Order\OrderProcessingStarted;
 use App\Support\OrderStatus;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -146,9 +147,9 @@ class ReceptionistOrderService
         }
 
         DB::transaction(function () use ($order, $data, $actorId): void {
-            if (isset($data['status'])) {
-                $from = $order->status;
+            $from = $order->status;
 
+            if (isset($data['status'])) {
                 $order->status = $data['status'];
 
                 OrderStatusHistory::create([
@@ -161,6 +162,9 @@ class ReceptionistOrderService
                         'triggered_via' => 'api',
                     ],
                 ]);
+
+                // Notify doctor when order status changes to resend_wrong_impression
+                $this->notifyDoctorForOrderChanges($order, $from, $data['status']);
             }
 
             if (array_key_exists('notes', $data)) {
@@ -171,6 +175,20 @@ class ReceptionistOrderService
         });
 
         return $this->getOrderDetails($order->fresh());
+    }
+
+    /**
+     * Notify doctor when order status changes to a state requiring notification.
+     */
+    private function notifyDoctorForOrderChanges(Order $order, string $fromStatus, string $toStatus): void
+    {
+        // Notify doctor when order status changes to resend_wrong_impression
+        if ($toStatus === OrderStatus::RESEND_WRONG_IMPRESSION) {
+            $doctor = $order->user;
+            if ($doctor) {
+                $doctor->notify(new OrderProcessingStarted($order, 'manual'));
+            }
+        }
     }
 
     /**
@@ -203,6 +221,9 @@ class ReceptionistOrderService
                     'triggered_via' => 'api',
                 ],
             ]);
+
+            // Notify doctor when order status changes to resend_wrong_impression
+            $this->notifyDoctorForOrderChanges($order, $from, $toStatus);
         });
 
         return $this->getOrderDetails($order->fresh());

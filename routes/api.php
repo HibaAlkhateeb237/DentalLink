@@ -172,6 +172,7 @@ Route::prefix('auth')->group(function (): void {
             Route::get('/departments/{department}/tasks', [LabTechnicianTaskController::class, 'index'])
                 ->name('lab.technician.departments.tasks.index');
 
+            Route::get('orders/qr/{qr}', [OrderController::class, 'showByQr'])->name('lab.technician.orders.show-qr');
             Route::get('orders/qr/{qr}', [OrderController::class, 'showByQr'])->name('orders.show-qr');
             Route::post('orders/qr/{qr}/start', [LabTechnicianTaskController::class, 'startByQr'])->name('lab.technician.orders.qr.start');
             Route::post('orders/qr/{qr}/finish', [LabTechnicianTaskController::class, 'finishByQr'])->name('lab.technician.orders.qr.finish');
@@ -193,6 +194,8 @@ Route::prefix('auth')->group(function (): void {
 
             Route::get('/departments/{departmentId}/technicians', [TaskWorkflowController::class, 'getTechnicians'])->name('department.manager.getTechnicians');
 
+            Route::get('orders/qr/{qr}', [OrderController::class, 'showByQr'])->name('department.manager.orders.show-qr');
+
         });
 
         // ====================================delivery===================================================
@@ -206,7 +209,7 @@ Route::prefix('auth')->group(function (): void {
 
         // =======================================================================================================
 
-        Route::middleware(['role:doctor,lab_technician'])->prefix('notifications')->group(function (): void {
+        Route::middleware(['role:doctor,lab_technician,receptionist'])->prefix('notifications')->group(function (): void {
             Route::get('/', [NotificationController::class, 'index'])->name('notifications.index');
             Route::post('/device-tokens', [DeviceTokenController::class, 'store'])->name('device-tokens.store');
             Route::delete('/device-tokens/{deviceToken}', [DeviceTokenController::class, 'destroy'])->name('device-tokens.destroy');

@@ -75,8 +75,9 @@ class DeliveryEmployeeTaskApiTest extends TestCase
         $response
             ->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonCount(1, 'data.data')
-            ->assertJsonPath('data.data.0.status', 'empty');
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.status', 'empty')
+            ->assertJsonPath('data.0.tasks_count', 1);
     }
 
     public function test_delivery_employee_can_list_completed_tasks(): void
@@ -97,8 +98,9 @@ class DeliveryEmployeeTaskApiTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertJsonCount(1, 'data.data')
-            ->assertJsonPath('data.data.0.status', 'delivered');
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.status', 'delivered')
+            ->assertJsonPath('data.0.tasks_count', 1);
     }
 
     public function test_default_tab_is_assigned(): void
@@ -125,8 +127,11 @@ class DeliveryEmployeeTaskApiTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertJsonCount(1, 'data.data')
-            ->assertJsonPath('data.data.0.status', 'empty');
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.status', 'empty')
+            ->assertJsonPath('data.0.tasks_count', 1)
+            ->assertJsonPath('data.1.status', 'delivered')
+            ->assertJsonPath('data.1.tasks_count', 1);
     }
 
     public function test_delivery_employee_can_filter_by_direction(): void
@@ -155,8 +160,10 @@ class DeliveryEmployeeTaskApiTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertJsonCount(1, 'data.data')
-            ->assertJsonPath('data.data.0.direction', 'to_doctor');
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.status', 'empty')
+            ->assertJsonPath('data.0.direction', 'to_doctor')
+            ->assertJsonPath('data.0.tasks_count', 1);
     }
 
     public function test_delivery_employee_can_filter_by_tab_and_direction(): void
@@ -182,13 +189,14 @@ class DeliveryEmployeeTaskApiTest extends TestCase
 
         Sanctum::actingAs($this->deliveryEmployee);
 
-        $response = $this->getJson('/api/auth/delivery/tasks?tab=completed&direction=to_lab');
+        $response = $this->getJson('/api/auth/delivery/tasks?tab=assigned&direction=to_doctor');
 
         $response
             ->assertOk()
-            ->assertJsonCount(1, 'data.data')
-            ->assertJsonPath('data.data.0.status', 'delivered')
-            ->assertJsonPath('data.data.0.direction', 'to_lab');
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.status', 'empty')
+            ->assertJsonPath('data.0.direction', 'to_doctor')
+            ->assertJsonPath('data.0.tasks_count', 1);
     }
 
     public function test_delivery_employee_cannot_see_other_users_tasks(): void
@@ -229,7 +237,7 @@ class DeliveryEmployeeTaskApiTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertJsonCount(0, 'data.data');
+            ->assertJsonCount(0, 'data');
     }
 
     public function test_non_delivery_user_cannot_access_tasks(): void
@@ -269,43 +277,55 @@ class DeliveryEmployeeTaskApiTest extends TestCase
             ->assertOk()
             ->assertJsonStructure([
                 'data' => [
-                    'data' => [
-                        '*' => [
+                    '*' => [
+                        'doctor' => [
                             'id',
-                            'order_id',
-                            'status',
-                            'direction',
-                            'assigned_at',
-                            'picked_at',
-                            'delivered_at',
-                            'order' => [
+                            'name',
+                            'phone',
+                            'location',
+                            'location_lat',
+                            'location_lng',
+                        ],
+                        'status',
+                        'tasks_count',
+                        'tasks' => [
+                            '*' => [
                                 'id',
-                                'serial_number',
-                                'patient_name',
-                                'case_type',
-                                'priority',
+                                'order_id',
                                 'status',
-                                'notes',
-                                'price',
-                                'created_at',
-                                'doctor' => [
+                                'direction',
+                                'assigned_at',
+                                'picked_at',
+                                'delivered_at',
+                                'order' => [
                                     'id',
-                                    'name',
-                                    'phone',
-                                    'location',
-                                    'location_lat',
-                                    'location_lng',
+                                    'serial_number',
+                                    'patient_name',
+                                    'case_type',
+                                    'priority',
+                                    'status',
+                                    'notes',
+                                    'price',
+                                    'created_at',
+                                    'doctor' => [
+                                        'id',
+                                        'name',
+                                        'phone',
+                                        'location',
+                                        'location_lat',
+                                        'location_lng',
+                                    ],
                                 ],
+                                'delivery_user',
                             ],
-                            'delivery_user',
                         ],
                     ],
                 ],
             ])
-            ->assertJsonPath('data.data.0.id', $task->id)
-            ->assertJsonPath('data.data.0.order.id', $order->id)
-            ->assertJsonPath('data.data.0.order.doctor.id', $doctor->id)
-            ->assertJsonPath('data.data.0.order.doctor.location', 'Doctor Location');
+            ->assertJsonPath('data.0.tasks.0.tasks.0.id', $task->id)
+            ->assertJsonPath('data.0.tasks.0.tasks.0.order.id', $order->id)
+            ->assertJsonPath('data.0.tasks.0.tasks.0.order.doctor.id', $doctor->id)
+            ->assertJsonPath('data.0.tasks.0.tasks.0.order.doctor.location', 'Doctor Location');
     }
 
     private function createOrder(User $doctor): Order
