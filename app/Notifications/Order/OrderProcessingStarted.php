@@ -37,7 +37,7 @@ class OrderProcessingStarted extends Notification implements ShouldQueue
         };
 
         return [
-            'title' => 'Order ' . $this->order->serial_number . ' ' . __(
+            'title' => 'Order '.$this->order->serial_number.' '.__(
                 'orders.processing_started_notification',
                 ['status' => ucfirst($statusDisplay)]
             ),

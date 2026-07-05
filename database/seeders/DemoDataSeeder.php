@@ -22,6 +22,7 @@ use App\Models\TaskWorkSession;
 use App\Models\ToothShade;
 use App\Models\User;
 use App\Support\DeliveryStatus;
+use App\Support\DeliveryTaskDirection;
 use App\Support\OrderStatus;
 use App\Support\TaskStatus;
 use Carbon\CarbonImmutable;
@@ -1009,7 +1010,10 @@ class DemoDataSeeder extends Seeder
             $status = $deliveryStatuses[$index % count($deliveryStatuses)];
             $deliveryUser = $deliveryUsers[$index % count($deliveryUsers)];
 
-            $direction = $index % 2 === 0 ? 'to_lab' : 'to_doctor';
+            $direction = match ($order->status) {
+                OrderStatus::COMPLETED => DeliveryTaskDirection::TO_DOCTOR,
+                default => DeliveryTaskDirection::TO_LAB,
+            };
 
             DeliveryTask::query()->create([
                 'order_id' => $order->id,

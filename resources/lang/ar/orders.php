@@ -10,7 +10,7 @@ return [
     'status_delivered' => 'Delivered',
 
     // Notifications
-    'order_processing_started_notification' => 'Order #:serial_number is now being ' . ' :status',
+    'order_processing_started_notification' => 'Order #:serial_number is now being '.' :status',
     'order_completed_notification' => 'Order #:serial_number has been completed',
     'order_completed_body' => 'Your order for patient "#patient_name" is now complete.',
     'retrieved_successfully' => 'Orders retrieved successfully',

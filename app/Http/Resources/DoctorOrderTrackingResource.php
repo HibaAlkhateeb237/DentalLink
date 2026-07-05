@@ -31,7 +31,6 @@ class DoctorOrderTrackingResource extends JsonResource
             $days = 0;
         }
 
-
         return [
             'order_id' => $this['order_id'],
             'serial_number' => $this['serial_number'],

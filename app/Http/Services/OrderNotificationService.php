@@ -1,8 +1,8 @@
 <?php
 
 namespace App\Http\Services;
+
 use App\Models\Order;
-use App\Models\User;
 use App\Notifications\Order\OrderCompleted;
 use App\Notifications\Order\OrderProcessingStarted;
 use App\Repositories\OrderRepository;

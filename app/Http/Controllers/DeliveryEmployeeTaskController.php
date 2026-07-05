@@ -4,12 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\DeliveryEmployeeBulkUpdateStatusRequest;
 use App\Http\Requests\DeliveryEmployeeTaskIndexRequest;
-use App\Http\Requests\DeliveryEmployeeUpdateStatusRequest;
-use App\Http\Resources\DeliveryEmployeeTaskResource;
 use App\Http\Resources\DeliveryTaskResource;
 use App\Http\Responses\ApiResponse;
 use App\Http\Services\DeliveryEmployeeTaskService;
-use App\Models\DeliveryTask;
 use Illuminate\Http\JsonResponse;
 
 class DeliveryEmployeeTaskController extends Controller
@@ -39,7 +36,6 @@ class DeliveryEmployeeTaskController extends Controller
             200,
         );
     }
-
 
     public function bulkUpdateStatus(DeliveryEmployeeBulkUpdateStatusRequest $request): JsonResponse
     {

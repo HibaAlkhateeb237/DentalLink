@@ -30,12 +30,11 @@ class ReceptionistOrderService
                 'orderFiles:id,order_id,file_path,file_type,uploaded_at',
             ])
             ->withCount('orderTeeth')
-            ->withSum('payments as paid_amount', 'payment_order.amount')
-            ->whereIn('status', [
-                OrderStatus::PENDING,
-                OrderStatus::NEW,
-                OrderStatus::COMPLETED,
-            ]);
+            ->withSum('payments as paid_amount', 'payment_order.amount');
+
+        if (isset($validated['status'])) {
+            $query->where('status', $validated['status']);
+        }
 
         if (isset($validated['priority'])) {
             $query->where('priority', $validated['priority']);
