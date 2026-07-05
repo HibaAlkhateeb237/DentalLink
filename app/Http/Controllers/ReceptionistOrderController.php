@@ -8,6 +8,7 @@ use App\Http\Requests\ReceptionistOrderStatusUpdateRequest;
 use App\Http\Resources\ReceptionistOrderDetailsResource;
 use App\Http\Resources\ReceptionistOrderListResource;
 use App\Http\Responses\ApiResponse;
+use App\Http\Services\OrderNotificationService;
 use App\Http\Services\ReceptionistOrderService;
 use App\Models\Department;
 use App\Models\Order;
@@ -25,6 +26,7 @@ class ReceptionistOrderController extends Controller
 {
     public function __construct(
         private ReceptionistOrderService $receptionistOrderService,
+        private OrderNotificationService $orderNotificationService,
         private ApiResponse $apiResponse,
     ) {}
 
@@ -150,7 +152,7 @@ class ReceptionistOrderController extends Controller
 
             if ($firstDepartment) {
 
-                Task::query()->firstOrCreate(
+                $task = Task::query()->firstOrCreate(
                     [
                         'order_id' => $order->id,
                         'department_id' => $firstDepartment->id,
@@ -161,6 +163,8 @@ class ReceptionistOrderController extends Controller
                         'approved_at' => null,
                     ]
                 );
+
+                $this->orderNotificationService->notifyDepartmentManagerAboutUrgentCase($task);
 
             }
 

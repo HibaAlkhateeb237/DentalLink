@@ -4,10 +4,12 @@ namespace App\Http\Services;
 
 use App\Models\Order;
 use App\Models\Role;
+use App\Models\Task;
 use App\Models\User;
 use App\Notifications\Order\OrderCompleted;
 use App\Notifications\Order\OrderNew;
 use App\Notifications\Order\OrderProcessingStarted;
+use App\Notifications\Task\DepartmentManagerTaskMovedForwardNotification;
 use Illuminate\Support\Collection;
 
 class OrderNotificationService
@@ -71,4 +73,28 @@ class OrderNotificationService
             ->distinct()
             ->get();
     }
+
+
+    public function notifyDepartmentManagerAboutUrgentCase(Task $task): void
+    {
+        if ($task->order->priority !== 'urgent') {
+            return;
+        }
+
+        User::query()
+            ->select('users.*')
+            ->join('department_user_roles', 'users.id', '=', 'department_user_roles.user_id')
+            ->join('roles', 'department_user_roles.role_id', '=', 'roles.id')
+            ->where('department_user_roles.department_id', $task->department_id)
+            ->where('roles.name', 'department_manager')
+            ->where('roles.guard_name', 'sanctum')
+            ->each(function (User $manager) use ($task) {
+                $manager->notify(new DepartmentManagerTaskMovedForwardNotification($task));
+            });
+    }
+
+
+
+
+
 }

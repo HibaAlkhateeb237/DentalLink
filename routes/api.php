@@ -209,7 +209,7 @@ Route::prefix('auth')->group(function (): void {
 
         // =======================================================================================================
 
-        Route::middleware(['role:doctor,lab_technician,receptionist'])->prefix('notifications')->group(function (): void {
+        Route::middleware(['role:doctor,lab_technician,receptionist,department_manager'])->prefix('notifications')->group(function (): void {
             Route::get('/', [NotificationController::class, 'index'])->name('notifications.index');
             Route::post('/device-tokens', [DeviceTokenController::class, 'store'])->name('device-tokens.store');
             Route::delete('/device-tokens/{deviceToken}', [DeviceTokenController::class, 'destroy'])->name('device-tokens.destroy');
