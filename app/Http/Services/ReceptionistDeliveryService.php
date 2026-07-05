@@ -6,6 +6,8 @@ use App\Models\DeliveryTask;
 use App\Models\DepartmentUserRole;
 use App\Models\Order;
 use App\Models\User;
+use App\Support\DeliveryTaskDirection;
+use App\Support\OrderStatus;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -110,17 +112,43 @@ class ReceptionistDeliveryService
             ]);
         }
 
-        $deliveryTask = DB::transaction(function () use ($order, $deliveryUser): DeliveryTask {
-            $order->update(['status' => 'pending']);
+        $direction = $this->resolveDeliveryDirection($order);
+
+        $deliveryTask = DB::transaction(function () use ($order, $deliveryUser, $direction): DeliveryTask {
+            $order->update(['status' => OrderStatus::PENDING]);
 
             return DeliveryTask::query()->create([
                 'order_id' => $order->id,
                 'user_id' => $deliveryUser->id,
                 'status' => 'empty',
+                'direction' => $direction,
             ]);
         });
 
         return $deliveryTask->load('user:id,name,email,phone');
+    }
+
+    private function resolveDeliveryDirection(Order $order): string
+    {
+        return match ($order->status) {
+            OrderStatus::NEW, OrderStatus::RESEND_WRONG_IMPRESSION => DeliveryTaskDirection::TO_LAB,
+            OrderStatus::COMPLETED => DeliveryTaskDirection::TO_DOCTOR,
+            OrderStatus::TRY_ON => $this->resolveTryOnDirection($order),
+            default => DeliveryTaskDirection::TO_LAB,
+        };
+    }
+
+    private function resolveTryOnDirection(Order $order): string
+    {
+        $hasCompletedToDoctor = DeliveryTask::query()
+            ->where('order_id', $order->id)
+            ->where('direction', DeliveryTaskDirection::TO_DOCTOR)
+            ->where('status', 'delivered')
+            ->exists();
+
+        return $hasCompletedToDoctor
+            ? DeliveryTaskDirection::TO_LAB
+            : DeliveryTaskDirection::TO_DOCTOR;
     }
 
     private function resolveReceptionistLabId(User $receptionist): int

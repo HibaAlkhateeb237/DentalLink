@@ -9,6 +9,7 @@ use App\Models\Lab;
 use App\Models\Order;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\DeliveryTaskDirection;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -146,6 +147,113 @@ class ReceptionistDeliveryAssignmentApiTest extends TestCase
         $response->assertForbidden();
     }
 
+    public function test_direction_is_to_lab_when_order_status_is_new(): void
+    {
+        [$receptionist, $lab] = $this->authenticateReceptionist();
+        $deliveryEmployee = $this->createDeliveryEmployee($lab, 'delivery.new@example.com');
+        $order = $this->createOrder($lab, 'new');
+
+        Sanctum::actingAs($receptionist);
+
+        $response = $this->postJson('/api/auth/orders/'.$order->id.'/delivery-assignments', [
+            'user_id' => $deliveryEmployee->id,
+        ]);
+
+        $response->assertStatus(201);
+
+        $this->assertDatabaseHas('delivery_tasks', [
+            'order_id' => $order->id,
+            'direction' => DeliveryTaskDirection::TO_LAB,
+        ]);
+    }
+
+    public function test_direction_is_to_lab_when_order_status_is_resend_wrong_impression(): void
+    {
+        [$receptionist, $lab] = $this->authenticateReceptionist();
+        $deliveryEmployee = $this->createDeliveryEmployee($lab, 'delivery.resend@example.com');
+        $order = $this->createOrder($lab, 'resend_wrong_impression');
+
+        Sanctum::actingAs($receptionist);
+
+        $response = $this->postJson('/api/auth/orders/'.$order->id.'/delivery-assignments', [
+            'user_id' => $deliveryEmployee->id,
+        ]);
+
+        $response->assertStatus(201);
+
+        $this->assertDatabaseHas('delivery_tasks', [
+            'order_id' => $order->id,
+            'direction' => DeliveryTaskDirection::TO_LAB,
+        ]);
+    }
+
+    public function test_direction_is_to_doctor_when_order_status_is_completed(): void
+    {
+        [$receptionist, $lab] = $this->authenticateReceptionist();
+        $deliveryEmployee = $this->createDeliveryEmployee($lab, 'delivery.completed@example.com');
+        $order = $this->createOrder($lab, 'completed');
+
+        Sanctum::actingAs($receptionist);
+
+        $response = $this->postJson('/api/auth/orders/'.$order->id.'/delivery-assignments', [
+            'user_id' => $deliveryEmployee->id,
+        ]);
+
+        $response->assertStatus(201);
+
+        $this->assertDatabaseHas('delivery_tasks', [
+            'order_id' => $order->id,
+            'direction' => DeliveryTaskDirection::TO_DOCTOR,
+        ]);
+    }
+
+    public function test_direction_is_to_doctor_when_order_status_is_try_on_first_time(): void
+    {
+        [$receptionist, $lab] = $this->authenticateReceptionist();
+        $deliveryEmployee = $this->createDeliveryEmployee($lab, 'delivery.tryon@example.com');
+        $order = $this->createOrder($lab, 'try_on');
+
+        Sanctum::actingAs($receptionist);
+
+        $response = $this->postJson('/api/auth/orders/'.$order->id.'/delivery-assignments', [
+            'user_id' => $deliveryEmployee->id,
+        ]);
+
+        $response->assertStatus(201);
+
+        $this->assertDatabaseHas('delivery_tasks', [
+            'order_id' => $order->id,
+            'direction' => DeliveryTaskDirection::TO_DOCTOR,
+        ]);
+    }
+
+    public function test_direction_is_to_lab_when_try_on_order_sent_back(): void
+    {
+        [$receptionist, $lab] = $this->authenticateReceptionist();
+        $deliveryEmployee = $this->createDeliveryEmployee($lab, 'delivery.tryback@example.com');
+        $order = $this->createOrder($lab, 'try_on');
+
+        DeliveryTask::query()->create([
+            'order_id' => $order->id,
+            'user_id' => $deliveryEmployee->id,
+            'status' => 'delivered',
+            'direction' => DeliveryTaskDirection::TO_DOCTOR,
+        ]);
+
+        Sanctum::actingAs($receptionist);
+
+        $response = $this->postJson('/api/auth/orders/'.$order->id.'/delivery-assignments', [
+            'user_id' => $deliveryEmployee->id,
+        ]);
+
+        $response->assertStatus(201);
+
+        $this->assertDatabaseHas('delivery_tasks', [
+            'order_id' => $order->id,
+            'direction' => DeliveryTaskDirection::TO_LAB,
+        ]);
+    }
+
     /**
      * @return array{0:User,1:Lab}
      */
@@ -211,7 +319,7 @@ class ReceptionistDeliveryAssignmentApiTest extends TestCase
         ]);
     }
 
-    private function createOrder(Lab $lab): Order
+    private function createOrder(Lab $lab, string $status = 'pending'): Order
     {
         $doctor = User::factory()->create([
             'email' => 'doctor.'.Str::uuid().'@example.com',
@@ -222,7 +330,7 @@ class ReceptionistDeliveryAssignmentApiTest extends TestCase
             'lab_id' => $lab->id,
             'qr_code' => (string) Str::uuid(),
             'priority' => 'normal',
-            'status' => 'pending',
+            'status' => $status,
             'order_type' => 'digital',
             'notes' => 'Delivery order',
             'price' => 250,
