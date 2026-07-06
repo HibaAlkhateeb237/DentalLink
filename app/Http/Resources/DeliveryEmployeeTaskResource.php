@@ -12,12 +12,13 @@ class DeliveryEmployeeTaskResource extends JsonResource
         $array = [
             'id' => $this->id,
             'order_id' => $this->order_id,
+            'serial_number' => $this->order?->serial_number,
             'status' => $this->status,
             'direction' => $this->direction,
             'assigned_at' => $this->created_at?->toDateTimeString(),
             'picked_at' => $this->picked_at?->toDateTimeString(),
             'delivered_at' => $this->delivered_at?->toDateTimeString(),
-            'order' => $this->whenLoaded('order', fn () => [
+            'order' => $this->whenLoaded('order', fn() => [
                 'id' => $this->order->id,
                 'serial_number' => $this->order->serial_number,
                 'patient_name' => $this->order->patient_name,

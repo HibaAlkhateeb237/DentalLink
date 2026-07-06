@@ -38,7 +38,7 @@ class Order extends Model
 
         'tooth_shade_id',
         'dental_compensation_type_price_id',
-
+        'is_in_delivery',
     ];
 
     protected function casts(): array
@@ -51,6 +51,7 @@ class Order extends Model
             'resubmission_requested_at' => 'datetime',
             'received_at' => 'datetime',
             'delivered_at' => 'datetime',
+            'is_in_delivery' => 'boolean',
 
             'qr_image_path' => 'string',
 
@@ -133,6 +134,7 @@ class Order extends Model
         }
 
         $tasks = $this->tasks;
+
         return $tasks
             ->filter(fn (Task $task): bool => in_array($task->status, ['assigned', 'in_progress'], true))
             ->sortByDesc('id')

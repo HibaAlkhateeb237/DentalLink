@@ -166,6 +166,18 @@ class DeliveryEmployeeTaskService
             $tasks->each(fn ($task) => $task->update($updateData));
         });
 
+        // Handle order status transitions when delivery is completed
+        if ($newStatus === DeliveryStatus::DELIVERED) {
+            $tasks->load('order');
+            foreach ($tasks as $task) {
+                if ($task->order) {
+                    app(OrderDeliveryTransitionService::class)->handleDeliveryCompleted($task);
+                }
+            }
+            // Reload tasks with fresh order data
+            $tasks = $tasks->fresh()->load(['order.user', 'user']);
+        }
+
         return $tasks->fresh()->load(['order.user', 'user']);
     }
 }

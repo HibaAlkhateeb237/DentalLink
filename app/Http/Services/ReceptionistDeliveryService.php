@@ -114,14 +114,21 @@ class ReceptionistDeliveryService
 
         $direction = $this->resolveDeliveryDirection($order);
 
-        $deliveryTask = DB::transaction(function () use ($order, $deliveryUser, $direction): DeliveryTask {
-            $order->update(['status' => OrderStatus::PENDING]);
+        // Capture original status before changing
+        $originalStatus = $order->status;
+
+        $deliveryTask = DB::transaction(function () use ($order, $deliveryUser, $direction, $originalStatus): DeliveryTask {
+            $order->update([
+                'status' => OrderStatus::PENDING,
+                'is_in_delivery' => true,
+            ]);
 
             return DeliveryTask::query()->create([
                 'order_id' => $order->id,
                 'user_id' => $deliveryUser->id,
                 'status' => 'empty',
                 'direction' => $direction,
+                'original_order_status' => $originalStatus,
             ]);
         });
 
