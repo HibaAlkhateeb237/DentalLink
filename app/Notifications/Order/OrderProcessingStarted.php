@@ -29,7 +29,7 @@ class OrderProcessingStarted extends Notification implements ShouldQueue
     public function toFcm(object $notifiable): array
     {
         $message = match ($this->order->status) {
-            'resend_wrong_impression' => "Your order needs to be redone due to an error in the impression.",
+            'resend_wrong_impression' => 'Your order needs to be redone due to an error in the impression.',
             default => "Patient \"{$this->order->patient_name}\" order has started processing.",
         };
 
@@ -50,7 +50,7 @@ class OrderProcessingStarted extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         $message = match ($this->order->status) {
-            'resend_wrong_impression' => "Your order needs to be redone due to an error in the impression.",
+            'resend_wrong_impression' => 'Your order needs to be redone due to an error in the impression.',
             default => "Your order \"{$this->order->serial_number}\" has started processing.",
         };
 

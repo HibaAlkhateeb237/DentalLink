@@ -59,6 +59,9 @@ class ReceptionistOrderService
             $query->whereIn('lab_id', $labIds->all());
         }
 
+        // Hide orders currently in delivery
+        $query->where('is_in_delivery', false);
+
         if (array_key_exists('requires_resubmission', $validated)) {
             $query->where('requires_resubmission', (bool) $validated['requires_resubmission']);
         }

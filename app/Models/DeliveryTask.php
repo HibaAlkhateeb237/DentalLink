@@ -17,6 +17,7 @@ class DeliveryTask extends Model
         'direction',
         'picked_at',
         'delivered_at',
+        'original_order_status',
     ];
 
     protected function casts(): array
