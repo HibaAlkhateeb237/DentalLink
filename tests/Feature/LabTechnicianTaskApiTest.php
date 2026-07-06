@@ -12,9 +12,11 @@ use App\Models\Role;
 use App\Models\Task;
 use App\Models\TaskWorkSession;
 use App\Models\User;
+use App\Notifications\Task\DepartmentManagerTaskNeedsEvaluationNotification;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -126,6 +128,49 @@ class LabTechnicianTaskApiTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_it_notifies_department_managers_when_a_task_is_ready_for_evaluation(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-05-21 12:00:00'));
+
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $lab = $this->createLab();
+        $department = Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'Ceramics',
+            'description' => 'Ceramics department',
+            'time_allowed' => 2,
+        ]);
+
+        $technician = $this->createTechnician($department);
+        $manager = $this->createDepartmentManager($department);
+
+        $task = $this->createTaskWithSessions($department, $technician, 'in_progress', [
+            [Carbon::parse('2026-05-21 10:00:00'), null],
+        ]);
+
+        Notification::fake();
+        Sanctum::actingAs($technician);
+
+        $response = $this->postJson('/api/auth/lab/technician/orders/qr/'.$task->order->qr_code.'/finish');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('status', 200);
+
+        Notification::assertSentTo(
+            $manager,
+            DepartmentManagerTaskNeedsEvaluationNotification::class,
+            function (DepartmentManagerTaskNeedsEvaluationNotification $notification) use ($task, $department): bool {
+                return $notification->task->order_id === $task->order_id
+                    && $notification->task->department_id === $department->id
+                    && $notification->task->status === 'pending_review';
+            }
+        );
+
+        Carbon::setTestNow();
+    }
+
     private function createLab(): Lab
     {
         return Lab::query()->create([
@@ -156,6 +201,27 @@ class LabTechnicianTaskApiTest extends TestCase
         }
 
         return $technician;
+    }
+
+    private function createDepartmentManager(Department $department): User
+    {
+        $manager = User::factory()->create();
+
+        $roleId = Role::query()
+            ->where('name', 'department_manager')
+            ->where('guard_name', 'sanctum')
+            ->value('id');
+
+        if ($roleId !== null) {
+            $manager->roles()->syncWithoutDetaching([$roleId]);
+            DepartmentUserRole::query()->create([
+                'user_id' => $manager->id,
+                'role_id' => $roleId,
+                'department_id' => $department->id,
+            ]);
+        }
+
+        return $manager;
     }
 
     /**

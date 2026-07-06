@@ -10,6 +10,7 @@ use App\Notifications\Order\OrderCompleted;
 use App\Notifications\Order\OrderNew;
 use App\Notifications\Order\OrderProcessingStarted;
 use App\Notifications\Task\DepartmentManagerTaskMovedForwardNotification;
+use App\Notifications\Task\DepartmentManagerTaskNeedsEvaluationNotification;
 use Illuminate\Support\Collection;
 
 class OrderNotificationService
@@ -74,7 +75,6 @@ class OrderNotificationService
             ->get();
     }
 
-
     public function notifyDepartmentManagerAboutUrgentCase(Task $task): void
     {
         if ($task->order->priority !== 'urgent') {
@@ -93,8 +93,17 @@ class OrderNotificationService
             });
     }
 
-
-
-
-
+    public function notifyDepartmentManagerTaskNeedsEvaluation(Task $task): void
+    {
+        User::query()
+            ->select('users.*')
+            ->join('department_user_roles', 'users.id', '=', 'department_user_roles.user_id')
+            ->join('roles', 'department_user_roles.role_id', '=', 'roles.id')
+            ->where('department_user_roles.department_id', $task->department_id)
+            ->where('roles.name', 'department_manager')
+            ->where('roles.guard_name', 'sanctum')
+            ->each(function (User $manager) use ($task): void {
+                $manager->notify(new DepartmentManagerTaskNeedsEvaluationNotification($task));
+            });
+    }
 }

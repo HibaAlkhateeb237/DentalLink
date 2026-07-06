@@ -99,6 +99,12 @@ class LabTechnicianTaskService
             $task->status = TaskStatus::PENDING_REVIEW;
             $task->save();
 
+            DB::afterCommit(function () use ($task): void {
+                $this->orderNotificationService->notifyDepartmentManagerTaskNeedsEvaluation(
+                    $task->fresh(['order', 'department'])
+                );
+            });
+
             return $session;
         });
     }
