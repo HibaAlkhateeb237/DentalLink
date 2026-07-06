@@ -70,17 +70,26 @@ class OrderDeliveryTransitionService
             ->first();
 
         if ($firstDepartment) {
-            Task::query()->firstOrCreate(
-                [
+            $hasActiveExecutionTask = Task::query()
+                ->where('order_id', $order->id)
+                ->where('department_id', $firstDepartment->id)
+                ->whereIn('status', [
+                    TaskStatus::PENDING_ASSIGNMENT,
+                    TaskStatus::ASSIGNED,
+                    TaskStatus::IN_PROGRESS,
+                    TaskStatus::PENDING_REVIEW,
+                ])
+                ->first();
+
+            if ($hasActiveExecutionTask === null) {
+                Task::query()->create([
                     'order_id' => $order->id,
                     'department_id' => $firstDepartment->id,
-                ],
-                [
                     'status' => TaskStatus::PENDING_ASSIGNMENT,
                     'user_id' => null,
                     'approved_at' => null,
-                ]
-            );
+                ]);
+            }
         }
     }
 }

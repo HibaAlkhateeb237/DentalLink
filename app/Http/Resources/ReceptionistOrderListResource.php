@@ -9,6 +9,11 @@ class ReceptionistOrderListResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $currentTask = $this->currentTaskForDisplay();
+        $tasksByDepartmentId = $this->relationLoaded('tasks')
+            ? $this->tasks->keyBy('department_id')
+            : collect();
+
         return [
             'id' => $this->id,
             'qr_code' => $this->qr_code,
@@ -35,6 +40,37 @@ class ReceptionistOrderListResource extends JsonResource
             'files' => $this->relationLoaded('orderFiles')
                 ? OrderFileResource::collection($this->orderFiles)
                 : [],
+            'departments' => $this->lab?->relationLoaded('departments')
+                ? $this->lab->departments
+                    ->filter(fn ($department) => ! $department->is_management && ! in_array($department->name, ['Reception', 'Delivery', 'Management'], true))
+                    ->sortBy(fn ($department) => sprintf('%d-%010d', $department->is_management ? 0 : 1, (int) ($department->sort_order ?? PHP_INT_MAX)))
+                    ->values()
+                    ->map(function ($department) use ($tasksByDepartmentId, $currentTask): array {
+                        $task = $tasksByDepartmentId->get($department->id);
+
+                        return [
+                            'id' => $department->id,
+                            'name' => $department->name,
+                            'sort_order' => $department->sort_order,
+                            'is_management' => (bool) $department->is_management,
+                            'status' => $task?->status,
+                            'task_id' => $task?->id,
+                            'approved_at' => $task?->approved_at?->toISOString(),
+                            'is_current' => $currentTask?->id === $task?->id,
+                        ];
+                    })
+                    ->all()
+                : [],
+            'current_department' => $currentTask === null || $currentTask->department === null
+                ? null
+                : [
+                    'id' => $currentTask->department->id,
+                    'name' => $currentTask->department->name,
+                    'sort_order' => $currentTask->department->sort_order,
+                    'task_id' => $currentTask->id,
+                    'task_status' => $currentTask->status,
+                    'approved_at' => $currentTask->approved_at?->toISOString(),
+                ],
             'requires_resubmission' => (bool) $this->requires_resubmission,
             'resubmission_reason' => $this->resubmission_reason,
             'resubmission_requested_at' => $this->resubmission_requested_at,
@@ -57,5 +93,17 @@ class ReceptionistOrderListResource extends JsonResource
                     'address' => $this->lab->address,
                 ],
         ];
+    }
+
+    private function currentTaskForDisplay()
+    {
+        if (! $this->relationLoaded('tasks')) {
+            return null;
+        }
+
+        return $this->tasks
+            ->filter(fn ($task): bool => in_array($task->status, ['assigned', 'in_progress', 'pending_review'], true))
+            ->sortByDesc('id')
+            ->first();
     }
 }

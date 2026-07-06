@@ -133,10 +133,12 @@ class ReceptionistOrderManagementApiTest extends TestCase
             ->assertJsonPath('data.data.0.material_type', $type->name)
             ->assertJsonPath('data.data.0.teeth.0', 12)
             ->assertJsonPath('data.data.0.files.0.file_type', 'image/png')
-            ->assertJsonPath('data.data.0.lab.departments.0.name', 'Front Desk')
-            ->assertJsonPath('data.data.0.lab.departments.1.name', 'CAD/CAM')
+            ->assertJsonPath('data.data.0.departments.0.name', 'CAD/CAM')
+            ->assertJsonPath('data.data.0.departments.0.status', 'in_progress')
+            ->assertJsonPath('data.data.0.departments.0.is_current', true)
             ->assertJsonPath('data.data.0.current_department.name', 'CAD/CAM')
-            ->assertJsonPath('data.data.0.current_department.task_status', 'in_progress');
+            ->assertJsonPath('data.data.0.current_department.task_status', 'in_progress')
+            ->assertJsonCount(1, 'data.data.0.departments');
     }
 
     public function test_receptionist_can_view_order_details(): void

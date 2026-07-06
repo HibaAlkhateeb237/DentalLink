@@ -24,11 +24,14 @@ class ReceptionistOrderService
             ->with([
                 'user:id,name,email,phone,location',
                 'lab:id,name,phone,address',
+                'lab.departments:id,lab_id,name,sort_order,is_management',
                 'toothShade:id,name',
                 'dentalCompensationTypePrice:id,dental_compensation_type_id',
                 'dentalCompensationTypePrice.dentalCompensationType:id,name',
                 'orderTeeth:id,order_id,tooth_number',
                 'orderFiles:id,order_id,file_path,file_type,uploaded_at',
+                'tasks:id,order_id,department_id,user_id,approved_at,status',
+                'tasks.department:id,name,sort_order,time_allowed',
             ])
             ->withCount('orderTeeth')
             ->withSum('payments as paid_amount', 'payment_order.amount');
@@ -51,7 +54,7 @@ class ReceptionistOrderService
             $user->loadMissing('departmentUserRoles.department');
 
             $labIds = $user->departmentUserRoles
-                ->map(static fn ($departmentUserRole): ?int => $departmentUserRole->department?->lab_id)
+                ->map(static fn($departmentUserRole): ?int => $departmentUserRole->department?->lab_id)
                 ->filter()
                 ->unique()
                 ->values();
@@ -78,14 +81,14 @@ class ReceptionistOrderService
             $search = trim($validated['search']);
 
             $query->where(function (Builder $builder) use ($search): void {
-                $builder->where('qr_code', 'like', '%'.$search.'%')
+                $builder->where('qr_code', 'like', '%' . $search . '%')
                     ->orWhereHas('user', function (Builder $userQuery) use ($search): void {
-                        $userQuery->where('name', 'like', '%'.$search.'%')
-                            ->orWhere('email', 'like', '%'.$search.'%')
-                            ->orWhere('phone', 'like', '%'.$search.'%');
+                        $userQuery->where('name', 'like', '%' . $search . '%')
+                            ->orWhere('email', 'like', '%' . $search . '%')
+                            ->orWhere('phone', 'like', '%' . $search . '%');
                     })
                     ->orWhereHas('lab', function (Builder $labQuery) use ($search): void {
-                        $labQuery->where('name', 'like', '%'.$search.'%');
+                        $labQuery->where('name', 'like', '%' . $search . '%');
                     });
             });
         }
@@ -104,7 +107,7 @@ class ReceptionistOrderService
         return $order->load([
             'user:id,name,email,phone,location',
             'lab:id,name,phone,address',
-            'lab.departments' => fn ($query) => $query->where('sort_order', '>', 0)->orderBy('sort_order', 'asc')->select(['id', 'lab_id', 'name', 'description', 'is_management', 'time_allowed']),
+            'lab.departments' => fn($query) => $query->where('sort_order', '>', 0)->orderBy('sort_order', 'asc')->select(['id', 'lab_id', 'name', 'description', 'is_management', 'time_allowed']),
             'orderTeeth:id,order_id,tooth_number,notes',
             'orderFiles:id,order_id,file_path,file_type,uploaded_at',
             'tasks:id,order_id,department_id,user_id,approved_at,status',

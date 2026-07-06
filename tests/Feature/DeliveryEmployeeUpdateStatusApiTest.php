@@ -8,6 +8,7 @@ use App\Models\DepartmentUserRole;
 use App\Models\Lab;
 use App\Models\Order;
 use App\Models\Role;
+use App\Models\Task;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -150,6 +151,56 @@ class DeliveryEmployeeUpdateStatusApiTest extends TestCase
             ->assertJsonPath('data.delivery_task.status', 'delivered');
 
         $this->assertNotNull($task->fresh()->delivered_at);
+    }
+
+    public function test_second_try_on_return_to_lab_reopens_original_execution_department_task(): void
+    {
+        $executionDepartment = Department::query()
+            ->where('lab_id', $this->lab->id)
+            ->where('sort_order', '>', 0)
+            ->orderBy('sort_order', 'asc')
+            ->firstOrFail();
+
+        $doctor = User::factory()->create();
+        $order = $this->createOrder($doctor);
+        $order->update(['status' => 'try_on']);
+
+        $existingTask = Task::query()->create([
+            'order_id' => $order->id,
+            'department_id' => $executionDepartment->id,
+            'user_id' => $this->deliveryEmployee->id,
+            'status' => 'completed',
+            'approved_at' => now()->subDay(),
+        ]);
+
+        $deliveryTask = DeliveryTask::query()->create([
+            'order_id' => $order->id,
+            'user_id' => $this->deliveryEmployee->id,
+            'status' => 'on_the_way_to_the_lab',
+            'direction' => 'to_lab',
+            'picked_at' => now(),
+        ]);
+
+        Sanctum::actingAs($this->deliveryEmployee);
+
+        $response = $this->postJson('/api/auth/delivery/tasks/status/bulk', [
+            'delivery_task_ids' => [$deliveryTask->id],
+            'status' => 'delivered',
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.updated_tasks.0.status', 'delivered');
+
+        $this->assertSame('in_progress', $order->fresh()->status);
+        $this->assertSame('completed', $existingTask->fresh()->status);
+        $this->assertDatabaseCount('tasks', 2);
+        $this->assertDatabaseHas('tasks', [
+            'order_id' => $order->id,
+            'department_id' => $executionDepartment->id,
+            'status' => 'pending_assignment',
+            'user_id' => null,
+        ]);
     }
 
     public function test_delivered_at_is_set_when_delivered(): void

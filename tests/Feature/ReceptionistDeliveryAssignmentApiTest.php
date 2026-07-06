@@ -82,7 +82,8 @@ class ReceptionistDeliveryAssignmentApiTest extends TestCase
         $response
             ->assertOk()
             ->assertJsonPath('message', __('orders.delivery_tasks_retrieved'))
-            ->assertJsonPath('data.data.0.id', $task->id);
+            ->assertJsonPath('data.data.0.id', $task->id)
+            ->assertJsonPath('data.data.0.serial_number', $order->serial_number);
     }
 
     public function test_receptionist_cannot_assign_delivery_for_other_lab(): void

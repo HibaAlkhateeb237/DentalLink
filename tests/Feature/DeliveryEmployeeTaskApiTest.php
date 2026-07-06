@@ -292,6 +292,7 @@ class DeliveryEmployeeTaskApiTest extends TestCase
                             '*' => [
                                 'id',
                                 'order_id',
+                                'serial_number',
                                 'status',
                                 'direction',
                                 'assigned_at',
@@ -324,6 +325,7 @@ class DeliveryEmployeeTaskApiTest extends TestCase
             ])
             ->assertJsonPath('data.0.tasks.0.tasks.0.id', $task->id)
             ->assertJsonPath('data.0.tasks.0.tasks.0.order.id', $order->id)
+            ->assertJsonPath('data.0.tasks.0.tasks.0.serial_number', $order->serial_number)
             ->assertJsonPath('data.0.tasks.0.tasks.0.order.doctor.id', $doctor->id)
             ->assertJsonPath('data.0.tasks.0.tasks.0.order.doctor.location', 'Doctor Location');
     }
