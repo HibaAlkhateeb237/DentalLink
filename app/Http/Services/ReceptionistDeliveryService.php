@@ -132,7 +132,13 @@ class ReceptionistDeliveryService
             ]);
         });
 
-        return $deliveryTask->load('user:id,name,email,phone');
+        $deliveryTask->load('user:id,name,email,phone');
+
+        if ($deliveryUser) {
+            $deliveryUser->notify(new \App\Notifications\Order\DeliveryAssignedToDriver($deliveryTask));
+        }
+
+        return $deliveryTask;
     }
 
     private function resolveDeliveryDirection(Order $order): string
