@@ -28,17 +28,28 @@ class LabManagerOrderDepartmentRouteApiTest extends TestCase
 
         $response = $this->postJson('/api/auth/lab/orders/departments', [
             'department_ids' => [$deptC->id, $deptA->id, $deptB->id],
+            'department_time_allowed_hours' => [8, 4, 6],
         ]);
 
         $response
             ->assertOk()
             ->assertJsonPath('message', __('orders.department_route_set_successfully'))
             ->assertJsonPath('data.total_departments_updated', 3)
-            ->assertJsonPath('data.department_route', [$deptC->id, $deptA->id, $deptB->id]);
+            ->assertJsonPath('data.department_route', [$deptC->id, $deptA->id, $deptB->id])
+            ->assertJsonPath('data.total_estimated_time_hours', 18)
+            ->assertJsonPath('data.departments.0.id', $deptC->id)
+            ->assertJsonPath('data.departments.0.time_allowed_hours', 8)
+            ->assertJsonPath('data.departments.1.id', $deptA->id)
+            ->assertJsonPath('data.departments.1.time_allowed_hours', 4)
+            ->assertJsonPath('data.departments.2.id', $deptB->id)
+            ->assertJsonPath('data.departments.2.time_allowed_hours', 6);
 
         $this->assertDatabaseHas('departments', ['id' => $deptC->id, 'sort_order' => 1]);
         $this->assertDatabaseHas('departments', ['id' => $deptA->id, 'sort_order' => 2]);
         $this->assertDatabaseHas('departments', ['id' => $deptB->id, 'sort_order' => 3]);
+        $this->assertDatabaseHas('departments', ['id' => $deptC->id, 'time_allowed' => 8]);
+        $this->assertDatabaseHas('departments', ['id' => $deptA->id, 'time_allowed' => 4]);
+        $this->assertDatabaseHas('departments', ['id' => $deptB->id, 'time_allowed' => 6]);
     }
 
     public function test_updates_only_specified_departments(): void
@@ -53,11 +64,13 @@ class LabManagerOrderDepartmentRouteApiTest extends TestCase
 
         $this->postJson('/api/auth/lab/orders/departments', [
             'department_ids' => [$deptB->id],
+            'department_time_allowed_hours' => [5],
         ]);
 
         $this->assertDatabaseHas('departments', ['id' => $deptB->id, 'sort_order' => 1]);
         $this->assertDatabaseHas('departments', ['id' => $deptA->id, 'sort_order' => 1]);
         $this->assertDatabaseHas('departments', ['id' => $deptC->id, 'sort_order' => 3]);
+        $this->assertDatabaseHas('departments', ['id' => $deptB->id, 'time_allowed' => 5]);
     }
 
     public function test_returns_400_when_department_from_another_lab(): void
@@ -78,6 +91,7 @@ class LabManagerOrderDepartmentRouteApiTest extends TestCase
 
         $response = $this->postJson('/api/auth/lab/orders/departments', [
             'department_ids' => [$otherDept->id],
+            'department_time_allowed_hours' => [2],
         ]);
 
         $response
@@ -100,6 +114,7 @@ class LabManagerOrderDepartmentRouteApiTest extends TestCase
 
         $response = $this->postJson('/api/auth/lab/orders/departments', [
             'department_ids' => [$management->id],
+            'department_time_allowed_hours' => [2],
         ]);
 
         $response
@@ -122,6 +137,7 @@ class LabManagerOrderDepartmentRouteApiTest extends TestCase
 
         $response = $this->postJson('/api/auth/lab/orders/departments', [
             'department_ids' => [$inactive->id],
+            'department_time_allowed_hours' => [2],
         ]);
 
         $response
@@ -138,6 +154,7 @@ class LabManagerOrderDepartmentRouteApiTest extends TestCase
 
         $response = $this->postJson('/api/auth/lab/orders/departments', [
             'department_ids' => [],
+            'department_time_allowed_hours' => [],
         ]);
 
         $response->assertStatus(400);
@@ -152,11 +169,30 @@ class LabManagerOrderDepartmentRouteApiTest extends TestCase
 
         $response = $this->postJson('/api/auth/lab/orders/departments', [
             'department_ids' => [$dept->id, $dept->id],
+            'department_time_allowed_hours' => [2, 3],
         ]);
 
         $response
             ->assertStatus(400)
             ->assertJsonValidationErrors(['department_ids.1']);
+    }
+
+    public function test_returns_400_when_department_times_count_does_not_match_department_ids_count(): void
+    {
+        [$manager, $lab] = $this->authenticateLabManager();
+        $deptA = $this->createDepartment($lab, 'Ceramics', 1);
+        $deptB = $this->createDepartment($lab, 'Implants', 2);
+
+        Sanctum::actingAs($manager);
+
+        $response = $this->postJson('/api/auth/lab/orders/departments', [
+            'department_ids' => [$deptA->id, $deptB->id],
+            'department_time_allowed_hours' => [3],
+        ]);
+
+        $response
+            ->assertStatus(400)
+            ->assertJsonValidationErrors(['department_time_allowed_hours']);
     }
 
     public function test_non_lab_manager_cannot_set_department_route(): void
@@ -174,6 +210,7 @@ class LabManagerOrderDepartmentRouteApiTest extends TestCase
 
         $response = $this->postJson('/api/auth/lab/orders/departments', [
             'department_ids' => [$dept->id],
+            'department_time_allowed_hours' => [2],
         ]);
 
         $response->assertForbidden();
@@ -183,6 +220,7 @@ class LabManagerOrderDepartmentRouteApiTest extends TestCase
     {
         $response = $this->postJson('/api/auth/lab/orders/departments', [
             'department_ids' => [1],
+            'department_time_allowed_hours' => [2],
         ]);
 
         $response->assertUnauthorized();
