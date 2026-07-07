@@ -39,14 +39,20 @@ class RoleService
     /**
      * @return array<int, array{id: int, name: string, permissions: list<string>}>
      */
-    public function matrix(): array
+    public function matrix(User $user): array
     {
-        return Role::query()
+        $isSystemAdmin = $user->hasRole('system_admin');
+
+        $query = Role::query()
             ->where('guard_name', 'sanctum')
-            ->whereNotIn('name', ['system_admin', 'lab_manager', 'doctor'])
             ->with('permissions:id,name')
-            ->orderBy('name')
-            ->get()
+            ->orderBy('name');
+
+        if (! $isSystemAdmin) {
+            $query->whereNotIn('name', ['system_admin', 'lab_manager', 'doctor']);
+        }
+
+        return $query->get()
             ->map(fn (Role $role): array => [
                 'id' => $role->id,
                 'name' => $role->name,
@@ -59,14 +65,22 @@ class RoleService
     /**
      * @param  array<int, array{role_id: int, permissions: list<int>}>  $matrix
      */
-    public function updateMatrix(array $matrix): void
+    public function updateMatrix(User $user, array $matrix): void
     {
-        DB::transaction(function () use ($matrix): void {
+        $isSystemAdmin = $user->hasRole('system_admin');
+
+        DB::transaction(function () use ($matrix, $isSystemAdmin): void {
             foreach ($matrix as $item) {
                 $role = Role::query()
                     ->where('id', $item['role_id'])
                     ->where('guard_name', 'sanctum')
                     ->firstOrFail();
+
+                if (! $isSystemAdmin && ! $role->isCustom()) {
+                    throw ValidationException::withMessages([
+                        'matrix.*.role_id' => [__('roles.cannot_edit_system_role')],
+                    ]);
+                }
 
                 $role->permissions()->sync($item['permissions']);
             }

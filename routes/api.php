@@ -139,7 +139,7 @@ Route::prefix('auth')->group(function (): void {
         });
 
         // Permissions and roles management
-        Route::middleware(['role:lab_manager'])->prefix('lab')->group(function (): void {
+        Route::middleware(['role:lab_manager,system_admin'])->prefix('lab')->group(function (): void {
             Route::get('/permissions', [LabRoleController::class, 'permissions'])->name('lab.permissions.index');
 
             Route::prefix('roles')->group(function (): void {
