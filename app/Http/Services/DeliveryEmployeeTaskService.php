@@ -4,6 +4,7 @@ namespace App\Http\Services;
 
 use App\Http\Resources\DeliveryEmployeeTaskResource;
 use App\Models\DeliveryTask;
+use App\Models\Order;
 use App\Models\User;
 use App\Support\DeliveryStatus;
 use App\Support\DeliveryTaskDirection;
@@ -14,6 +15,10 @@ use Illuminate\Validation\ValidationException;
 
 class DeliveryEmployeeTaskService
 {
+    public function __construct(
+        private readonly OrderNotificationService $orderNotificationService
+    ) {}
+
     /**
      * @param  array{tab?:string,direction?:string,per_page?:int}  $validated
      */
@@ -174,8 +179,19 @@ class DeliveryEmployeeTaskService
                     app(OrderDeliveryTransitionService::class)->handleDeliveryCompleted($task);
                 }
             }
+
+            if ($firstTask->direction === DeliveryTaskDirection::TO_DOCTOR) {
+                $tasks
+                    ->pluck('order')
+                    ->filter()
+                    ->unique('id')
+                    ->each(function (Order $order): void {
+                        $this->orderNotificationService->notifyReceptionistWhenDeliveryTaskDelivered($order);
+                    });
+            }
+
             // Reload tasks with fresh order data
-            $tasks = $tasks->fresh()->load(['order.user', 'user']);
+            $tasks = $tasks->fresh()->load(['order.user', 'user','order']);
         }
 
         return $tasks->fresh()->load(['order.user', 'user']);

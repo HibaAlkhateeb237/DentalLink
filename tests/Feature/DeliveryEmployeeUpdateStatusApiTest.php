@@ -10,8 +10,10 @@ use App\Models\Order;
 use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
+use App\Notifications\Order\OrderDeliveredToDoctor;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -122,6 +124,9 @@ class DeliveryEmployeeUpdateStatusApiTest extends TestCase
     public function test_can_update_from_on_the_way_to_doctor_to_delivered(): void
     {
         $task = $this->createTask('on_the_way_to_the_doctor', 'to_doctor', ['picked_at' => now()]);
+        $receptionist = $this->createReceptionist();
+
+        Notification::fake();
 
         Sanctum::actingAs($this->deliveryEmployee);
 
@@ -134,6 +139,43 @@ class DeliveryEmployeeUpdateStatusApiTest extends TestCase
             ->assertJsonPath('data.delivery_task.status', 'delivered');
 
         $this->assertNotNull($task->fresh()->delivered_at);
+
+        Notification::assertSentTo(
+            $receptionist,
+            OrderDeliveredToDoctor::class,
+            function (OrderDeliveredToDoctor $notification) use ($task): bool {
+                return $notification->order->id === $task->order_id;
+            }
+        );
+    }
+
+    public function test_bulk_route_notifies_receptionist_when_doctor_delivery_is_delivered(): void
+    {
+        $task = $this->createTask('on_the_way_to_the_doctor', 'to_doctor', ['picked_at' => now()]);
+        $receptionist = $this->createReceptionist();
+
+        Notification::fake();
+
+        Sanctum::actingAs($this->deliveryEmployee);
+
+        $response = $this->postJson('/api/auth/delivery/tasks/status/bulk', [
+            'delivery_task_ids' => [$task->id],
+            'status' => 'delivered',
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.updated_tasks.0.status', 'delivered');
+
+        $this->assertNotNull($task->fresh()->delivered_at);
+
+        Notification::assertSentTo(
+            $receptionist,
+            OrderDeliveredToDoctor::class,
+            function (OrderDeliveredToDoctor $notification) use ($task): bool {
+                return $notification->order->id === $task->order_id;
+            }
+        );
     }
 
     public function test_can_update_from_on_the_way_to_lab_to_delivered(): void
@@ -357,5 +399,28 @@ class DeliveryEmployeeUpdateStatusApiTest extends TestCase
             'price' => 250,
             'remaining_amount' => 250,
         ]);
+    }
+
+    private function createReceptionist(): User
+    {
+        $department = Department::query()->create([
+            'lab_id' => $this->lab->id,
+            'name' => 'Reception',
+            'is_management' => false,
+        ]);
+
+        $receptionist = User::factory()->create([
+            'email' => 'receptionist.'.Str::uuid().'@example.com',
+        ]);
+
+        $role = Role::query()->where('name', 'receptionist')->where('guard_name', 'sanctum')->firstOrFail();
+
+        DepartmentUserRole::query()->create([
+            'user_id' => $receptionist->id,
+            'role_id' => $role->id,
+            'department_id' => $department->id,
+        ]);
+
+        return $receptionist;
     }
 }
