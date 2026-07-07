@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
 use App\Notifications\Order\OrderCompleted;
+use App\Notifications\Order\OrderDeliveredToDoctor;
 use App\Notifications\Order\OrderNew;
 use App\Notifications\Order\OrderProcessingStarted;
 use App\Notifications\Task\DepartmentManagerTaskMovedForwardNotification;
@@ -41,6 +42,13 @@ class OrderNotificationService
             foreach ($receptionists as $receptionist) {
                 $receptionist->notify(new OrderNew($order));
             }
+        }
+    }
+
+    public function notifyReceptionistWhenDeliveryTaskDelivered(Order $order): void
+    {
+        foreach ($this->getOrderReceptionists($order) as $receptionist) {
+            $receptionist->notify(new OrderDeliveredToDoctor($order));
         }
     }
 

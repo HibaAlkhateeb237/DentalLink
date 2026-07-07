@@ -19,6 +19,8 @@ return [
     'delivery_assigned_successfully' => 'Delivery employee assigned successfully',
     'delivery_user_invalid' => 'Selected delivery employee is not available for this lab',
     'delivery_already_assigned' => 'This order already has an active delivery assignment',
+    'delivery_delivered_notification' => 'Order delivered to doctor',
+    'delivery_delivered_body' => 'Order #:serial_number for patient ":patient_name" has been delivered to the doctor.',
     'status_updated_successfully' => 'Order status updated successfully',
     'department_route_set_successfully' => 'Order department route set successfully',
     'route_already_locked' => 'Cannot modify department route once tasks have been created',

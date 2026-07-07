@@ -22,6 +22,8 @@ return [
     'delivery_assigned_successfully' => 'Delivery employee assigned successfully',
     'delivery_user_invalid' => 'Selected delivery employee is not available for this lab',
     'delivery_already_assigned' => 'This order already has an active delivery assignment',
+    'delivery_delivered_notification' => 'تم تسليم الطلب إلى الطبيب',
+    'delivery_delivered_body' => 'تم تسليم الطلب رقم #:serial_number للمريض ":patient_name" إلى الطبيب.',
     'status_updated_successfully' => 'Order status updated successfully',
     'department_route_set_successfully' => 'Order department route set successfully',
     'route_already_locked' => 'Cannot modify department route once tasks have been created',
