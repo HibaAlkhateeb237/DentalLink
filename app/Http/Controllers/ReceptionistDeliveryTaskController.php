@@ -29,6 +29,10 @@ class ReceptionistDeliveryTaskController extends Controller
             return $this->apiResponse->error(__('auth.unauthenticated'), 401);
         }
 
+        if (! $user->hasPermission('delivery.assign')) {
+            return $this->apiResponse->error(__('auth.forbidden'), 403);
+        }
+
         $employees = $this->receptionistDeliveryService->listDeliveryEmployees($user, $request->validated());
         $payload = DeliveryEmployeeResource::collection($employees)->response()->getData(true);
 
@@ -45,6 +49,10 @@ class ReceptionistDeliveryTaskController extends Controller
 
         if ($user === null) {
             return $this->apiResponse->error(__('auth.unauthenticated'), 401);
+        }
+
+        if (! $user->hasPermission('delivery.assign')) {
+            return $this->apiResponse->error(__('auth.forbidden'), 403);
         }
 
         $tasks = $this->receptionistDeliveryService->listDeliveryTasks($user, $request->validated());

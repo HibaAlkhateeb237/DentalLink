@@ -423,6 +423,18 @@ class LabService
         return $path;
     }
 
+    public function getLabStats(): array
+    {
+        $activeCount = Lab::where('is_active', true)->count();
+        $inactiveCount = Lab::where('is_active', false)->count();
+
+        return [
+            'active_labs_count' => $activeCount,
+            'inactive_labs_count' => $inactiveCount,
+            'total_labs_count' => $activeCount + $inactiveCount,
+        ];
+    }
+
     private function generateLabLicenseNumber(int $labId): string
     {
         return 'LAB-'.now()->format('Ymd').'-'.str_pad((string) $labId, 6, '0', STR_PAD_LEFT);

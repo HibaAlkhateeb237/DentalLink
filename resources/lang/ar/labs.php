@@ -8,6 +8,7 @@ return [
     'nearby_retrieved_successfully' => 'تم جلب المخابر القريبة بنجاح.',
     'suggested_retrieved_successfully' => 'تم جلب المخابر المقترحة بنجاح.',
     'most_ordered_retrieved_successfully' => 'تم جلب المخابر الأكثر طلبًا بنجاح.',
+    'stats_retrieved_successfully' => 'تم جلب إحصائيات المخابر بنجاح.',
     'details_retrieved_successfully' => 'تم جلب تفاصيل المخبَر بنجاح.',
     'created_successfully' => 'تم إنشاء المخبَر بنجاح.',
     'updated_successfully' => 'تم تحديث بيانات المخبَر بنجاح.',
