@@ -156,6 +156,14 @@ class LabController extends Controller
         );
     }
 
+    public function adminStats(): JsonResponse
+    {
+        return $this->apiResponse->success(
+            $this->labService->getLabStats(),
+            __('labs.stats_retrieved_successfully')
+        );
+    }
+
     public function store(LabStoreRequest $request): JsonResponse
     {
         $result = $this->labService->createLabWithManager($request->validated());

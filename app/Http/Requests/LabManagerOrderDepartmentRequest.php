@@ -29,6 +29,7 @@ class LabManagerOrderDepartmentRequest extends FormRequest
     {
         return [
             'department_ids' => ['required', 'array', 'min:1'],
+            'department_time_allowed_hours' => ['required', 'array', 'min:1'],
             'department_ids.*' => [
                 'required',
                 'integer',
@@ -39,6 +40,32 @@ class LabManagerOrderDepartmentRequest extends FormRequest
                         ->where('is_management', false);
                 }),
             ],
+            'department_time_allowed_hours.*' => [
+                'required',
+                'integer',
+                'min:0',
+            ],
+        ];
+    }
+
+    public function after(): array
+    {
+        return [
+            function ($validator): void {
+                $departmentIds = $this->input('department_ids', []);
+                $departmentTimes = $this->input('department_time_allowed_hours', []);
+
+                if (! is_array($departmentIds) || ! is_array($departmentTimes)) {
+                    return;
+                }
+
+                if (count($departmentIds) !== count($departmentTimes)) {
+                    $validator->errors()->add(
+                        'department_time_allowed_hours',
+                        'The department_time_allowed_hours field must contain one value for each department id.'
+                    );
+                }
+            },
         ];
     }
 
@@ -46,6 +73,10 @@ class LabManagerOrderDepartmentRequest extends FormRequest
     {
         return [
             'department_ids.*.exists' => __('orders.department_not_in_lab'),
+            'department_time_allowed_hours.required' => 'The department_time_allowed_hours field is required.',
+            'department_time_allowed_hours.array' => 'The department_time_allowed_hours field must be an array.',
+            'department_time_allowed_hours.*.integer' => 'Each department time must be an integer number of hours.',
+            'department_time_allowed_hours.*.min' => 'Each department time must be zero or greater.',
         ];
     }
 

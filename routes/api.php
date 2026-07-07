@@ -38,6 +38,7 @@ Route::get('/ping', function () {
 
 Route::middleware(['auth:sanctum', 'role:system_admin'])->prefix('admin/labs')->group(function (): void {
     Route::get('/', [LabController::class, 'adminIndex'])->name('admin.labs.index');
+    Route::get('/stats', [LabController::class, 'adminStats'])->name('admin.labs.stats');
     Route::get('/inactive', [LabController::class, 'inactiveLabs'])->name('admin.labs.inactive');
     Route::get('/{lab}', [LabController::class, 'adminShow'])->name('admin.labs.show');
     Route::post('/', [LabController::class, 'store'])->name('admin.labs.store');
@@ -109,7 +110,7 @@ Route::prefix('auth')->group(function (): void {
 
         // ----------------------------------receptionist-----------------------------------------------------------------
 
-        Route::middleware(['role:receptionist'])->prefix('orders')->group(function (): void {
+        Route::middleware(['role:receptionist,lab_manager'])->prefix('orders')->group(function (): void {
             Route::get('/', [ReceptionistOrderController::class, 'index'])->name('orders.index');
             Route::get('/delivery-employees', [ReceptionistDeliveryTaskController::class, 'employees'])
                 ->name('orders.delivery-employees.index');
@@ -165,7 +166,6 @@ Route::prefix('auth')->group(function (): void {
         // Lab manager - Bulk order department routing
         Route::middleware(['role:lab_manager'])->post('lab/orders/departments', [LabManagerOrderController::class, 'setDepartmentRoute'])
             ->name('lab.orders.departments.store');
-
         // ====================================lab_technician===================================================
 
         Route::middleware(['role:lab_technician'])->prefix('lab/technician')->group(function (): void {

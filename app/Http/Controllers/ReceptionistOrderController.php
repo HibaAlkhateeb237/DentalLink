@@ -85,7 +85,7 @@ class ReceptionistOrderController extends Controller
 
     public function updateStatus(ReceptionistOrderStatusUpdateRequest $request, Order $order): JsonResponse
     {
-        Gate::authorize('view', $order);
+        Gate::authorize('price', $order);
 
         $user = $request->user();
 
@@ -110,7 +110,7 @@ class ReceptionistOrderController extends Controller
 
     public function qrImage(Request $request, Order $order): Response|JsonResponse
     {
-        Gate::authorize('view', $order);
+        Gate::authorize('price', $order);
 
         $user = $request->user();
 

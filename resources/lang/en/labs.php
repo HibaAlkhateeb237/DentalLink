@@ -8,6 +8,7 @@ return [
     'nearby_retrieved_successfully' => 'Nearby labs retrieved successfully',
     'suggested_retrieved_successfully' => 'Suggested labs retrieved successfully',
     'most_ordered_retrieved_successfully' => 'Most ordered labs retrieved successfully',
+    'stats_retrieved_successfully' => 'Lab statistics retrieved successfully',
     'details_retrieved_successfully' => 'Lab details retrieved successfully',
     'created_successfully' => 'Lab created successfully',
     'updated_successfully' => 'Lab updated successfully',
