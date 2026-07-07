@@ -6,7 +6,6 @@ use App\Models\Department;
 use App\Models\Task;
 use App\Models\User;
 use App\Notifications\PatientCase\CaseTransferred;
-use App\Notifications\Task\DepartmentManagerTaskMovedForwardNotification;
 use App\Notifications\Task\TaskAssigned;
 use App\Repositories\TaskRepository;
 use App\Support\OrderStatus;
@@ -39,20 +38,20 @@ class TaskWorkflowService
             throw new HttpException(400, 'هذه المهمة ليست في حالة بحاجة لتقييم حالياً.');
         }
 
-try {
-                return DB::transaction(function () use ($task) {
-                    $this->taskRepository->completeTask($task);
+        try {
+            return DB::transaction(function () use ($task) {
+                $this->taskRepository->completeTask($task);
 
-                    $currentDepartment = $task['department'];
-                    $nextDepartment = $this->taskRepository->findNextDepartment($task['department'], $task['order_id']);
+                $currentDepartment = $task['department'];
+                $nextDepartment = $this->taskRepository->findNextDepartment($task['department'], $task['order_id']);
 
-                    if ($nextDepartment) {
+                if ($nextDepartment) {
 
-                        $newTask = $this->taskRepository->createNextStageTask($task['order_id'], $nextDepartment['id']);
-                        $this->notifyDoctorsAboutCaseTransfer($task, $currentDepartment, $nextDepartment);
-                        $this->orderNotificationService->notifyDepartmentManagerAboutUrgentCase($newTask);
+                    $newTask = $this->taskRepository->createNextStageTask($task['order_id'], $nextDepartment['id']);
+                    $this->notifyDoctorsAboutCaseTransfer($task, $currentDepartment, $nextDepartment);
+                    $this->orderNotificationService->notifyDepartmentManagerAboutUrgentCase($newTask);
 
-                        return "تم إنهاء المهمة ونقلها إلى القسم التالي: ({$nextDepartment['name']}).";
+                    return "تم إنهاء المهمة ونقلها إلى القسم التالي: ({$nextDepartment['name']}).";
                 }
 
                 $task->order()->update([
@@ -168,5 +167,4 @@ try {
             );
         }
     }
-
 }
