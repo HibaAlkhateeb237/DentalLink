@@ -9,6 +9,7 @@ use App\Models\Lab;
 use App\Models\Order;
 use App\Models\Role;
 use App\Models\User;
+use App\Notifications\Order\DeliveryAssignedToDriver;
 use App\Support\DeliveryTaskDirection;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
