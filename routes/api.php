@@ -9,6 +9,7 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DepartmentManagerTaskController;
 use App\Http\Controllers\DeviceTokenController;
 use App\Http\Controllers\LabController;
+use App\Http\Controllers\LabDeliverySettingController;
 use App\Http\Controllers\LabEmployeeController;
 use App\Http\Controllers\LabManagerOrderController;
 use App\Http\Controllers\LabPortfolioController;
@@ -168,6 +169,12 @@ Route::prefix('auth')->group(function (): void {
         // Lab manager - Bulk order department routing
         Route::middleware(['role:lab_manager'])->post('lab/orders/departments', [LabManagerOrderController::class, 'setDepartmentRoute'])
             ->name('lab.orders.departments.store');
+
+        // Lab manager - Delivery time settings
+        Route::middleware(['role:lab_manager'])->prefix('lab/delivery-settings')->group(function (): void {
+            Route::get('/', [LabDeliverySettingController::class, 'show'])->name('lab.delivery-settings.show');
+            Route::put('/', [LabDeliverySettingController::class, 'update'])->name('lab.delivery-settings.update');
+        });
         // ====================================lab_technician===================================================
 
         Route::middleware(['role:lab_technician'])->prefix('lab/technician')->group(function (): void {

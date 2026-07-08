@@ -6,9 +6,11 @@ use App\Http\Repositories\LabRepository;
 use App\Models\Department;
 use App\Models\DepartmentUserRole;
 use App\Models\Lab;
+use App\Models\Order;
 use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
+use App\Support\OrderStatus;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -148,6 +150,7 @@ class LabService
                 'latitude' => $validated['latitude'],
                 'longitude' => $validated['longitude'],
                 'rating' => 0,
+                'is_active' => $validated['is_active'] ?? true,
             ]);
 
             $lab->license_number = $this->generateLabLicenseNumber($lab->id);
@@ -219,6 +222,10 @@ class LabService
 
             if (array_key_exists('longitude', $validated)) {
                 $labUpdates['longitude'] = $validated['longitude'];
+            }
+
+            if (array_key_exists('is_active', $validated)) {
+                $labUpdates['is_active'] = (bool) $validated['is_active'];
             }
 
             if ($labUpdates !== []) {
@@ -391,6 +398,7 @@ class LabService
             'address' => $lab->address,
             'rating' => $lab->rating,
             'photo' => $photoUrl,
+            'is_active' => (bool) $lab->is_active,
             'created_at' => $lab->created_at,
             'updated_at' => $lab->updated_at,
             'manager' => $this->buildManagerPayload($manager),
@@ -438,5 +446,63 @@ class LabService
     private function generateLabLicenseNumber(int $labId): string
     {
         return 'LAB-'.now()->format('Ymd').'-'.str_pad((string) $labId, 6, '0', STR_PAD_LEFT);
+    }
+
+    public function getDeliverySettings(Lab $lab): array
+    {
+        return [
+            'lab_id' => $lab->id,
+            'normal_delivery_days' => (int) $lab->normal_delivery_days,
+            'urgent_delivery_days' => (int) $lab->urgent_delivery_days,
+        ];
+    }
+
+    public function updateDeliverySettings(Lab $lab, array $data): array
+    {
+        return DB::transaction(function () use ($lab, $data): array {
+            $lab->normal_delivery_days = (int) $data['normal_delivery_days'];
+            $lab->urgent_delivery_days = (int) $data['urgent_delivery_days'];
+            $lab->save();
+
+            $this->recomputeExpectedDeliveryDates($lab);
+
+            return $this->getDeliverySettings($lab);
+        });
+    }
+
+    private function recomputeExpectedDeliveryDates(Lab $lab): void
+    {
+        $orders = Order::query()
+            ->where('lab_id', $lab->id)
+            ->whereNotIn('status', [OrderStatus::COMPLETED])
+            ->whereNotNull('received_at')
+            ->get();
+
+        foreach ($orders as $order) {
+            $receivedAt = $order->received_at;
+            $order->expected_delivery_at = $receivedAt->copy()->addDays(
+                $lab->deliveryDaysForPriority($order->priority ?? 'normal')
+            );
+            $order->save();
+        }
+    }
+
+    public function resolveManagerLabId(User $user): int
+    {
+        $managerLabId = DepartmentUserRole::query()
+            ->join('roles', 'roles.id', '=', 'department_user_roles.role_id')
+            ->join('departments', 'departments.id', '=', 'department_user_roles.department_id')
+            ->where('department_user_roles.user_id', $user->id)
+            ->where('roles.name', 'lab_manager')
+            ->where('roles.guard_name', 'sanctum')
+            ->value('departments.lab_id');
+
+        if ($managerLabId === null) {
+            throw ValidationException::withMessages([
+                'lab_id' => [__('messages.not_found')],
+            ]);
+        }
+
+        return (int) $managerLabId;
     }
 }

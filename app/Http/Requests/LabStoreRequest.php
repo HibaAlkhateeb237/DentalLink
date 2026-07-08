@@ -29,6 +29,7 @@ class LabStoreRequest extends FormRequest
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'confirmed', Password::min(8)],
             'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:5120', 'dimensions:min_width=100,min_height=100'],
+            'is_active' => ['nullable', 'boolean'],
         ];
     }
 

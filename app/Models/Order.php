@@ -21,6 +21,7 @@ class Order extends Model
         'patient_name',
         'received_at',
         'delivered_at',
+        'expected_delivery_at',
         'qr_code',
         'qr_image_path',
         'priority',
@@ -51,6 +52,7 @@ class Order extends Model
             'resubmission_requested_at' => 'datetime',
             'received_at' => 'datetime',
             'delivered_at' => 'datetime',
+            'expected_delivery_at' => 'datetime',
             'is_in_delivery' => 'boolean',
 
             'qr_image_path' => 'string',

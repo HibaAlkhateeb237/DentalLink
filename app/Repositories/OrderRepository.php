@@ -32,6 +32,7 @@ class OrderRepository
         return DB::transaction(function () use ($doctor, $data): Order {
             $lab = Lab::query()->findOrFail($data['lab_id']);
             $receivedAt = CarbonImmutable::now();
+            $expectedDeliveryAt = $receivedAt->addDays($lab->deliveryDaysForPriority($data['priority'] ?? 'normal'));
 
             $selectedPrice = DentalCompensationTypePrice::query()
                 ->where('dental_compensation_type_id', $data['dental_compensation_type_id'])
@@ -58,6 +59,7 @@ class OrderRepository
                 'remaining_amount' => 0,
                 'serial_number' => null,
                 'received_at' => $receivedAt,
+                'expected_delivery_at' => $expectedDeliveryAt,
                 'delivered_at' => $receivedAt->addDays($data['priority'] === 'urgent' ? 2 : 3),
                 'tooth_shade_id' => $data['tooth_shade_id'],
                 'dental_compensation_type_price_id' => $selectedPrice?->id,
