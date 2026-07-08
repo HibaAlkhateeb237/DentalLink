@@ -37,4 +37,8 @@ return [
     // Direction labels
     'direction_to_lab' => 'To Lab',
     'direction_to_doctor' => 'To Doctor',
+
+    'qr_already_printed' => 'QR code has already been printed and cannot be printed again',
+
+    'status_finalized' => 'Order status has already been finalized and can no longer be updated',
 ];

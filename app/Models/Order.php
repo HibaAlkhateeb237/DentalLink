@@ -22,6 +22,8 @@ class Order extends Model
         'received_at',
         'delivered_at',
         'expected_delivery_at',
+        'qr_printed_at',
+        'is_status_finalized',
         'qr_code',
         'qr_image_path',
         'priority',
@@ -53,6 +55,8 @@ class Order extends Model
             'received_at' => 'datetime',
             'delivered_at' => 'datetime',
             'expected_delivery_at' => 'datetime',
+            'qr_printed_at' => 'datetime',
+            'is_status_finalized' => 'boolean',
             'is_in_delivery' => 'boolean',
 
             'qr_image_path' => 'string',

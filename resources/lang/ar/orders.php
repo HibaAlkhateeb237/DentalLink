@@ -40,4 +40,8 @@ return [
     // Direction labels
     'direction_to_lab' => 'To Lab',
     'direction_to_doctor' => 'To Doctor',
+
+    'qr_already_printed' => 'تم طباعة رمز الاستجابة السريعة بالفعل ولا يمكن طباعته مرة أخرى',
+
+    'status_finalized' => 'تم اعتماد حالة الطلب بالفعل ولا يمكن تحديثها مجدداً',
 ];

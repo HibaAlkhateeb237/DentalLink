@@ -16,6 +16,8 @@ use App\Models\Order;
 use App\Models\Task;
 use App\Support\OrderStatus;
 use App\Support\TaskStatus;
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -111,6 +113,10 @@ class ReceptionistOrderController extends Controller
             );
         }
 
+        if ($order->is_status_finalized) {
+            return $this->apiResponse->error(__('orders.status_finalized'), 409);
+        }
+
         $updatedOrder = $this->receptionistOrderService->updateStatusAndDetails(
             $order,
             $request->validated(),
@@ -199,10 +205,23 @@ class ReceptionistOrderController extends Controller
         $path = $order->qr_image_path;
 
         if (! filled($path) || ! Storage::disk('public')->exists($path)) {
-            return $this->apiResponse->error(__('messages.file_not_found'), 404);
+            $regenerated = $this->ensureQrImageExists($order);
+
+            if ($regenerated === null) {
+                return $this->apiResponse->error(__('messages.file_not_found'), 404);
+            }
+
+            $path = $regenerated;
+        }
+
+        if ($order->qr_printed_at !== null) {
+            return $this->apiResponse->error(__('orders.qr_already_printed'), 409);
         }
 
         return DB::transaction(function () use ($order, $user, $path) {
+
+            $order->qr_printed_at = now();
+            $order->save();
 
             $this->receptionistOrderService->updateStatus(
                 $order,
@@ -239,5 +258,36 @@ class ReceptionistOrderController extends Controller
                 'Content-Type' => 'image/png',
             ]);
         });
+    }
+
+    /**
+     * (Re)generate the order's QR image on disk if it is missing.
+     *
+     * @return string|null The stored path when generation succeeds, otherwise null.
+     */
+    private function ensureQrImageExists(Order $order): ?string
+    {
+        if (! filled($order->qr_code)) {
+            return null;
+        }
+
+        $path = 'orders/'.$order->qr_code.'/qr.png';
+
+        try {
+            $result = Builder::create()
+                ->writer(new PngWriter)
+                ->data(route('orders.show-qr', ['qr' => $order->qr_code]))
+                ->size(300)
+                ->build();
+
+            Storage::disk('public')->put($path, $result->getString());
+
+            $order->qr_image_path = $path;
+            $order->save();
+
+            return $path;
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 }

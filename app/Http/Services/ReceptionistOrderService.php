@@ -158,6 +158,10 @@ class ReceptionistOrderService
             if (isset($data['status'])) {
                 $order->status = $data['status'];
 
+                if ($from === OrderStatus::IN_PROGRESS && $data['status'] !== OrderStatus::IN_PROGRESS) {
+                    $order->is_status_finalized = true;
+                }
+
                 OrderStatusHistory::create([
                     'order_id' => $order->id,
                     'from_status' => $from,
