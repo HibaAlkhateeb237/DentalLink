@@ -405,7 +405,7 @@ class DemoDataSeeder extends Seeder
 
             foreach ($compensationTypes as $index => $typeName) {
                 $code = Str::slug($typeName, '_');
-                DentalCompensationType::query()->updateOrCreate(
+                $compensation = DentalCompensationType::query()->updateOrCreate(
                     [
                         'lab_id' => $lab->id,
                         'code' => $code,
@@ -414,6 +414,19 @@ class DemoDataSeeder extends Seeder
                         'name' => $typeName,
                         'category' => 'other', // default category
                         'description' => $typeName.' reference pricing',
+                    ],
+                );
+
+                $price = 150 + (($index % 7) * 45);
+
+                DentalCompensationTypePrice::query()->updateOrCreate(
+                    [
+                        'dental_compensation_type_id' => $compensation->id,
+                        'effective_from' => now()->toDateString(),
+                    ],
+                    [
+                        'base_price' => $price,
+                        'is_active' => true,
                     ],
                 );
             }
@@ -628,8 +641,7 @@ class DemoDataSeeder extends Seeder
                 $deliveredAt = $receivedAt->addDays($priority === 'urgent' ? 2 : 3);
 
                 $order = Order::query()->create([
-                    'user_id' => 12,
-                    // $doctor->id,
+                    'user_id' => $doctor->id,
                     'lab_id' => $lab->id,
                     'patient_name' => $patientNames[$index % count($patientNames)],
                     'qr_code' => (string) Str::uuid(),
@@ -1017,7 +1029,7 @@ class DemoDataSeeder extends Seeder
 
             DeliveryTask::query()->create([
                 'order_id' => $order->id,
-                'user_id' => 77,
+                'user_id' => $deliveryUser->id,
                 'status' => $status,
                 'direction' => $direction,
                 'picked_at' => in_array($status, DeliveryStatus::PICKED_STATUSES, true)

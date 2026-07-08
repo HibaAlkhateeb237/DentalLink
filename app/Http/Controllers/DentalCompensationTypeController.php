@@ -22,7 +22,9 @@ class DentalCompensationTypeController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = $this->service->search($request->query('q'), $request->user());
-        $compensations = $query->paginate(20);
+        $perPage = $request->integer('per_page', 20);
+        $perPage = max(1, min($perPage, 100));
+        $compensations = $query->paginate($perPage);
 
         $resource = DentalCompensationTypeResource::collection($compensations);
         $resourceArray = $resource->response()->getData(true);
@@ -30,7 +32,7 @@ class DentalCompensationTypeController extends Controller
         $data = [
             'data' => $resourceArray['data'],
             'total' => $resourceArray['meta']['total'] ?? 0,
-            'per_page' => $resourceArray['meta']['per_page'] ?? 20,
+            'per_page' => $resourceArray['meta']['per_page'] ?? $perPage,
             'current_page' => $resourceArray['meta']['current_page'] ?? 1,
             'last_page' => $resourceArray['meta']['last_page'] ?? 1,
         ];
