@@ -118,6 +118,8 @@ Route::prefix('auth')->group(function (): void {
                 ->name('orders.delivery-tasks.index');
             Route::get('/{order}/qr-image', [ReceptionistOrderController::class, 'qrImage'])->name('orders.qr-image');
             Route::get('/{order}', [ReceptionistOrderController::class, 'show'])->name('orders.show');
+            Route::post('/{order}/lock', [ReceptionistOrderController::class, 'lock'])->name('orders.lock');
+            Route::post('/{order}/unlock', [ReceptionistOrderController::class, 'unlock'])->name('orders.unlock');
             Route::post('/{order}/status', [ReceptionistOrderController::class, 'updateStatus'])->name('orders.status.update');
             Route::post('/{order}/delivery-assignments', [ReceptionistDeliveryTaskController::class, 'assign'])
                 ->name('orders.delivery-assignments.store');

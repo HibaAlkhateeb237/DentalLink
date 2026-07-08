@@ -8,6 +8,7 @@ use App\Http\Requests\ReceptionistOrderStatusUpdateRequest;
 use App\Http\Resources\ReceptionistOrderDetailsResource;
 use App\Http\Resources\ReceptionistOrderListResource;
 use App\Http\Responses\ApiResponse;
+use App\Http\Services\OrderLockService;
 use App\Http\Services\OrderNotificationService;
 use App\Http\Services\ReceptionistOrderService;
 use App\Models\Department;
@@ -27,6 +28,7 @@ class ReceptionistOrderController extends Controller
     public function __construct(
         private ReceptionistOrderService $receptionistOrderService,
         private OrderNotificationService $orderNotificationService,
+        private OrderLockService $orderLockService,
         private ApiResponse $apiResponse,
     ) {}
 
@@ -49,9 +51,16 @@ class ReceptionistOrderController extends Controller
 
         $order = $this->receptionistOrderService->getOrderDetails($order);
 
+        $owner = $this->orderLockService->getOwner($order);
+
         return $this->apiResponse->success(
             [
                 'order' => ReceptionistOrderDetailsResource::make($order)->resolve(),
+                'lock' => [
+                    'is_locked' => $owner !== null,
+                    'locked_by' => $owner['user_id'] ?? null,
+                    'locked_by_name' => $owner['name'] ?? null,
+                ],
             ],
             __('orders.details_retrieved_successfully'),
             200,
@@ -93,6 +102,15 @@ class ReceptionistOrderController extends Controller
             return $this->apiResponse->error(__('auth.unauthenticated'), 401);
         }
 
+        if ($this->orderLockService->isLockedByOther($order, $user)) {
+            $owner = $this->orderLockService->getOwner($order);
+
+            return $this->apiResponse->error(
+                __('orders.order_locked_by_another', ['name' => $owner['name'] ?? 'another user']),
+                423
+            );
+        }
+
         $updatedOrder = $this->receptionistOrderService->updateStatusAndDetails(
             $order,
             $request->validated(),
@@ -106,6 +124,55 @@ class ReceptionistOrderController extends Controller
             __('orders.status_updated_successfully'),
             200,
         );
+    }
+
+    public function lock(Request $request, Order $order): JsonResponse
+    {
+        Gate::authorize('price', $order);
+
+        $user = $request->user();
+
+        if ($user === null) {
+            return $this->apiResponse->error(__('auth.unauthenticated'), 401);
+        }
+
+        $result = $this->orderLockService->acquire($order, $user);
+
+        if (! $result['success']) {
+            return $this->apiResponse->error($result['message'], 423, [
+                'locked_by' => $result['locked_by'],
+                'locked_by_name' => $result['locked_by_name'],
+            ]);
+        }
+
+        return $this->apiResponse->success(
+            [
+                'locked_by' => $result['locked_by'],
+                'locked_by_name' => $result['locked_by_name'],
+                'expires_at' => $result['expires_at'],
+            ],
+            __('orders.order_locked'),
+            200,
+        );
+    }
+
+    public function unlock(Request $request, Order $order): JsonResponse
+    {
+        Gate::authorize('price', $order);
+
+        $user = $request->user();
+
+        if ($user === null) {
+            return $this->apiResponse->error(__('auth.unauthenticated'), 401);
+        }
+
+        $result = $this->orderLockService->release($order, $user);
+
+        if (! $result['success']) {
+            return $this->apiResponse->error($result['message'], 423);
+        }
+
+        return $this->apiResponse->success(null, __('orders.order_unlocked'));
     }
 
     public function qrImage(Request $request, Order $order): Response|JsonResponse

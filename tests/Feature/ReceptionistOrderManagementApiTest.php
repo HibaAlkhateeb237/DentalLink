@@ -482,6 +482,112 @@ class ReceptionistOrderManagementApiTest extends TestCase
             ->assertJsonPath('message', __('auth.forbidden'));
     }
 
+    public function test_receptionist_can_lock_and_unlock_order(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $receptionist = $this->actingAsRole('receptionist');
+        $doctor = User::factory()->create();
+
+        $lab = Lab::query()->create([
+            'name' => 'Lock Lab',
+            'phone' => '1111111',
+            'address' => 'Damascus',
+            'latitude' => 33.5138070,
+            'longitude' => 36.2765279,
+        ]);
+
+        $this->attachReceptionistToLab($receptionist, $lab);
+
+        $order = Order::query()->create([
+            'user_id' => $doctor->id,
+            'lab_id' => $lab->id,
+            'qr_code' => (string) Str::uuid(),
+            'priority' => 'normal',
+            'status' => 'pending',
+            'order_type' => 'digital',
+            'notes' => null,
+            'price' => 100,
+            'remaining_amount' => 100,
+        ]);
+
+        Sanctum::actingAs($receptionist);
+
+        $lockResponse = $this->postJson("/api/auth/orders/{$order->id}/lock");
+
+        $lockResponse->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', __('orders.order_locked'))
+            ->assertJsonPath('data.locked_by', $receptionist->id);
+
+        $showResponse = $this->getJson("/api/auth/orders/{$order->id}");
+
+        $showResponse->assertOk()
+            ->assertJsonPath('data.lock.is_locked', true)
+            ->assertJsonPath('data.lock.locked_by', $receptionist->id);
+
+        $unlockResponse = $this->postJson("/api/auth/orders/{$order->id}/unlock");
+
+        $unlockResponse->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', __('orders.order_unlocked'));
+
+        $showAfter = $this->getJson("/api/auth/orders/{$order->id}");
+
+        $showAfter->assertOk()
+            ->assertJsonPath('data.lock.is_locked', false);
+    }
+
+    public function test_second_receptionist_cannot_update_status_while_locked(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $receptionistOne = $this->actingAsRole('receptionist');
+        $receptionistTwo = $this->actingAsRole('receptionist');
+        $doctor = User::factory()->create();
+
+        $lab = Lab::query()->create([
+            'name' => 'Lock Conflict Lab',
+            'phone' => '2222222',
+            'address' => 'Aleppo',
+            'latitude' => 33.5104140,
+            'longitude' => 36.2783360,
+        ]);
+
+        $this->attachReceptionistToLab($receptionistOne, $lab);
+        $this->attachReceptionistToLab($receptionistTwo, $lab);
+
+        $order = Order::query()->create([
+            'user_id' => $doctor->id,
+            'lab_id' => $lab->id,
+            'qr_code' => (string) Str::uuid(),
+            'priority' => 'normal',
+            'status' => 'pending',
+            'order_type' => 'digital',
+            'notes' => null,
+            'price' => 100,
+            'remaining_amount' => 100,
+        ]);
+
+        Sanctum::actingAs($receptionistOne);
+        $this->postJson("/api/auth/orders/{$order->id}/lock")->assertOk();
+
+        Sanctum::actingAs($receptionistTwo);
+
+        $statusResponse = $this->postJson("/api/auth/orders/{$order->id}/status", [
+            'status' => 'in_progress',
+        ]);
+
+        $statusResponse->assertStatus(423)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', __('orders.order_locked_by_another', ['name' => $receptionistOne->name]));
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => 'pending',
+        ]);
+    }
+
     private function actingAsRole(string $roleName): User
     {
         $user = User::factory()->create();
@@ -502,7 +608,7 @@ class ReceptionistOrderManagementApiTest extends TestCase
     {
         $department = Department::query()->create([
             'lab_id' => $lab->id,
-            'name' => 'Front Desk',
+            'name' => 'Front Desk '.$receptionist->id,
             'description' => null,
             'is_management' => true,
         ]);
