@@ -361,7 +361,7 @@ class DemoDataSeeder extends Seeder
     {
         $departmentsByLab = [];
 
-        $departmentNames = ['Gypsum', 'Edges', 'Design'];
+        $departmentNames = ['Gypsum', 'Edges', 'Design', 'Cermics', 'Polishing'];
         $compensationTypes = ['Zircon Crown', 'E-Max Veneer', 'Implant Abutment', 'Temporary Crown'];
         $firstLabId = $labs[0]->id ?? null;
 

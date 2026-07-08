@@ -110,7 +110,7 @@ class DentalCompensationTypeService
             ->join('roles', 'roles.id', '=', 'department_user_roles.role_id')
             ->join('departments', 'departments.id', '=', 'department_user_roles.department_id')
             ->where('department_user_roles.user_id', $user->id)
-            ->where('roles.name', 'lab_manager')
+            ->whereIn('roles.name', ['lab_manager', 'receptionist'])
             ->where('roles.guard_name', 'sanctum')
             ->value('departments.lab_id');
 

@@ -57,7 +57,7 @@ Route::prefix('auth')->group(function (): void {
 
     Route::middleware('auth:sanctum')->group(function (): void {
         // Dental Compensation Types API (lab_manager)
-        Route::middleware(['auth:sanctum', 'role:lab_manager'])->prefix('lab/compensations')->group(function () {
+        Route::middleware(['auth:sanctum', 'role:lab_manager,receptionist'])->prefix('lab/compensations')->group(function () {
             Route::get('/', [DentalCompensationTypeController::class, 'index'])->middleware('can:viewAny,App\Models\DentalCompensationType');
             Route::post('/', [DentalCompensationTypeController::class, 'store'])->middleware('can:create,App\Models\DentalCompensationType');
             Route::get('{dental_compensation_type}', [DentalCompensationTypeController::class, 'show'])->middleware('can:view,dental_compensation_type');
