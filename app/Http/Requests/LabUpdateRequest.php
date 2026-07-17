@@ -51,6 +51,7 @@ class LabUpdateRequest extends FormRequest
             ],
             'password' => ['sometimes', 'nullable', 'string', 'confirmed', Password::min(8)],
             'photo' => ['sometimes', 'nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:5120', 'dimensions:min_width=100,min_height=100'],
+            'is_active' => ['sometimes', 'nullable', 'boolean'],
         ];
     }
 }

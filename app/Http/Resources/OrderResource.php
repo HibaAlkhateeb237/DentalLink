@@ -26,6 +26,7 @@ class OrderResource extends JsonResource
             'patient_name' => $this->patient_name,
             'serial_number' => $this->serial_number,
             'received_at' => $this->received_at?->toISOString(),
+            'expected_delivery_at' => $this->expected_delivery_at?->toISOString(),
             'delivered_at' => $this->delivered_at?->toISOString(),
 
             'notes' => $this->notes,

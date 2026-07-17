@@ -4,11 +4,37 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Carbon;
 
 class ReceptionistOrderDetailsResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $startDate = $this->received_at;
+        $endDate = $this->delivered_at;
+
+        if ($endDate === null && $startDate !== null) {
+            $estimatedHours = $this->estimatedTotalHours();
+            $endDate = $estimatedHours > 0
+                ? $startDate->copy()->addHours($estimatedHours)
+                : null;
+        }
+
+        $elapsedMinutes = null;
+        $remainingMinutes = null;
+        $isOverdue = false;
+
+        if ($startDate !== null) {
+            $now = Carbon::now();
+            $elapsedMinutes = max(0, (int) $startDate->diffInMinutes($now, false));
+
+            if ($endDate !== null) {
+                $remainingMinutes = (int) $now->diffInMinutes($endDate, false);
+                $isOverdue = $remainingMinutes < 0;
+                $remainingMinutes = abs($remainingMinutes);
+            }
+        }
+
         return [
             'id' => $this->id,
             'qr_code' => $this->qr_code,
@@ -20,6 +46,18 @@ class ReceptionistOrderDetailsResource extends JsonResource
             'serial_number' => $this->serial_number,
             'received_at' => $this->received_at?->toISOString(),
             'delivered_at' => $this->delivered_at?->toISOString(),
+            'start_date' => $startDate?->toISOString(),
+            'end_date' => $endDate?->toISOString(),
+            'elapsed_time' => [
+                'minutes' => $elapsedMinutes,
+                'human' => $elapsedMinutes === null ? null : $this->humanizeMinutes($elapsedMinutes),
+            ],
+            'remaining_time' => [
+                'minutes' => $remainingMinutes,
+                'human' => $remainingMinutes === null ? null : $this->humanizeMinutes($remainingMinutes),
+                'is_overdue' => $isOverdue,
+            ],
+            'estimated_total_hours' => $this->estimatedTotalHours(),
             'notes' => $this->notes,
             'price' => $this->price,
             'remaining_amount' => $this->remaining_amount,
@@ -80,5 +118,39 @@ class ReceptionistOrderDetailsResource extends JsonResource
                     ],
             ])->values()),
         ];
+    }
+
+    private function estimatedTotalHours(): int
+    {
+        if (! $this->lab || ! $this->lab->relationLoaded('departments')) {
+            return 0;
+        }
+
+        return (int) $this->lab->departments
+            ->where('is_management', false)
+            ->sum(fn ($department) => (int) ($department->time_allowed ?? 0));
+    }
+
+    private function humanizeMinutes(int $minutes): string
+    {
+        $days = intdiv($minutes, 1440);
+        $hours = intdiv($minutes % 1440, 60);
+        $mins = $minutes % 60;
+
+        $parts = [];
+
+        if ($days > 0) {
+            $parts[] = $days.'d';
+        }
+
+        if ($hours > 0) {
+            $parts[] = $hours.'h';
+        }
+
+        if ($mins > 0 || $parts === []) {
+            $parts[] = $mins.'m';
+        }
+
+        return implode(' ', $parts);
     }
 }

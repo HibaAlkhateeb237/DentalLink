@@ -80,9 +80,9 @@ class LabRoleController extends Controller
         );
     }
 
-    public function matrix(): JsonResponse
+    public function matrix(Request $request): JsonResponse
     {
-        $matrix = $this->roleService->matrix();
+        $matrix = $this->roleService->matrix($request->user());
 
         return $this->apiResponse->success(
             ['matrix' => $matrix],
@@ -92,7 +92,7 @@ class LabRoleController extends Controller
 
     public function updateMatrix(RoleMatrixUpdateRequest $request): JsonResponse
     {
-        $this->roleService->updateMatrix($request->validated()['matrix']);
+        $this->roleService->updateMatrix($request->user(), $request->validated()['matrix']);
 
         return $this->apiResponse->success(null, __('roles.matrix_updated_successfully'));
     }

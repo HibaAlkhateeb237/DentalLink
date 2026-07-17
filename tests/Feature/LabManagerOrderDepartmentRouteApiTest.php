@@ -23,33 +23,38 @@ class LabManagerOrderDepartmentRouteApiTest extends TestCase
         $deptA = $this->createDepartment($lab, 'Ceramics', 1);
         $deptB = $this->createDepartment($lab, 'Implants', 2);
         $deptC = $this->createDepartment($lab, 'Orthodontics', 3);
+        $deptD = $this->createDepartment($lab, 'Veneers', 4);
 
         Sanctum::actingAs($manager);
 
         $response = $this->postJson('/api/auth/lab/orders/departments', [
-            'department_ids' => [$deptC->id, $deptA->id, $deptB->id],
-            'department_time_allowed_hours' => [8, 4, 6],
+            'department_ids' => [$deptC->id, $deptA->id, $deptB->id, $deptD->id],
+            'department_time_allowed_hours' => [8, 4, 6, 10],
         ]);
 
         $response
             ->assertOk()
             ->assertJsonPath('message', __('orders.department_route_set_successfully'))
-            ->assertJsonPath('data.total_departments_updated', 3)
-            ->assertJsonPath('data.department_route', [$deptC->id, $deptA->id, $deptB->id])
-            ->assertJsonPath('data.total_estimated_time_hours', 18)
+            ->assertJsonPath('data.total_departments_updated', 4)
+            ->assertJsonPath('data.department_route', [$deptC->id, $deptA->id, $deptB->id, $deptD->id])
+            ->assertJsonPath('data.total_estimated_time_hours', 28)
             ->assertJsonPath('data.departments.0.id', $deptC->id)
             ->assertJsonPath('data.departments.0.time_allowed_hours', 8)
             ->assertJsonPath('data.departments.1.id', $deptA->id)
             ->assertJsonPath('data.departments.1.time_allowed_hours', 4)
             ->assertJsonPath('data.departments.2.id', $deptB->id)
-            ->assertJsonPath('data.departments.2.time_allowed_hours', 6);
+            ->assertJsonPath('data.departments.2.time_allowed_hours', 6)
+            ->assertJsonPath('data.departments.3.id', $deptD->id)
+            ->assertJsonPath('data.departments.3.time_allowed_hours', 10);
 
         $this->assertDatabaseHas('departments', ['id' => $deptC->id, 'sort_order' => 1]);
         $this->assertDatabaseHas('departments', ['id' => $deptA->id, 'sort_order' => 2]);
         $this->assertDatabaseHas('departments', ['id' => $deptB->id, 'sort_order' => 3]);
+        $this->assertDatabaseHas('departments', ['id' => $deptD->id, 'sort_order' => 4]);
         $this->assertDatabaseHas('departments', ['id' => $deptC->id, 'time_allowed' => 8]);
         $this->assertDatabaseHas('departments', ['id' => $deptA->id, 'time_allowed' => 4]);
         $this->assertDatabaseHas('departments', ['id' => $deptB->id, 'time_allowed' => 6]);
+        $this->assertDatabaseHas('departments', ['id' => $deptD->id, 'time_allowed' => 10]);
     }
 
     public function test_updates_only_specified_departments(): void
@@ -59,24 +64,28 @@ class LabManagerOrderDepartmentRouteApiTest extends TestCase
         $deptA = $this->createDepartment($lab, 'Ceramics', 1);
         $deptB = $this->createDepartment($lab, 'Implants', 2);
         $deptC = $this->createDepartment($lab, 'Orthodontics', 3);
+        $deptD = $this->createDepartment($lab, 'Veneers', 4);
 
         Sanctum::actingAs($manager);
 
         $this->postJson('/api/auth/lab/orders/departments', [
-            'department_ids' => [$deptB->id],
-            'department_time_allowed_hours' => [5],
+            'department_ids' => [$deptB->id, $deptA->id, $deptC->id, $deptD->id],
+            'department_time_allowed_hours' => [5, 4, 6, 3],
         ]);
 
         $this->assertDatabaseHas('departments', ['id' => $deptB->id, 'sort_order' => 1]);
-        $this->assertDatabaseHas('departments', ['id' => $deptA->id, 'sort_order' => 1]);
+        $this->assertDatabaseHas('departments', ['id' => $deptA->id, 'sort_order' => 2]);
         $this->assertDatabaseHas('departments', ['id' => $deptC->id, 'sort_order' => 3]);
+        $this->assertDatabaseHas('departments', ['id' => $deptD->id, 'sort_order' => 4]);
         $this->assertDatabaseHas('departments', ['id' => $deptB->id, 'time_allowed' => 5]);
     }
 
     public function test_returns_400_when_department_from_another_lab(): void
     {
         [$manager, $lab] = $this->authenticateLabManager();
-        $this->createDepartment($lab, 'Ceramics', 1);
+        $deptA = $this->createDepartment($lab, 'Ceramics', 1);
+        $deptB = $this->createDepartment($lab, 'Implants', 2);
+        $deptC = $this->createDepartment($lab, 'Orthodontics', 3);
 
         $otherLab = Lab::query()->create([
             'name' => 'Other Lab',
@@ -90,18 +99,21 @@ class LabManagerOrderDepartmentRouteApiTest extends TestCase
         Sanctum::actingAs($manager);
 
         $response = $this->postJson('/api/auth/lab/orders/departments', [
-            'department_ids' => [$otherDept->id],
-            'department_time_allowed_hours' => [2],
+            'department_ids' => [$deptA->id, $deptB->id, $deptC->id, $otherDept->id],
+            'department_time_allowed_hours' => [2, 3, 4, 5],
         ]);
 
         $response
             ->assertStatus(400)
-            ->assertJsonValidationErrors(['department_ids.0']);
+            ->assertJsonValidationErrors(['department_ids.3']);
     }
 
     public function test_returns_400_when_department_is_management(): void
     {
         [$manager, $lab] = $this->authenticateLabManager();
+        $deptA = $this->createDepartment($lab, 'Ceramics', 1);
+        $deptB = $this->createDepartment($lab, 'Implants', 2);
+        $deptC = $this->createDepartment($lab, 'Orthodontics', 3);
 
         $management = Department::query()->create([
             'lab_id' => $lab->id,
@@ -113,18 +125,21 @@ class LabManagerOrderDepartmentRouteApiTest extends TestCase
         Sanctum::actingAs($manager);
 
         $response = $this->postJson('/api/auth/lab/orders/departments', [
-            'department_ids' => [$management->id],
-            'department_time_allowed_hours' => [2],
+            'department_ids' => [$deptA->id, $deptB->id, $deptC->id, $management->id],
+            'department_time_allowed_hours' => [2, 3, 4, 5],
         ]);
 
         $response
             ->assertStatus(400)
-            ->assertJsonValidationErrors(['department_ids.0']);
+            ->assertJsonValidationErrors(['department_ids.3']);
     }
 
     public function test_returns_400_when_department_sort_order_is_zero(): void
     {
         [$manager, $lab] = $this->authenticateLabManager();
+        $deptA = $this->createDepartment($lab, 'Ceramics', 1);
+        $deptB = $this->createDepartment($lab, 'Implants', 2);
+        $deptC = $this->createDepartment($lab, 'Orthodontics', 3);
 
         $inactive = Department::query()->create([
             'lab_id' => $lab->id,
@@ -136,13 +151,13 @@ class LabManagerOrderDepartmentRouteApiTest extends TestCase
         Sanctum::actingAs($manager);
 
         $response = $this->postJson('/api/auth/lab/orders/departments', [
-            'department_ids' => [$inactive->id],
-            'department_time_allowed_hours' => [2],
+            'department_ids' => [$deptA->id, $deptB->id, $deptC->id, $inactive->id],
+            'department_time_allowed_hours' => [2, 3, 4, 5],
         ]);
 
         $response
             ->assertStatus(400)
-            ->assertJsonValidationErrors(['department_ids.0']);
+            ->assertJsonValidationErrors(['department_ids.3']);
     }
 
     public function test_returns_400_when_department_ids_empty(): void
@@ -160,21 +175,83 @@ class LabManagerOrderDepartmentRouteApiTest extends TestCase
         $response->assertStatus(400);
     }
 
-    public function test_returns_400_when_department_ids_contain_duplicates(): void
+    public function test_returns_400_when_fewer_than_four_departments(): void
     {
         [$manager, $lab] = $this->authenticateLabManager();
-        $dept = $this->createDepartment($lab, 'Ceramics', 1);
+
+        $deptA = $this->createDepartment($lab, 'Ceramics', 1);
+        $deptB = $this->createDepartment($lab, 'Implants', 2);
+        $deptC = $this->createDepartment($lab, 'Orthodontics', 3);
 
         Sanctum::actingAs($manager);
 
         $response = $this->postJson('/api/auth/lab/orders/departments', [
-            'department_ids' => [$dept->id, $dept->id],
-            'department_time_allowed_hours' => [2, 3],
+            'department_ids' => [$deptA->id, $deptB->id, $deptC->id],
+            'department_time_allowed_hours' => [4, 6, 8],
         ]);
 
         $response
             ->assertStatus(400)
-            ->assertJsonValidationErrors(['department_ids.1']);
+            ->assertJsonValidationErrors(['department_ids']);
+    }
+
+    public function test_returns_400_when_more_than_six_departments(): void
+    {
+        [$manager, $lab] = $this->authenticateLabManager();
+
+        $departments = collect(range(1, 7))->map(
+            fn (int $i): Department => $this->createDepartment($lab, 'Dept '.$i, $i)
+        );
+
+        Sanctum::actingAs($manager);
+
+        $response = $this->postJson('/api/auth/lab/orders/departments', [
+            'department_ids' => $departments->pluck('id')->all(),
+            'department_time_allowed_hours' => [1, 2, 3, 4, 5, 6, 7],
+        ]);
+
+        $response
+            ->assertStatus(400)
+            ->assertJsonValidationErrors(['department_ids']);
+    }
+
+    public function test_accepts_exactly_six_departments(): void
+    {
+        [$manager, $lab] = $this->authenticateLabManager();
+
+        $departments = collect(range(1, 6))->map(
+            fn (int $i): Department => $this->createDepartment($lab, 'Dept '.$i, $i)
+        );
+
+        Sanctum::actingAs($manager);
+
+        $response = $this->postJson('/api/auth/lab/orders/departments', [
+            'department_ids' => $departments->pluck('id')->all(),
+            'department_time_allowed_hours' => [1, 2, 3, 4, 5, 6],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.total_departments_updated', 6);
+    }
+
+    public function test_returns_400_when_department_ids_contain_duplicates(): void
+    {
+        [$manager, $lab] = $this->authenticateLabManager();
+        $deptA = $this->createDepartment($lab, 'Ceramics', 1);
+        $deptB = $this->createDepartment($lab, 'Implants', 2);
+        $deptC = $this->createDepartment($lab, 'Orthodontics', 3);
+
+        Sanctum::actingAs($manager);
+
+        $response = $this->postJson('/api/auth/lab/orders/departments', [
+            'department_ids' => [$deptA->id, $deptB->id, $deptC->id, $deptA->id],
+            'department_time_allowed_hours' => [2, 3, 4, 5],
+        ]);
+
+        $response
+            ->assertStatus(400)
+            ->assertJsonValidationErrors(['department_ids.3']);
     }
 
     public function test_returns_400_when_department_times_count_does_not_match_department_ids_count(): void
@@ -182,11 +259,12 @@ class LabManagerOrderDepartmentRouteApiTest extends TestCase
         [$manager, $lab] = $this->authenticateLabManager();
         $deptA = $this->createDepartment($lab, 'Ceramics', 1);
         $deptB = $this->createDepartment($lab, 'Implants', 2);
+        $deptC = $this->createDepartment($lab, 'Orthodontics', 3);
 
         Sanctum::actingAs($manager);
 
         $response = $this->postJson('/api/auth/lab/orders/departments', [
-            'department_ids' => [$deptA->id, $deptB->id],
+            'department_ids' => [$deptA->id, $deptB->id, $deptC->id, $deptA->id],
             'department_time_allowed_hours' => [3],
         ]);
 

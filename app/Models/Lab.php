@@ -20,7 +20,12 @@ class Lab extends Model
         'longitude',
         'is_active',
         'photo',
+
         'stripe_account_id',
+
+        'normal_delivery_days',
+        'urgent_delivery_days',
+
     ];
 
     protected function casts(): array
@@ -33,7 +38,18 @@ class Lab extends Model
             'longitude' => 'float',
 
             'is_active' => 'boolean',
+            'normal_delivery_days' => 'integer',
+            'urgent_delivery_days' => 'integer',
         ];
+    }
+
+    public function deliveryDaysForPriority(string $priority): int
+    {
+        if ($priority === 'urgent') {
+            return (int) ($this->urgent_delivery_days ?? 1);
+        }
+
+        return (int) ($this->normal_delivery_days ?? 3);
     }
 
     public function departments(): HasMany

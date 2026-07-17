@@ -10,6 +10,7 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DepartmentManagerTaskController;
 use App\Http\Controllers\DeviceTokenController;
 use App\Http\Controllers\LabController;
+use App\Http\Controllers\LabDeliverySettingController;
 use App\Http\Controllers\LabEmployeeController;
 use App\Http\Controllers\LabManagerOrderController;
 use App\Http\Controllers\LabPortfolioController;
@@ -67,7 +68,7 @@ Route::prefix('auth')->group(function (): void {
 
     Route::middleware('auth:sanctum')->group(function (): void {
         // Dental Compensation Types API (lab_manager)
-        Route::middleware(['auth:sanctum', 'role:lab_manager'])->prefix('lab/compensations')->group(function () {
+        Route::middleware(['auth:sanctum', 'role:lab_manager,receptionist'])->prefix('lab/compensations')->group(function () {
             Route::get('/', [DentalCompensationTypeController::class, 'index'])->middleware('can:viewAny,App\Models\DentalCompensationType');
             Route::post('/', [DentalCompensationTypeController::class, 'store'])->middleware('can:create,App\Models\DentalCompensationType');
             Route::get('{dental_compensation_type}', [DentalCompensationTypeController::class, 'show'])->middleware('can:view,dental_compensation_type');
@@ -131,6 +132,8 @@ Route::prefix('auth')->group(function (): void {
                 ->name('orders.delivery-tasks.index');
             Route::get('/{order}/qr-image', [ReceptionistOrderController::class, 'qrImage'])->name('orders.qr-image');
             Route::get('/{order}', [ReceptionistOrderController::class, 'show'])->name('orders.show');
+            Route::post('/{order}/lock', [ReceptionistOrderController::class, 'lock'])->name('orders.lock');
+            Route::post('/{order}/unlock', [ReceptionistOrderController::class, 'unlock'])->name('orders.unlock');
             Route::post('/{order}/status', [ReceptionistOrderController::class, 'updateStatus'])->name('orders.status.update');
             Route::post('/{order}/delivery-assignments', [ReceptionistDeliveryTaskController::class, 'assign'])
                 ->name('orders.delivery-assignments.store');
@@ -152,7 +155,7 @@ Route::prefix('auth')->group(function (): void {
         });
 
         // Permissions and roles management
-        Route::middleware(['role:lab_manager'])->prefix('lab')->group(function (): void {
+        Route::middleware(['role:lab_manager,system_admin'])->prefix('lab')->group(function (): void {
             Route::get('/permissions', [LabRoleController::class, 'permissions'])->name('lab.permissions.index');
 
             Route::prefix('roles')->group(function (): void {
@@ -179,6 +182,12 @@ Route::prefix('auth')->group(function (): void {
         // Lab manager - Bulk order department routing
         Route::middleware(['role:lab_manager'])->post('lab/orders/departments', [LabManagerOrderController::class, 'setDepartmentRoute'])
             ->name('lab.orders.departments.store');
+
+        // Lab manager - Delivery time settings
+        Route::middleware(['role:lab_manager'])->prefix('lab/delivery-settings')->group(function (): void {
+            Route::get('/', [LabDeliverySettingController::class, 'show'])->name('lab.delivery-settings.show');
+            Route::put('/', [LabDeliverySettingController::class, 'update'])->name('lab.delivery-settings.update');
+        });
         // ====================================lab_technician===================================================
 
         Route::middleware(['role:lab_technician'])->prefix('lab/technician')->group(function (): void {

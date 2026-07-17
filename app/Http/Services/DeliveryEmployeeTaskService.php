@@ -191,7 +191,7 @@ class DeliveryEmployeeTaskService
             }
 
             // Reload tasks with fresh order data
-            $tasks = $tasks->fresh()->load(['order.user', 'user','order']);
+            $tasks = $tasks->fresh()->load(['order.user', 'user', 'order']);
         }
 
         return $tasks->fresh()->load(['order.user', 'user']);

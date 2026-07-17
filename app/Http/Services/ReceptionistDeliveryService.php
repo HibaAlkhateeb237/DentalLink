@@ -6,6 +6,7 @@ use App\Models\DeliveryTask;
 use App\Models\DepartmentUserRole;
 use App\Models\Order;
 use App\Models\User;
+use App\Notifications\Order\DeliveryAssignedToDriver;
 use App\Support\DeliveryTaskDirection;
 use App\Support\OrderStatus;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -135,7 +136,7 @@ class ReceptionistDeliveryService
         $deliveryTask->load('user:id,name,email,phone');
 
         if ($deliveryUser) {
-            $deliveryUser->notify(new \App\Notifications\Order\DeliveryAssignedToDriver($deliveryTask));
+            $deliveryUser->notify(new DeliveryAssignedToDriver($deliveryTask));
         }
 
         return $deliveryTask;

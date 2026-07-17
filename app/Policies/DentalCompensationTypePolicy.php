@@ -10,11 +10,15 @@ class DentalCompensationTypePolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasRole('lab_manager');
+        return $user->hasRole(['lab_manager', 'receptionist']);
     }
 
     public function view(User $user, DentalCompensationType $type): bool
     {
+        if ($user->hasRole('receptionist')) {
+            return true;
+        }
+
         $managerLabId = DepartmentUserRole::query()
             ->join('roles', 'roles.id', '=', 'department_user_roles.role_id')
             ->join('departments', 'departments.id', '=', 'department_user_roles.department_id')

@@ -28,8 +28,8 @@ class LabManagerOrderDepartmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'department_ids' => ['required', 'array', 'min:1'],
-            'department_time_allowed_hours' => ['required', 'array', 'min:1'],
+            'department_ids' => ['required', 'array', 'min:4', 'max:6'],
+            'department_time_allowed_hours' => ['required', 'array', 'min:4', 'max:6'],
             'department_ids.*' => [
                 'required',
                 'integer',

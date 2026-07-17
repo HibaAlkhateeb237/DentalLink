@@ -13,4 +13,6 @@ return [
     'created_successfully' => 'Lab created successfully',
     'updated_successfully' => 'Lab updated successfully',
     'deleted_successfully' => 'Lab deleted successfully',
+    'delivery_settings_retrieved_successfully' => 'Delivery settings retrieved successfully',
+    'delivery_settings_updated_successfully' => 'Delivery settings updated successfully',
 ];

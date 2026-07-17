@@ -13,4 +13,6 @@ return [
     'created_successfully' => 'تم إنشاء المخبَر بنجاح.',
     'updated_successfully' => 'تم تحديث بيانات المخبَر بنجاح.',
     'deleted_successfully' => 'تم حذف المخبَر بنجاح.',
+    'delivery_settings_retrieved_successfully' => 'تم جلب إعدادات التسليم بنجاح.',
+    'delivery_settings_updated_successfully' => 'تم تحديث إعدادات التسليم بنجاح.',
 ];
