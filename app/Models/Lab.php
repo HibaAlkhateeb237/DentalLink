@@ -20,7 +20,7 @@ class Lab extends Model
         'longitude',
         'is_active',
         'photo',
-
+        'stripe_account_id',
     ];
 
     protected function casts(): array

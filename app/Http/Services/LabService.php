@@ -13,12 +13,12 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
 
 class LabService
 {
     public function __construct(
-        protected LabRepository $labRepository
+        protected LabRepository $labRepository,
+        protected StripeConnectService $stripeConnectService,
     ) {}
 
     public function getLabById(int $labId): Lab
@@ -152,7 +152,6 @@ class LabService
 
             $lab->license_number = $this->generateLabLicenseNumber($lab->id);
 
-            // Handle photo upload
             if (isset($validated['photo']) && $validated['photo'] !== null) {
                 $photoPath = $this->storeLabPhoto($validated['photo'], $lab->id);
                 $lab->photo = $photoPath;
@@ -186,8 +185,15 @@ class LabService
 
             $manager->roles()->syncWithoutDetaching([$labManagerRole->id]);
 
+            $stripeResult = $this->stripeConnectService->createConnectedAccountForLab($lab);
+            if (! $stripeResult['success']) {
+                throw ValidationException::withMessages([
+                    'stripe' => [$stripeResult['message']],
+                ]);
+            }
+
             return [
-                'lab' => $this->buildLabPayload($lab, $manager),
+                'lab' => $this->buildLabPayload($lab->fresh(), $manager),
             ];
         });
     }
@@ -225,9 +231,7 @@ class LabService
                 $lab->fill($labUpdates);
             }
 
-            // Handle photo upload
             if (isset($validated['photo']) && $validated['photo'] !== null) {
-                // Delete old photo if exists
                 if ($lab->photo) {
                     Storage::disk('public')->delete($lab->photo);
                 }
@@ -330,6 +334,18 @@ class LabService
         return $this->buildLabPayload($lab, $manager);
     }
 
+    public function getLabStats(): array
+    {
+        $activeCount = Lab::where('is_active', true)->count();
+        $inactiveCount = Lab::where('is_active', false)->count();
+
+        return [
+            'active_labs_count' => $activeCount,
+            'inactive_labs_count' => $inactiveCount,
+            'total_labs_count' => $activeCount + $inactiveCount,
+        ];
+    }
+
     /**
      * @param  array<int, int>  $labIds
      * @return \Illuminate\Support\Collection<int, User>
@@ -349,8 +365,8 @@ class LabService
                 DB::raw('departments.lab_id as lab_id'),
             ])
             ->join('department_user_roles', 'department_user_roles.user_id', '=', 'users.id')
-            ->join('roles', 'roles.id', '=', 'department_user_roles.role_id')
-            ->join('departments', 'departments.id', '=', 'department_user_roles.department_id')
+            ->join('roles', 'department_user_roles.role_id', '=', 'roles.id')
+            ->join('departments', 'department_user_roles.department_id', '=', 'departments.id')
             ->whereIn('departments.lab_id', $labIds)
             ->where('roles.name', 'lab_manager')
             ->where('roles.guard_name', 'sanctum')
@@ -421,18 +437,6 @@ class LabService
         $path = $photoFile->storeAs('labs', $filename, 'public');
 
         return $path;
-    }
-
-    public function getLabStats(): array
-    {
-        $activeCount = Lab::where('is_active', true)->count();
-        $inactiveCount = Lab::where('is_active', false)->count();
-
-        return [
-            'active_labs_count' => $activeCount,
-            'inactive_labs_count' => $inactiveCount,
-            'total_labs_count' => $activeCount + $inactiveCount,
-        ];
     }
 
     private function generateLabLicenseNumber(int $labId): string
