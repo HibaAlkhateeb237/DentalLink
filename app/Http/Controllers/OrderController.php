@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\DoctorOrderIndexRequest;
 use App\Http\Requests\DoctorOrderTrackRequest;
 use App\Http\Requests\OrderStoreRequest;
+use App\Http\Resources\DoctorOrderPaymentStatusResource;
 use App\Http\Resources\DoctorOrderTrackingResource;
 use App\Http\Resources\OrderDetailResource;
 use App\Http\Resources\OrderResource;
@@ -116,5 +117,27 @@ class OrderController extends Controller
         $trackingData = $this->trackingService->getTrackingDetails($order);
 
         return new DoctorOrderTrackingResource($trackingData);
+    }
+
+    public function paymentStatus(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $status = $request->query('status');
+
+        $orders = Order::query()
+            ->where('user_id', $user->id)
+            ->with(['lab', 'payments'])
+            ->get();
+
+        $filtered = match ($status) {
+            'paid' => $orders->filter(fn (Order $order) => $order->payments->isNotEmpty()),
+            'unpaid' => $orders->filter(fn (Order $order) => $order->payments->isEmpty()),
+            default => $orders,
+        };
+
+        return $this->apiResponse->success(
+            DoctorOrderPaymentStatusResource::collection($filtered),
+            __('orders.retrieved_successfully')
+        );
     }
 }

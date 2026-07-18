@@ -115,6 +115,7 @@ Route::prefix('auth')->group(function (): void {
             Route::post('/', [OrderController::class, 'store'])->name('doctor.orders.store');
             Route::post('/{order}/pay', [CheckoutController::class, 'createSession'])->name('doctor.orders.pay');
             Route::get('/', [OrderController::class, 'index'])->name('doctor.orders.index');
+            Route::get('/payment-status', [OrderController::class, 'paymentStatus'])->name('doctor.orders.payment-status');
             Route::get('/{order}', [OrderController::class, 'show'])->name('doctor.orders.show');
 
             Route::get('/{order}/track', [OrderController::class, 'track'])->name('doctor.orders.track');
