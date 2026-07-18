@@ -162,6 +162,8 @@ class LabService
 
             $lab->save();
 
+            $lab->wallet()->create(['balance' => 0, 'currency' => 'USD']);
+
             $managementDepartment = Department::query()->create([
                 'lab_id' => $lab->id,
                 'name' => 'Management',

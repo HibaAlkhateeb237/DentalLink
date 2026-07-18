@@ -178,9 +178,15 @@ class StripePaymentService
 
         $payment->update(['payment_status' => $status]);
 
-        if ($status === 'succeeded') {
-            $payment->update(['paid_at' => now()]);
-            $payment->orders()->update(['remaining_amount' => 0]);
+        if ($status === 'succeeded' && ! $payment->paid_at) {
+            DB::transaction(function () use ($payment): void {
+                $payment->update(['paid_at' => now()]);
+                $payment->orders()->update(['remaining_amount' => 0]);
+
+                foreach ($payment->orders as $order) {
+                    app(WalletService::class)->creditFromPayment($payment, $order);
+                }
+            });
         }
     }
 
@@ -212,9 +218,15 @@ class StripePaymentService
             'provider_reference' => $data['balance_transaction'] ?? null,
         ]);
 
-        if ($status === 'succeeded') {
-            $payment->update(['paid_at' => now()]);
-            $payment->orders()->update(['remaining_amount' => 0]);
+        if ($status === 'succeeded' && ! $payment->paid_at) {
+            DB::transaction(function () use ($payment): void {
+                $payment->update(['paid_at' => now()]);
+                $payment->orders()->update(['remaining_amount' => 0]);
+
+                foreach ($payment->orders as $order) {
+                    app(WalletService::class)->creditFromPayment($payment, $order);
+                }
+            });
         }
     }
 
@@ -260,9 +272,15 @@ class StripePaymentService
 
         $payment->update($update);
 
-        if ($paymentStatus === 'paid') {
-            $payment->update(['paid_at' => now()]);
-            $payment->orders()->update(['remaining_amount' => 0]);
+        if ($paymentStatus === 'paid' && ! $payment->paid_at) {
+            DB::transaction(function () use ($payment): void {
+                $payment->update(['paid_at' => now()]);
+                $payment->orders()->update(['remaining_amount' => 0]);
+
+                foreach ($payment->orders as $order) {
+                    app(WalletService::class)->creditFromPayment($payment, $order);
+                }
+            });
         }
     }
 

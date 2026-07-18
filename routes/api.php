@@ -25,6 +25,7 @@ use App\Http\Controllers\ReceptionistOrderController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\TaskWorkflowController;
 use App\Http\Controllers\ToothShadeController;
+use App\Http\Controllers\WalletController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/ping', function () {
@@ -166,6 +167,13 @@ Route::prefix('auth')->group(function (): void {
                 Route::put('/{role}', [LabRoleController::class, 'update'])->name('lab.roles.update');
                 Route::delete('/{role}', [LabRoleController::class, 'destroy'])->name('lab.roles.destroy');
             });
+        });
+
+        // Lab wallet
+        Route::middleware(['role:lab_manager,system_admin'])->prefix('lab/wallet')->group(function (): void {
+            Route::get('/', [WalletController::class, 'show'])->name('lab.wallet.show');
+            Route::get('/transactions', [WalletController::class, 'transactions'])->name('lab.wallet.transactions.index');
+            Route::get('/transactions/{transaction}', [WalletController::class, 'showTransaction'])->name('lab.wallet.transactions.show');
         });
 
         Route::middleware(['role:lab_manager'])->prefix('lab/departments')->group(function (): void {
