@@ -44,4 +44,12 @@ return [
     'qr_already_printed' => 'تم طباعة رمز الاستجابة السريعة بالفعل ولا يمكن طباعته مرة أخرى',
 
     'status_finalized' => 'تم اعتماد حالة الطلب بالفعل ولا يمكن تحديثها مجدداً',
+
+    // Print status notifications
+    'print_status_notification' => 'تحديث حالة الطباعة',
+    'print_status_new_print_title' => 'طباعة جديدة جاهزة',
+    'print_status_new_print_body' => 'تم تحضير طباعة جديدة للطلب رقم #:serial_number. يرجى إرسال عامل التوصيل لاستلامها.',
+    'print_status_trial_title' => 'تم تجربة الطباعة',
+    'print_status_trial_body' => 'تم تجربة الطباعة للطلب رقم #:serial_number. يرجى استلامها.',
+    'print_status_notified_successfully' => 'تم إرسال إشعار حالة الطباعة بنجاح',
 ];

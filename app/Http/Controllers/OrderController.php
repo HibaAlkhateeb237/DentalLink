@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\DoctorOrderIndexRequest;
+use App\Http\Requests\DoctorOrderPrintStatusRequest;
 use App\Http\Requests\DoctorOrderTrackRequest;
 use App\Http\Requests\OrderStoreRequest;
 use App\Http\Resources\DoctorOrderPaymentStatusResource;
@@ -13,6 +14,7 @@ use App\Http\Resources\OrderShortResource;
 use App\Http\Resources\TaskResource;
 use App\Http\Responses\ApiResponse;
 use App\Http\Services\DoctorOrderTrackingService;
+use App\Http\Services\OrderNotificationService;
 use App\Http\Services\OrderService;
 use App\Models\Order;
 use App\Models\Task;
@@ -24,6 +26,7 @@ class OrderController extends Controller
 {
     public function __construct(
         private OrderService $orderService,
+        private OrderNotificationService $notificationService,
         private ApiResponse $apiResponse,
         private DoctorOrderTrackingService $trackingService
     ) {}
@@ -138,6 +141,30 @@ class OrderController extends Controller
         return $this->apiResponse->success(
             DoctorOrderPaymentStatusResource::collection($filtered),
             __('orders.retrieved_successfully')
+        );
+    }
+
+    public function printStatus(DoctorOrderPrintStatusRequest $request, Order $order): JsonResponse
+    {
+        if ($order->user_id !== $request->user()->id) {
+            return $this->apiResponse->error(
+                __('messages.unauthorized'),
+                403
+            );
+        }
+
+        $validated = $request->validated();
+
+        $this->notificationService->notifyReceptionistPrintStatus(
+            $order,
+            $validated['status'],
+            $validated['doctor_notes'] ?? null,
+        );
+
+        return $this->apiResponse->success(
+            null,
+            __('orders.print_status_notified_successfully'),
+            200,
         );
     }
 }

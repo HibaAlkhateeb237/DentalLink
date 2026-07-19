@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Notifications\Order\OrderCompleted;
 use App\Notifications\Order\OrderDeliveredToDoctor;
 use App\Notifications\Order\OrderNew;
+use App\Notifications\Order\OrderPrintStatusNotification;
 use App\Notifications\Order\OrderProcessingStarted;
 use App\Notifications\Payment\PaymentCompleted;
 use App\Notifications\Task\DepartmentManagerTaskMovedForwardNotification;
@@ -58,6 +59,13 @@ class OrderNotificationService
     {
         foreach ($this->getOrderReceptionists($order) as $receptionist) {
             $receptionist->notify(new OrderDeliveredToDoctor($order));
+        }
+    }
+
+    public function notifyReceptionistPrintStatus(Order $order, string $printStatus, ?string $doctorNotes = null): void
+    {
+        foreach ($this->getOrderReceptionists($order) as $receptionist) {
+            $receptionist->notify(new OrderPrintStatusNotification($order, $printStatus, $doctorNotes));
         }
     }
 
