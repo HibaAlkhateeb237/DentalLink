@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Http\Services\StripeConnectService;
+use App\Http\Services\StripePaymentService;
 use App\Models\DeliveryTask;
 use App\Models\Department;
 use App\Models\LabPricingSetting;
@@ -34,6 +36,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(FcmService::class);
+        $this->app->singleton(StripeConnectService::class);
+        $this->app->singleton(StripePaymentService::class);
     }
 
     /**

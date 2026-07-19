@@ -18,8 +18,20 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
             $table->decimal('amount', 10, 2);
-            $table->enum('payment_method', ['cash', 'card', 'bank_transfer', 'wallet']);
-            $table->timestamp('paid_at');
+            $table->string('payment_method')->nullable(); // تم تحويله إلى string ليدعم 'stripe' وأي وسيلة أخرى مرنة
+
+            // الأعمدة الجديدة الخاصة ببوابة الدفع Stripe
+            $table->string('payment_intent_id')->nullable();
+            $table->string('checkout_session_id')->nullable();
+            $table->string('charge_id')->nullable();
+            $table->string('provider')->nullable();
+            $table->string('provider_reference')->nullable();
+            $table->string('payment_status')->nullable();
+            $table->string('currency', 3)->nullable(); // مثل USD, EUR
+
+            // تعديل الحقل ليصبح nullable لأن الدفع لا يتم فوراً عند إنشاء السجل
+            $table->timestamp('paid_at')->nullable();
+
             $table->timestamps();
 
             $table->index(['user_id', 'paid_at']);

@@ -3,6 +3,7 @@
 // routes/api.php
 
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\DeliveryEmployeeTaskController;
 use App\Http\Controllers\DentalCompensationTypeController;
 use App\Http\Controllers\DepartmentController;
@@ -19,10 +20,13 @@ use App\Http\Controllers\LabRoleController;
 use App\Http\Controllers\LabTechnicianTaskController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ReceptionistDeliveryTaskController;
 use App\Http\Controllers\ReceptionistOrderController;
+use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\TaskWorkflowController;
 use App\Http\Controllers\ToothShadeController;
+use App\Http\Controllers\WalletController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/ping', function () {
@@ -38,6 +42,9 @@ Route::get('/ping', function () {
     ]);
 });
 
+Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleEvent'])
+    ->name('stripe.webhook');
+
 Route::middleware(['auth:sanctum', 'role:system_admin'])->prefix('admin/labs')->group(function (): void {
     Route::get('/', [LabController::class, 'adminIndex'])->name('admin.labs.index');
     Route::get('/stats', [LabController::class, 'adminStats'])->name('admin.labs.stats');
@@ -46,6 +53,10 @@ Route::middleware(['auth:sanctum', 'role:system_admin'])->prefix('admin/labs')->
     Route::post('/', [LabController::class, 'store'])->name('admin.labs.store');
     Route::put('/{lab}', [LabController::class, 'update'])->name('admin.labs.update');
     Route::delete('/{lab}', [LabController::class, 'destroy'])->name('admin.labs.destroy');
+
+    // Stripe Connect management
+    Route::post('/{lab}/stripe/connect', [LabController::class, 'createStripeAccount'])->name('admin.labs.stripe.connect');
+    Route::get('/{lab}/stripe/account-link', [LabController::class, 'createAccountLink'])->name('admin.labs.stripe.account-link');
 });
 
 Route::prefix('auth')->group(function (): void {
@@ -103,10 +114,14 @@ Route::prefix('auth')->group(function (): void {
 
         Route::middleware(['role:doctor'])->prefix('doctor/orders')->group(function (): void {
             Route::post('/', [OrderController::class, 'store'])->name('doctor.orders.store');
+            Route::post('/{order}/pay', [CheckoutController::class, 'createSession'])->name('doctor.orders.pay');
             Route::get('/', [OrderController::class, 'index'])->name('doctor.orders.index');
+            Route::get('/payment-status', [OrderController::class, 'paymentStatus'])->name('doctor.orders.payment-status');
             Route::get('/{order}', [OrderController::class, 'show'])->name('doctor.orders.show');
 
             Route::get('/{order}/track', [OrderController::class, 'track'])->name('doctor.orders.track');
+            Route::get('/{order}/payment', [PaymentController::class, 'show'])->name('doctor.orders.payment.show');
+            Route::get('/{order}/payment/status', [PaymentController::class, 'status'])->name('doctor.orders.payment.status');
             //  Route::post('/{order}/pricing/calculate', [OrderPricingController::class, 'calculate'])->name('orders.pricing.calculate');
         });
 
@@ -154,6 +169,13 @@ Route::prefix('auth')->group(function (): void {
                 Route::put('/{role}', [LabRoleController::class, 'update'])->name('lab.roles.update');
                 Route::delete('/{role}', [LabRoleController::class, 'destroy'])->name('lab.roles.destroy');
             });
+        });
+
+        // Lab wallet
+        Route::middleware(['role:lab_manager,system_admin'])->prefix('lab/wallet')->group(function (): void {
+            Route::get('/', [WalletController::class, 'show'])->name('lab.wallet.show');
+            Route::get('/transactions', [WalletController::class, 'transactions'])->name('lab.wallet.transactions.index');
+            Route::get('/transactions/{transaction}', [WalletController::class, 'showTransaction'])->name('lab.wallet.transactions.show');
         });
 
         Route::middleware(['role:lab_manager'])->prefix('lab/departments')->group(function (): void {

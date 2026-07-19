@@ -57,6 +57,7 @@ final class Rbac
                 'orders.view',
                 'payments.manage',
                 'reports.view',
+                'wallets.view',
             ],
             'delivery' => [
                 'delivery.view-assigned',

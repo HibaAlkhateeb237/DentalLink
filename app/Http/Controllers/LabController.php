@@ -9,6 +9,7 @@ use App\Http\Requests\LabUpdateRequest;
 use App\Http\Resources\LabResource;
 use App\Http\Responses\ApiResponse;
 use App\Http\Services\LabService;
+use App\Http\Services\StripeConnectService;
 use App\Models\Lab;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,6 +19,7 @@ class LabController extends Controller
 {
     public function __construct(
         protected LabService $labService,
+        protected StripeConnectService $connectService,
         protected ApiResponse $apiResponse,
     ) {}
 
@@ -190,5 +192,26 @@ class LabController extends Controller
         $this->labService->deleteLab($lab);
 
         return $this->apiResponse->success(null, __('labs.deleted_successfully'));
+    }
+
+    public function createStripeAccount(Lab $lab): JsonResponse
+    {
+        $result = $this->connectService->createConnectedAccountForLab($lab);
+
+        $status = $result['success'] ? 200 : 400;
+
+        return $this->apiResponse->success($result, $result['message'], $status);
+    }
+
+    public function createAccountLink(Lab $lab, Request $request): JsonResponse
+    {
+        $returnUrl = $request->query('return_url', url('/admin/labs/'.$lab->id));
+        $refreshUrl = $request->query('refresh_url', url('/admin/labs/'.$lab->id));
+
+        $result = $this->connectService->createAccountLink($lab, $returnUrl, $refreshUrl);
+
+        $status = isset($result['url']) ? 200 : 400;
+
+        return $this->apiResponse->success($result, $result['message'] ?? 'Account link created', $status);
     }
 }

@@ -20,7 +20,9 @@ use App\Models\Role;
 use App\Models\Task;
 use App\Models\TaskWorkSession;
 use App\Models\ToothShade;
+use App\Models\Transaction;
 use App\Models\User;
+use App\Models\Wallet;
 use App\Support\DeliveryStatus;
 use App\Support\DeliveryTaskDirection;
 use App\Support\OrderStatus;
@@ -89,6 +91,8 @@ class DemoDataSeeder extends Seeder
         DB::table('notifications')->delete();
         RegistrationOtp::query()->delete();
         PortfolioCase::query()->delete();
+        Transaction::query()->delete();
+        Wallet::query()->delete();
         DB::table('payment_order')->delete();
         Payment::query()->delete();
         TaskWorkSession::query()->delete();
@@ -207,7 +211,7 @@ class DemoDataSeeder extends Seeder
         ];
 
         foreach ($labsData as $index => $labData) {
-            $labs[] = Lab::query()->create([
+            $lab = Lab::query()->create([
                 'name' => $labData['name'],
                 'description' => $labData['description'] ?? null,
                 'phone' => '+9631100'.str_pad((string) ($index + 1), 4, '0', STR_PAD_LEFT),
@@ -218,6 +222,14 @@ class DemoDataSeeder extends Seeder
                 'is_active' => $labData['is_active'] ?? 1,
                 'license_number' => sprintf('LAB-%s-%04d', now()->format('Ymd'), $index + 1),
             ]);
+
+            $lab->wallet()->create(['balance' => 0, 'currency' => 'USD']);
+
+            if ($index === 0) {
+                $lab->update(['stripe_account_id' => 'acct_1Tu5f32F7fiRM0kt']);
+            }
+
+            $labs[] = $lab;
         }
 
         return $labs;
@@ -1003,6 +1015,37 @@ class DemoDataSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+
+            $order->update(['remaining_amount' => 0]);
+
+            if ($order->lab_id) {
+                $wallet = Wallet::query()->firstOrCreate(
+                    ['lab_id' => $order->lab_id],
+                    ['currency' => 'USD']
+                );
+
+                $wallet->increment('balance', $paidAmount);
+                $wallet->refresh();
+
+                Transaction::query()->create([
+                    'wallet_id' => $wallet->id,
+                    'type' => 'order_payment_credit',
+                    'amount' => $paidAmount,
+                    'balance_after' => $wallet->balance,
+                    'currency' => 'USD',
+                    'description' => "Payment received for Order #{$order->serial_number}",
+                    'payable_type' => Order::class,
+                    'payable_id' => $order->id,
+                    'reference_type' => Payment::class,
+                    'reference_id' => $payment->id,
+                    'metadata' => [
+                        'order_id' => $order->id,
+                        'order_serial' => $order->serial_number,
+                    ],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         }
     }
 
