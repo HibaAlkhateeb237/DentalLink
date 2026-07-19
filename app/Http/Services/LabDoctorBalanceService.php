@@ -13,11 +13,8 @@ class LabDoctorBalanceService
     public function resolveManagerLabId(User $manager): int
     {
         $labId = DepartmentUserRole::query()
-            ->join('roles', 'roles.id', '=', 'department_user_roles.role_id')
             ->join('departments', 'departments.id', '=', 'department_user_roles.department_id')
             ->where('department_user_roles.user_id', $manager->id)
-            ->where('roles.name', 'lab_manager')
-            ->where('roles.guard_name', 'sanctum')
             ->value('departments.lab_id');
 
         if ($labId === null) {

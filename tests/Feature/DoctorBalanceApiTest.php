@@ -78,6 +78,23 @@ class DoctorBalanceApiTest extends TestCase
         $this->assertEquals('Doctor A', $doctors[0]['name']);
     }
 
+    public function test_receptionist_can_view_doctor_balances(): void
+    {
+        [$manager, $lab] = $this->authenticateLabManager();
+
+        $doctor = $this->createDoctor('Doctor Receptionist');
+        $this->createOrder($lab, $doctor, 500, 200);
+
+        $receptionist = $this->createReceptionist($lab);
+
+        Sanctum::actingAs($receptionist);
+
+        $response = $this->getJson('/api/auth/lab/doctors/balances');
+
+        $response->assertOk();
+        $this->assertCount(1, $response->json('data.doctors'));
+    }
+
     public function test_ignores_doctors_from_other_labs(): void
     {
         [$manager, $lab] = $this->authenticateLabManager();
@@ -140,6 +157,27 @@ class DoctorBalanceApiTest extends TestCase
         $doctor->roles()->syncWithoutDetaching([$roleId]);
 
         return $doctor;
+    }
+
+    private function createReceptionist(Lab $lab): User
+    {
+        $department = Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'Reception Dept',
+            'is_management' => false,
+            'sort_order' => 2,
+        ]);
+
+        $receptionist = User::factory()->create(['name' => 'Receptionist']);
+        $role = Role::query()->where('name', 'receptionist')->where('guard_name', 'sanctum')->firstOrFail();
+
+        DepartmentUserRole::query()->create([
+            'user_id' => $receptionist->id,
+            'role_id' => $role->id,
+            'department_id' => $department->id,
+        ]);
+
+        return $receptionist;
     }
 
     private function createOrder(Lab $lab, User $doctor, float $price, float $paid): Order

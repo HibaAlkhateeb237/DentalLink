@@ -7,9 +7,9 @@ use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\DeliveryEmployeeTaskController;
 use App\Http\Controllers\DentalCompensationTypeController;
 use App\Http\Controllers\DepartmentController;
-use App\Http\Controllers\DoctorBalanceController;
 use App\Http\Controllers\DepartmentManagerTaskController;
 use App\Http\Controllers\DeviceTokenController;
+use App\Http\Controllers\DoctorBalanceController;
 use App\Http\Controllers\LabController;
 use App\Http\Controllers\LabDeliverySettingController;
 use App\Http\Controllers\LabEmployeeController;
@@ -194,7 +194,7 @@ Route::prefix('auth')->group(function (): void {
             ->name('lab.orders.departments.store');
 
         // Lab manager - Doctor balances (billed / paid / owed)
-        Route::middleware(['role:lab_manager'])->get('lab/doctors/balances', [DoctorBalanceController::class, 'index'])
+        Route::middleware(['role:lab_manager,receptionist'])->get('lab/doctors/balances', [DoctorBalanceController::class, 'index'])
             ->name('lab.doctors.balances');
 
         // Lab manager - Delivery time settings
