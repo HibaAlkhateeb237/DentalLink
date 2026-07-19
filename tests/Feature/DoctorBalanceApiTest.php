@@ -55,6 +55,27 @@ class DoctorBalanceApiTest extends TestCase
         $this->assertEquals(950, $totals['total_billed']);
         $this->assertEquals(300, $totals['total_paid']);
         $this->assertEquals(650, $totals['total_owed']);
+        $this->assertEquals(31.58, $totals['repayment_percentage']);
+    }
+
+    public function test_search_filters_doctors(): void
+    {
+        [$manager, $lab] = $this->authenticateLabManager();
+
+        $doctorA = $this->createDoctor('Doctor A');
+        $doctorB = $this->createDoctor('Doctor B');
+
+        $this->createOrder($lab, $doctorA, 500, 200);
+        $this->createOrder($lab, $doctorB, 150, 0);
+
+        Sanctum::actingAs($manager);
+
+        $response = $this->getJson('/api/auth/lab/doctors/balances?search='.urlencode('Doctor A'));
+
+        $response->assertOk();
+        $doctors = $response->json('data.doctors');
+        $this->assertCount(1, $doctors);
+        $this->assertEquals('Doctor A', $doctors[0]['name']);
     }
 
     public function test_ignores_doctors_from_other_labs(): void

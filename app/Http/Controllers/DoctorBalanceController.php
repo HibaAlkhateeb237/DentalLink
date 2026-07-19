@@ -18,7 +18,9 @@ class DoctorBalanceController extends Controller
     {
         $labId = $this->balanceService->resolveManagerLabId($request->user());
 
-        $doctors = $this->balanceService->getDoctorBalances($labId);
+        $search = $request->query('search');
+
+        $doctors = $this->balanceService->getDoctorBalances($labId, $search);
 
         $data = $doctors->map(fn ($doctor): array => [
             'doctor_id' => $doctor->id,
@@ -31,10 +33,13 @@ class DoctorBalanceController extends Controller
             'total_owed' => (float) $doctor->total_remaining,
         ]);
 
+        $totalsBilled = (float) $data->sum('total_billed');
+        $totalsPaid = (float) $data->sum('total_paid');
+
         $totals = [
-            'doctors_count' => $data->count(),
-            'total_billed' => (float) $data->sum('total_billed'),
-            'total_paid' => (float) $data->sum('total_paid'),
+            'repayment_percentage' => $totalsBilled > 0 ? round($totalsPaid / $totalsBilled * 100, 2) : 0,
+            'total_billed' => $totalsBilled,
+            'total_paid' => $totalsPaid,
             'total_owed' => (float) $data->sum('total_owed'),
         ];
 

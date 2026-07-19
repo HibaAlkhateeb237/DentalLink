@@ -30,7 +30,7 @@ class LabDoctorBalanceService
     /**
      * @return Collection<int, User>
      */
-    public function getDoctorBalances(int $labId): Collection
+    public function getDoctorBalances(int $labId, ?string $search = null): Collection
     {
         $doctorRoleId = Role::query()
             ->where('name', 'doctor')
@@ -47,6 +47,14 @@ class LabDoctorBalanceService
             ->join('orders', 'orders.user_id', '=', 'users.id')
             ->where('orders.lab_id', $labId)
             ->groupBy('users.id', 'users.name', 'users.email', 'users.phone');
+
+        if ($search !== null && $search !== '') {
+            $baseQuery->where(function ($query) use ($search): void {
+                $query->where('users.name', 'like', '%'.$search.'%')
+                    ->orWhere('users.email', 'like', '%'.$search.'%')
+                    ->orWhere('users.phone', 'like', '%'.$search.'%');
+            });
+        }
 
         if ($doctorRoleId !== null) {
             $baseQuery->whereExists(function ($query) use ($doctorRoleId): void {
