@@ -147,6 +147,24 @@ class DoctorOrdersPaymentStatusApiTest extends TestCase
         $this->assertEquals('150.00', $item['price']);
         $this->assertEquals('Test Lab', $item['lab_name']);
         $this->assertArrayHasKey('order_date', $item);
+        $this->assertArrayHasKey('payment_date', $item);
+        $this->assertNotNull($item['payment_date']);
+    }
+
+    public function test_unpaid_order_has_null_payment_date(): void
+    {
+        $this->seedRoles();
+        ['lab' => $lab, 'doctor' => $doctor] = $this->createDoctorWithLab();
+
+        $order = $this->createOrder($doctor, $lab, 'completed', 250.00);
+
+        Sanctum::actingAs($doctor);
+
+        $response = $this->getJson('/api/auth/doctor/orders/payment-status?status=unpaid');
+
+        $item = $response->json('data')[0];
+
+        $this->assertNull($item['payment_date']);
     }
 
     public function test_doctor_with_no_orders_returns_empty_array(): void
