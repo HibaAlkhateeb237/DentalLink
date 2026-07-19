@@ -56,7 +56,7 @@ class LabPortfolioApiTest extends TestCase
             'is_published' => false,
         ]);
 
-        $response = $this->getJson('/api/auth/labs/'.$lab->id.'/portfolio');
+        $response = $this->getJson('/api/auth/labs/' . $lab->id . '/portfolio');
 
         $response->assertOk()
             ->assertJsonPath('success', true)
@@ -72,6 +72,45 @@ class LabPortfolioApiTest extends TestCase
         $this->assertIsArray($cases);
         $this->assertCount(1, $cases);
         $this->assertSame('Zircon Crown', $cases[0]['case_name']);
+    }
+
+    public function test_receptionist_can_view_and_create_portfolio(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $lab = Lab::query()->create([
+            'name' => 'Reception Lab',
+            'phone' => '0999111222',
+            'address' => 'Homs',
+            'latitude' => 34.7,
+            'longitude' => 36.7,
+            'is_active' => true,
+        ]);
+
+        $doctor = User::factory()->create();
+        $order = $this->createOrder($lab, $doctor, 'completed');
+
+        $receptionist = User::factory()->create();
+        $role = Role::query()->where('name', 'receptionist')->where('guard_name', 'sanctum')->firstOrFail();
+        $receptionist->roles()->syncWithoutDetaching([$role->id]);
+
+        Sanctum::actingAs($receptionist);
+
+        $this->getJson('/api/auth/labs/' . $lab->id . '/portfolio')->assertOk();
+
+        Storage::fake('public');
+
+        $response = $this->postJson('/api/auth/labs/' . $lab->id . '/portfolio', [
+            'order_id' => $order->id,
+            'case_name' => 'Reception Case',
+            'before_image' => UploadedFile::fake()->image('before.jpg'),
+            'after_image' => UploadedFile::fake()->image('after.jpg'),
+            'is_published' => true,
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('status', 201);
     }
 
     public function test_lab_manager_can_create_portfolio_case_and_duration_is_calculated_from_work_sessions(): void
@@ -135,7 +174,7 @@ class LabPortfolioApiTest extends TestCase
             'note' => null,
         ]);
 
-        $response = $this->postJson('/api/auth/labs/'.$lab->id.'/portfolio', [
+        $response = $this->postJson('/api/auth/labs/' . $lab->id . '/portfolio', [
             'order_id' => $order->id,
             'case_name' => 'E-Max Veneer',
             'before_image' => UploadedFile::fake()->image('before.jpg'),
@@ -183,6 +222,5 @@ class LabPortfolioApiTest extends TestCase
             'price' => 100,
             'remaining_amount' => 0,
         ]);
-
     }
 }
