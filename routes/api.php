@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\DeliveryEmployeeTaskController;
 use App\Http\Controllers\DentalCompensationTypeController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\DoctorBalanceController;
 use App\Http\Controllers\DepartmentManagerTaskController;
 use App\Http\Controllers\DeviceTokenController;
 use App\Http\Controllers\LabController;
@@ -169,6 +170,10 @@ Route::prefix('auth')->group(function (): void {
         // Lab manager - Bulk order department routing
         Route::middleware(['role:lab_manager'])->post('lab/orders/departments', [LabManagerOrderController::class, 'setDepartmentRoute'])
             ->name('lab.orders.departments.store');
+
+        // Lab manager - Doctor balances (billed / paid / owed)
+        Route::middleware(['role:lab_manager'])->get('lab/doctors/balances', [DoctorBalanceController::class, 'index'])
+            ->name('lab.doctors.balances');
 
         // Lab manager - Delivery time settings
         Route::middleware(['role:lab_manager'])->prefix('lab/delivery-settings')->group(function (): void {
