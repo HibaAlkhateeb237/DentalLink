@@ -10,6 +10,7 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DepartmentManagerTaskController;
 use App\Http\Controllers\DeviceTokenController;
 use App\Http\Controllers\DoctorBalanceController;
+use App\Http\Controllers\DoctorOrdersController;
 use App\Http\Controllers\LabController;
 use App\Http\Controllers\LabDeliverySettingController;
 use App\Http\Controllers\LabEmployeeController;
@@ -93,6 +94,14 @@ Route::prefix('auth')->group(function (): void {
 
         // -----------------------------Doctor-------------------------------------------------------
 
+        // Receptionist and lab manager may view and add portfolio photos
+        Route::middleware(['role:doctor,system_admin,receptionist,lab_manager'])->get('/labs/{lab}/portfolio', [LabPortfolioController::class, 'index'])
+            ->name('labs.portfolio.index');
+
+        Route::middleware(['role:doctor,system_admin,receptionist,lab_manager'])->prefix('labs')->group(function (): void {
+            Route::post('/{lab}/portfolio', [LabPortfolioController::class, 'store'])->name('labs.portfolio.store');
+        });
+
         Route::middleware(['role:doctor,system_admin'])->prefix('labs')->group(function (): void {
             Route::get('/', [LabController::class, 'index'])->name('labs.index');
             Route::post('/search', [LabController::class, 'search'])->name('labs.search');
@@ -103,8 +112,6 @@ Route::prefix('auth')->group(function (): void {
 
             Route::get('/{lab}', [LabController::class, 'show'])->name('labs.show');
 
-            Route::get('/{lab}/portfolio', [LabPortfolioController::class, 'index'])->name('labs.portfolio.index');
-            Route::post('/{lab}/portfolio', [LabPortfolioController::class, 'store'])->name('labs.portfolio.store');
             Route::get('/{lab}/pricing', [LabPricingController::class, 'show'])->name('labs.pricing.show');
 
             Route::get('/{lab}/materials', [LabPricingController::class, 'materials'])->name('labs.materials.index');
@@ -197,6 +204,10 @@ Route::prefix('auth')->group(function (): void {
         Route::middleware(['role:lab_manager,receptionist'])->get('lab/doctors/balances', [DoctorBalanceController::class, 'index'])
             ->name('lab.doctors.balances');
 
+        // Receptionist / Lab manager - Each doctor's orders (serial, case type, date, cost)
+        Route::middleware(['role:lab_manager,receptionist'])->get('lab/doctors/orders', [DoctorOrdersController::class, 'index'])
+            ->name('lab.doctors.orders');
+
         // Lab manager - Delivery time settings
         Route::middleware(['role:lab_manager'])->prefix('lab/delivery-settings')->group(function (): void {
             Route::get('/', [LabDeliverySettingController::class, 'show'])->name('lab.delivery-settings.show');
@@ -212,7 +223,6 @@ Route::prefix('auth')->group(function (): void {
             Route::get('orders/qr/{qr}', [OrderController::class, 'showByQr'])->name('orders.show-qr');
             Route::post('orders/qr/{qr}/start', [LabTechnicianTaskController::class, 'startByQr'])->name('lab.technician.orders.qr.start');
             Route::post('orders/qr/{qr}/finish', [LabTechnicianTaskController::class, 'finishByQr'])->name('lab.technician.orders.qr.finish');
-
         });
         // =======================================================================================================
 
@@ -231,7 +241,6 @@ Route::prefix('auth')->group(function (): void {
             Route::get('/departments/{departmentId}/technicians', [TaskWorkflowController::class, 'getTechnicians'])->name('department.manager.getTechnicians');
 
             Route::get('orders/qr/{qr}', [OrderController::class, 'showByQr'])->name('department.manager.orders.show-qr');
-
         });
 
         // ====================================delivery===================================================
@@ -249,7 +258,6 @@ Route::prefix('auth')->group(function (): void {
             Route::get('/', [NotificationController::class, 'index'])->name('notifications.index');
             Route::post('/device-tokens', [DeviceTokenController::class, 'store'])->name('device-tokens.store');
             Route::delete('/device-tokens/{deviceToken}', [DeviceTokenController::class, 'destroy'])->name('device-tokens.destroy');
-
         });
 
         // ==========================================================================
