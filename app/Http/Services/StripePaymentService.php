@@ -187,6 +187,10 @@ class StripePaymentService
                     app(WalletService::class)->creditFromPayment($payment, $order);
                 }
             });
+
+            foreach ($payment->orders as $order) {
+                app(OrderNotificationService::class)->notifyDoctorPaymentCompleted($order);
+            }
         }
     }
 
@@ -227,6 +231,10 @@ class StripePaymentService
                     app(WalletService::class)->creditFromPayment($payment, $order);
                 }
             });
+
+            foreach ($payment->orders as $order) {
+                app(OrderNotificationService::class)->notifyDoctorPaymentCompleted($order);
+            }
         }
     }
 
@@ -281,6 +289,10 @@ class StripePaymentService
                     app(WalletService::class)->creditFromPayment($payment, $order);
                 }
             });
+
+            foreach ($payment->orders as $order) {
+                app(OrderNotificationService::class)->notifyDoctorPaymentCompleted($order);
+            }
         }
     }
 

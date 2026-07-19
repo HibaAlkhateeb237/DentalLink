@@ -10,6 +10,7 @@ use App\Notifications\Order\OrderCompleted;
 use App\Notifications\Order\OrderDeliveredToDoctor;
 use App\Notifications\Order\OrderNew;
 use App\Notifications\Order\OrderProcessingStarted;
+use App\Notifications\Payment\PaymentCompleted;
 use App\Notifications\Task\DepartmentManagerTaskMovedForwardNotification;
 use App\Notifications\Task\DepartmentManagerTaskNeedsEvaluationNotification;
 use Illuminate\Support\Collection;
@@ -31,6 +32,14 @@ class OrderNotificationService
         $doctor = $order->user;
         if ($doctor) {
             $doctor->notify(new OrderCompleted($order));
+        }
+    }
+
+    public function notifyDoctorPaymentCompleted(Order $order): void
+    {
+        $doctor = $order->user;
+        if ($doctor) {
+            $doctor->notify(new PaymentCompleted($order));
         }
     }
 
