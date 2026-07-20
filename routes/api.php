@@ -21,9 +21,11 @@ use App\Http\Controllers\LabRoleController;
 use App\Http\Controllers\LabTechnicianTaskController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\PackageController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ReceptionistDeliveryTaskController;
 use App\Http\Controllers\ReceptionistOrderController;
+use App\Http\Controllers\RefundController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\TaskWorkflowController;
 use App\Http\Controllers\ToothShadeController;
@@ -58,6 +60,15 @@ Route::middleware(['auth:sanctum', 'role:system_admin'])->prefix('admin/labs')->
     // Stripe Connect management
     Route::post('/{lab}/stripe/connect', [LabController::class, 'createStripeAccount'])->name('admin.labs.stripe.connect');
     Route::get('/{lab}/stripe/account-link', [LabController::class, 'createAccountLink'])->name('admin.labs.stripe.account-link');
+});
+
+// Packages management (system_admin only)
+Route::middleware(['auth:sanctum', 'role:system_admin'])->prefix('admin/packages')->group(function (): void {
+    Route::get('/', [PackageController::class, 'index'])->name('admin.packages.index');
+    Route::post('/', [PackageController::class, 'store'])->name('admin.packages.store');
+    Route::get('/{package}', [PackageController::class, 'show'])->name('admin.packages.show');
+    Route::put('/{package}', [PackageController::class, 'update'])->name('admin.packages.update');
+    Route::delete('/{package}', [PackageController::class, 'destroy'])->name('admin.packages.destroy');
 });
 
 Route::prefix('auth')->group(function (): void {
@@ -204,9 +215,16 @@ Route::prefix('auth')->group(function (): void {
         Route::middleware(['role:lab_manager,receptionist'])->get('lab/doctors/balances', [DoctorBalanceController::class, 'index'])
             ->name('lab.doctors.balances');
 
+        // Lab manager / Receptionist - Per-doctor refund summary (orders count, paid, due)
+        Route::middleware(['role:lab_manager,receptionist'])->get('lab/refunds', [RefundController::class, 'index'])
+            ->name('lab.refunds');
+
         // Receptionist / Lab manager - Each doctor's orders (serial, case type, date, cost)
         Route::middleware(['role:lab_manager,receptionist'])->get('lab/doctors/orders', [DoctorOrdersController::class, 'index'])
             ->name('lab.doctors.orders');
+
+        Route::middleware(['role:lab_manager,receptionist'])->get('lab/doctors/orders/{doctor}', [DoctorOrdersController::class, 'show'])
+            ->name('lab.doctors.orders.show');
 
         // Lab manager - Delivery time settings
         Route::middleware(['role:lab_manager'])->prefix('lab/delivery-settings')->group(function (): void {

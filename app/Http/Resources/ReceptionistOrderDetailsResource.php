@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 class ReceptionistOrderDetailsResource extends JsonResource
 {
@@ -62,6 +63,13 @@ class ReceptionistOrderDetailsResource extends JsonResource
             'price' => $this->price,
             'remaining_amount' => $this->remaining_amount,
             'paid_amount' => number_format((float) ($this->paid_amount ?? 0), 2, '.', ''),
+            'is_paid' => (float) ($this->price ?? 0) > 0 && (float) ($this->remaining_amount ?? 0) <= 0,
+            'before_image_path' => $this->whenLoaded('portfolioCase', fn () => $this->portfolioCase === null
+                ? null
+                : $this->toPublicUrl($this->portfolioCase->before_image_path)),
+            'after_image_path' => $this->whenLoaded('portfolioCase', fn () => $this->portfolioCase === null
+                ? null
+                : $this->toPublicUrl($this->portfolioCase->after_image_path)),
             'requires_resubmission' => (bool) $this->requires_resubmission,
             'resubmission_reason' => $this->resubmission_reason,
             'resubmission_requested_at' => $this->resubmission_requested_at,
@@ -118,6 +126,23 @@ class ReceptionistOrderDetailsResource extends JsonResource
                     ],
             ])->values()),
         ];
+    }
+
+    private function toPublicUrl(?string $path): ?string
+    {
+        if (! filled($path)) {
+            return null;
+        }
+
+        if (Str::startsWith((string) $path, ['http://', 'https://'])) {
+            return $path;
+        }
+
+        $publicDiskUrl = rtrim((string) config('filesystems.disks.public.url', ''), '/');
+
+        return $publicDiskUrl !== ''
+            ? $publicDiskUrl.'/'.ltrim((string) $path, '/')
+            : '/storage/'.ltrim((string) $path, '/');
     }
 
     private function estimatedTotalHours(): int

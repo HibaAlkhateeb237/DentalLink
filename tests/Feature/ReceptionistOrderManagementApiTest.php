@@ -10,6 +10,7 @@ use App\Models\Lab;
 use App\Models\Order;
 use App\Models\OrderFile;
 use App\Models\OrderTooth;
+use App\Models\PortfolioCase;
 use App\Models\Role;
 use App\Models\Task;
 use App\Models\ToothShade;
@@ -195,6 +196,69 @@ class ReceptionistOrderManagementApiTest extends TestCase
             ->assertJsonPath('data.order.doctor.id', $doctor->id)
             ->assertJsonCount(1, 'data.order.teeth')
             ->assertJsonCount(1, 'data.order.files');
+    }
+
+    public function test_order_details_include_payment_status_and_portfolio_case(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $receptionist = $this->actingAsRole('receptionist');
+        $doctor = User::factory()->create();
+
+        $lab = Lab::query()->create([
+            'name' => 'Detail Lab',
+            'phone' => '5555555',
+            'address' => 'Aleppo',
+            'latitude' => 33.5104140,
+            'longitude' => 36.2783360,
+        ]);
+
+        $this->attachReceptionistToLab($receptionist, $lab);
+
+        $unpaidOrder = Order::query()->create([
+            'user_id' => $doctor->id,
+            'lab_id' => $lab->id,
+            'qr_code' => (string) Str::uuid(),
+            'priority' => 'normal',
+            'status' => 'pending',
+            'order_type' => 'physical',
+            'price' => 230,
+            'remaining_amount' => 230,
+        ]);
+
+        $paidOrder = Order::query()->create([
+            'user_id' => $doctor->id,
+            'lab_id' => $lab->id,
+            'qr_code' => (string) Str::uuid(),
+            'priority' => 'normal',
+            'status' => 'pending',
+            'order_type' => 'physical',
+            'price' => 150,
+            'remaining_amount' => 0,
+        ]);
+
+        PortfolioCase::query()->create([
+            'order_id' => $paidOrder->id,
+            'case_name' => 'Smile makeover',
+            'before_image_path' => 'portfolio/before-1.png',
+            'after_image_path' => 'portfolio/after-1.png',
+            'duration_minutes' => 120,
+            'is_published' => true,
+        ]);
+
+        Sanctum::actingAs($receptionist);
+
+        $unpaidResponse = $this->getJson("/api/auth/orders/{$unpaidOrder->id}");
+        $unpaidResponse->assertOk()
+            ->assertJsonPath('data.order.is_paid', false)
+            ->assertJsonPath('data.order.before_image_path', null)
+            ->assertJsonPath('data.order.after_image_path', null);
+
+        $paidResponse = $this->getJson("/api/auth/orders/{$paidOrder->id}");
+        $paidResponse->assertOk()
+            ->assertJsonPath('data.order.is_paid', true)
+            ->assertJsonPath('data.order.before_image_path', 'http://127.0.0.1:8000/storage/portfolio/before-1.png')
+            ->assertJsonPath('data.order.after_image_path', 'http://127.0.0.1:8000/storage/portfolio/after-1.png');
     }
 
     public function test_order_details_include_start_end_elapsed_and_remaining_time(): void
