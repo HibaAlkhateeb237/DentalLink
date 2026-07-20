@@ -95,6 +95,48 @@ class DoctorOrdersApiTest extends TestCase
         $this->assertEquals('ORD-A-1', $doctor['orders'][0]['serial_number']);
     }
 
+    public function test_single_doctor_orders_filter_paid(): void
+    {
+        [$manager, $lab] = $this->authenticateLabManager();
+
+        $doctor = $this->createDoctor('Doctor A');
+
+        $this->createOrder($lab, $doctor, 'ORD-A-1', 'normal', 150, 150);
+        $this->createOrder($lab, $doctor, 'ORD-A-2', 'bridge', 300, 100);
+
+        Sanctum::actingAs($manager);
+
+        $response = $this->getJson('/api/auth/lab/doctors/orders/'.$doctor->id.'?status=paid');
+
+        $response->assertOk();
+        $data = $response->json('data');
+        $this->assertEquals(1, $data['orders_count']);
+        $this->assertCount(1, $data['orders']);
+        $this->assertEquals('ORD-A-1', $data['orders'][0]['serial_number']);
+        $this->assertEquals('0.00', $data['total_amount_due']);
+    }
+
+    public function test_single_doctor_orders_filter_unpaid(): void
+    {
+        [$manager, $lab] = $this->authenticateLabManager();
+
+        $doctor = $this->createDoctor('Doctor A');
+
+        $this->createOrder($lab, $doctor, 'ORD-A-1', 'normal', 150, 150);
+        $this->createOrder($lab, $doctor, 'ORD-A-2', 'bridge', 300, 100);
+
+        Sanctum::actingAs($manager);
+
+        $response = $this->getJson('/api/auth/lab/doctors/orders/'.$doctor->id.'?status=unpaid');
+
+        $response->assertOk();
+        $data = $response->json('data');
+        $this->assertEquals(1, $data['orders_count']);
+        $this->assertCount(1, $data['orders']);
+        $this->assertEquals('ORD-A-2', $data['orders'][0]['serial_number']);
+        $this->assertEquals('200.00', $data['total_amount_due']);
+    }
+
     public function test_single_doctor_orders_returns_404_for_unknown_doctor(): void
     {
         [$manager, $lab] = $this->authenticateLabManager();
@@ -184,7 +226,7 @@ class DoctorOrdersApiTest extends TestCase
         return $receptionist;
     }
 
-    private function createOrder(Lab $lab, User $doctor, string $serial, string $caseType, float $price): Order
+    private function createOrder(Lab $lab, User $doctor, string $serial, string $caseType, float $price, float $paid = 0): Order
     {
         return Order::query()->create([
             'user_id' => $doctor->id,
@@ -196,7 +238,7 @@ class DoctorOrdersApiTest extends TestCase
             'order_type' => 'digital',
             'case_type' => $caseType,
             'price' => $price,
-            'remaining_amount' => $price,
+            'remaining_amount' => $price - $paid,
         ]);
     }
 }

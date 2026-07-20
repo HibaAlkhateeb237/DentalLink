@@ -31,7 +31,8 @@ class DoctorOrdersController extends Controller
 
     public function show(Request $request, User $doctor): JsonResponse
     {
-        $doctor = $this->doctorOrdersService->getDoctorWithOrders($doctor);
+        $paymentFilter = $this->resolvePaymentFilter($request->query('status'));
+        $doctor = $this->doctorOrdersService->getDoctorWithOrders($doctor, $paymentFilter);
 
         if ($doctor === null) {
             return $this->apiResponse->error(__('messages.not_found'), 404);
@@ -42,5 +43,15 @@ class DoctorOrdersController extends Controller
             __('orders.retrieved_successfully'),
             200,
         );
+    }
+
+    /**
+     * Resolve the paid/unpaid filter from the `status` query param.
+     *
+     * @return 'paid'|'unpaid'|null
+     */
+    private function resolvePaymentFilter(mixed $value): ?string
+    {
+        return in_array($value, ['paid', 'unpaid'], true) ? $value : null;
     }
 }

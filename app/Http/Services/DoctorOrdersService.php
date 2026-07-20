@@ -20,11 +20,11 @@ class DoctorOrdersService
         return $this->doctorsQuery($labIds, $search)->get();
     }
 
-    public function getDoctorWithOrders(User $doctor): ?User
+    public function getDoctorWithOrders(User $doctor, ?string $paymentFilter = null): ?User
     {
         $labIds = $this->resolveLabIds();
 
-        return $this->doctorsQuery($labIds)
+        return $this->doctorsQuery($labIds, null, $paymentFilter)
             ->where('users.id', $doctor->id)
             ->first();
     }
@@ -32,7 +32,7 @@ class DoctorOrdersService
     /**
      * @return Builder<User>
      */
-    private function doctorsQuery(\Illuminate\Support\Collection $labIds, ?string $search = null): Builder
+    private function doctorsQuery(\Illuminate\Support\Collection $labIds, ?string $search = null, ?string $paymentFilter = null): Builder
     {
         $doctorRoleId = Role::query()
             ->where('name', 'doctor')
@@ -60,9 +60,15 @@ class DoctorOrdersService
             })
             ->orderBy('users.name');
 
-        return $doctorsQuery->with(['orders' => function ($query) use ($labIds): void {
+        return $doctorsQuery->with(['orders' => function ($query) use ($labIds, $paymentFilter): void {
             $query->whereIn('lab_id', $labIds->all())
                 ->where('is_in_delivery', false)
+                ->when($paymentFilter === 'paid', static function ($paidQuery): void {
+                    $paidQuery->where('remaining_amount', '<=', 0);
+                })
+                ->when($paymentFilter === 'unpaid', static function ($unpaidQuery): void {
+                    $unpaidQuery->where('remaining_amount', '>', 0);
+                })
                 ->orderByDesc('created_at')
                 ->with(['payments' => function ($paymentsQuery): void {
                     $paymentsQuery->where('payment_status', 'paid');
