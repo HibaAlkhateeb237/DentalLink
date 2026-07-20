@@ -138,6 +138,7 @@ Route::prefix('auth')->group(function (): void {
             Route::get('/{order}', [OrderController::class, 'show'])->name('doctor.orders.show');
 
             Route::get('/{order}/track', [OrderController::class, 'track'])->name('doctor.orders.track');
+            Route::post('/{order}/print-status', [OrderController::class, 'printStatus'])->name('doctor.orders.print-status');
             Route::get('/{order}/payment', [PaymentController::class, 'show'])->name('doctor.orders.payment.show');
             Route::get('/{order}/payment/status', [PaymentController::class, 'status'])->name('doctor.orders.payment.status');
             //  Route::post('/{order}/pricing/calculate', [OrderPricingController::class, 'calculate'])->name('orders.pricing.calculate');

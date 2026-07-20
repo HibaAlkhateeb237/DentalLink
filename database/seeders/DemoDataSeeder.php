@@ -653,7 +653,8 @@ class DemoDataSeeder extends Seeder
                 $deliveredAt = $receivedAt->addDays($priority === 'urgent' ? 2 : 3);
 
                 $order = Order::query()->create([
-                    'user_id' => $doctor->id,
+                    'user_id' => 12,
+                        //$doctor->id,
                     'lab_id' => $lab->id,
                     'patient_name' => $patientNames[$index % count($patientNames)],
                     'qr_code' => (string) Str::uuid(),

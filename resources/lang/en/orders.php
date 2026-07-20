@@ -41,4 +41,12 @@ return [
     'qr_already_printed' => 'QR code has already been printed and cannot be printed again',
 
     'status_finalized' => 'Order status has already been finalized and can no longer be updated',
+
+    // Print status notifications
+    'print_status_notification' => 'Print Status Update',
+    'print_status_new_print_title' => 'New Print Ready',
+    'print_status_new_print_body' => 'A new print has been prepared for order #:serial_number. Please send the delivery person to collect it.',
+    'print_status_trial_title' => 'Print Tested',
+    'print_status_trial_body' => 'The print for order #:serial_number has been tested. Please collect it.',
+    'print_status_notified_successfully' => 'Print status notification sent successfully',
 ];
