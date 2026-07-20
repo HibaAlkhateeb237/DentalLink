@@ -93,6 +93,7 @@ class DoctorOrdersApiTest extends TestCase
         $this->assertEquals(1, $doctor['orders_count']);
         $this->assertCount(1, $doctor['orders']);
         $this->assertEquals('ORD-A-1', $doctor['orders'][0]['serial_number']);
+        $this->assertArrayHasKey('profile_image', $doctor);
     }
 
     public function test_single_doctor_orders_filter_paid(): void
@@ -135,6 +136,37 @@ class DoctorOrdersApiTest extends TestCase
         $this->assertCount(1, $data['orders']);
         $this->assertEquals('ORD-A-2', $data['orders'][0]['serial_number']);
         $this->assertEquals('200.00', $data['total_amount_due']);
+    }
+
+    public function test_single_doctor_orders_paginates(): void
+    {
+        [$manager, $lab] = $this->authenticateLabManager();
+
+        $doctor = $this->createDoctor('Doctor A');
+
+        for ($i = 1; $i <= 3; $i++) {
+            $this->createOrder($lab, $doctor, 'ORD-A-'.$i, 'normal', 100);
+        }
+
+        Sanctum::actingAs($manager);
+
+        $response = $this->getJson('/api/auth/lab/doctors/orders/'.$doctor->id.'?per_page=2&page=1');
+
+        $response->assertOk();
+        $data = $response->json('data');
+        $pagination = $data['pagination'];
+
+        $this->assertCount(2, $data['orders']);
+        $this->assertEquals(1, $pagination['current_page']);
+        $this->assertEquals(2, $pagination['per_page']);
+        $this->assertEquals(3, $pagination['total']);
+        $this->assertEquals(2, $pagination['last_page']);
+        $this->assertEquals(3, $data['orders_count']);
+
+        $page2 = $this->getJson('/api/auth/lab/doctors/orders/'.$doctor->id.'?per_page=2&page=2');
+        $page2->assertOk();
+        $this->assertCount(1, $page2->json('data.orders'));
+        $this->assertEquals(2, $page2->json('data.pagination.current_page'));
     }
 
     public function test_single_doctor_orders_returns_404_for_unknown_doctor(): void
