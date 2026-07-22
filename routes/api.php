@@ -109,7 +109,7 @@ Route::prefix('auth')->group(function (): void {
         Route::middleware(['role:doctor,system_admin,receptionist,lab_manager'])->get('/labs/{lab}/portfolio', [LabPortfolioController::class, 'index'])
             ->name('labs.portfolio.index');
 
-        Route::middleware(['role:doctor,system_admin,receptionist,lab_manager'])->prefix('labs')->group(function (): void {
+        Route::middleware(['role:receptionist,lab_manager'])->prefix('labs')->group(function (): void {
             Route::post('/{lab}/portfolio', [LabPortfolioController::class, 'store'])->name('labs.portfolio.store');
         });
 
