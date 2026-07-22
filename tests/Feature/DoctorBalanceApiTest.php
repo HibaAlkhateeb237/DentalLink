@@ -78,6 +78,35 @@ class DoctorBalanceApiTest extends TestCase
         $this->assertEquals('Doctor A', $doctors[0]['name']);
     }
 
+    public function test_balances_paginates(): void
+    {
+        [$manager, $lab] = $this->authenticateLabManager();
+
+        for ($i = 1; $i <= 3; $i++) {
+            $doctor = $this->createDoctor('Doctor '.$i);
+            $this->createOrder($lab, $doctor, 100, 0);
+        }
+
+        Sanctum::actingAs($manager);
+
+        $response = $this->getJson('/api/auth/lab/doctors/balances?per_page=2&page=1');
+
+        $response->assertOk();
+        $data = $response->json('data');
+        $pagination = $data['pagination'];
+
+        $this->assertCount(2, $data['doctors']);
+        $this->assertEquals(1, $pagination['current_page']);
+        $this->assertEquals(2, $pagination['per_page']);
+        $this->assertEquals(3, $pagination['total']);
+        $this->assertEquals(2, $pagination['last_page']);
+
+        $page2 = $this->getJson('/api/auth/lab/doctors/balances?per_page=2&page=2');
+        $page2->assertOk();
+        $this->assertCount(1, $page2->json('data.doctors'));
+        $this->assertEquals(2, $page2->json('data.pagination.current_page'));
+    }
+
     public function test_receptionist_can_view_doctor_balances(): void
     {
         [$manager, $lab] = $this->authenticateLabManager();
