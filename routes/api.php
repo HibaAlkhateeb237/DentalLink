@@ -5,6 +5,7 @@
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\DeliveryEmployeeTaskController;
+use App\Http\Controllers\DeliveryTrackingController;
 use App\Http\Controllers\DentalCompensationTypeController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DepartmentManagerTaskController;
@@ -251,6 +252,13 @@ Route::prefix('auth')->group(function (): void {
                 ->name('delivery.tasks.index');
             Route::post('/tasks/status/bulk', [DeliveryEmployeeTaskController::class, 'bulkUpdateStatus'])
                 ->name('delivery.tasks.status.bulk-update');
+
+            Route::post('/tracking/{orderId}/start', [DeliveryTrackingController::class, 'startTrip'])
+                ->name('delivery.tracking.start');
+            Route::post('/tracking/{orderId}/location', [DeliveryTrackingController::class, 'updateLocation'])
+                ->name('delivery.tracking.location');
+            Route::post('/tracking/{orderId}/end', [DeliveryTrackingController::class, 'endTrip'])
+                ->name('delivery.tracking.end');
         });
 
         // =======================================================================================================
