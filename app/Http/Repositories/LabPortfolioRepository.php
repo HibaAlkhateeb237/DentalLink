@@ -27,7 +27,7 @@ class LabPortfolioRepository
         return Order::query()
             ->whereKey($orderId)
             ->where('lab_id', $lab->id)
-            ->whereIn('status', ['completed', 'delivered'])
+            ->where('status', 'completed')
             ->first();
     }
 
@@ -68,5 +68,27 @@ class LabPortfolioRepository
         });
 
         return (int) $totalMinutes;
+    }
+
+    public function updateCase(PortfolioCase $portfolioCase, array $attributes): PortfolioCase
+    {
+        $portfolioCase->update($attributes);
+
+        return $portfolioCase->fresh();
+    }
+
+    public function findCaseByOrderId(int $orderId): ?PortfolioCase
+    {
+        return PortfolioCase::query()->where('order_id', $orderId)->first();
+    }
+
+    public function findPortfolioCaseForLab(int $portfolioCaseId, Lab $lab): ?PortfolioCase
+    {
+        return PortfolioCase::query()
+            ->whereKey($portfolioCaseId)
+            ->whereHas('order', function (Builder $query) use ($lab): void {
+                $query->where('lab_id', $lab->id);
+            })
+            ->first();
     }
 }

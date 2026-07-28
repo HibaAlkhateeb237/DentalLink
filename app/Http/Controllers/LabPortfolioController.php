@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\LabPortfolioIndexRequest;
 use App\Http\Requests\LabPortfolioStoreRequest;
+use App\Http\Requests\LabPortfolioUpdateRequest;
 use App\Http\Resources\LabPortfolioCaseResource;
 use App\Http\Responses\ApiResponse;
 use App\Http\Services\LabPortfolioService;
@@ -69,6 +70,40 @@ class LabPortfolioController extends Controller
             $resource,
             __('lab_portfolio.created_successfully'),
             201,
+        );
+    }
+
+    public function update(LabPortfolioUpdateRequest $request, Lab $lab, PortfolioCase $portfolioCase): JsonResponse
+    {
+        Gate::authorize('update', [$portfolioCase, $lab]);
+
+        if (! data_get($lab, 'is_active', true)) {
+            return $this->apiResponse->error(__('messages.not_found'), 404);
+        }
+
+        if ($portfolioCase->order->lab_id !== $lab->id) {
+            return $this->apiResponse->error(__('lab_portfolio.case_not_belongs_to_lab'), 404);
+        }
+
+        /** @var UploadedFile|null $beforeImage */
+        $beforeImage = $request->file('before_image');
+
+        /** @var UploadedFile|null $afterImage */
+        $afterImage = $request->file('after_image');
+
+        $portfolioCase = $this->labPortfolioService->updateCase(
+            $portfolioCase,
+            $request->validated(),
+            $beforeImage,
+            $afterImage,
+        );
+
+        $resource = LabPortfolioCaseResource::make($portfolioCase)->toArray(request());
+
+        return $this->apiResponse->success(
+            $resource,
+            __('lab_portfolio.updated_successfully'),
+            200,
         );
     }
 }

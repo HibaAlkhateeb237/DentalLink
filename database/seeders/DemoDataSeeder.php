@@ -654,7 +654,7 @@ class DemoDataSeeder extends Seeder
 
                 $order = Order::query()->create([
                     'user_id' => 12,
-                        //$doctor->id,
+                    // $doctor->id,
                     'lab_id' => $lab->id,
                     'patient_name' => $patientNames[$index % count($patientNames)],
                     'qr_code' => (string) Str::uuid(),

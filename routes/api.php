@@ -111,6 +111,7 @@ Route::prefix('auth')->group(function (): void {
             ->name('labs.portfolio.index');
 
         Route::middleware(['role:receptionist,lab_manager'])->prefix('labs')->group(function (): void {
+            Route::put('/{lab}/portfolio/{portfolioCase}', [LabPortfolioController::class, 'update'])->name('labs.portfolio.update');
             Route::post('/{lab}/portfolio', [LabPortfolioController::class, 'store'])->name('labs.portfolio.store');
         });
 
@@ -212,6 +213,12 @@ Route::prefix('auth')->group(function (): void {
         // Lab manager - Bulk order department routing
         Route::middleware(['role:lab_manager'])->post('lab/orders/departments', [LabManagerOrderController::class, 'setDepartmentRoute'])
             ->name('lab.orders.departments.store');
+
+        Route::middleware(['role:lab_manager,receptionist,department_manager,lab_technician'])->get('lab/orders/{order}/departments', [LabManagerOrderController::class, 'getDepartmentRoute'])
+            ->name('lab.orders.departments.show');
+
+        Route::middleware(['role:lab_manager,receptionist,department_manager,lab_technician,system_admin'])->get('lab/department-route', [LabManagerOrderController::class, 'getLabDepartmentRoute'])
+            ->name('lab.departments.route');
 
         // Lab manager - Doctor balances (billed / paid / owed)
         Route::middleware(['role:lab_manager,receptionist'])->get('lab/doctors/balances', [DoctorBalanceController::class, 'index'])

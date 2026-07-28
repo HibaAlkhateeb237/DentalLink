@@ -36,6 +36,15 @@ class PortfolioCasePolicy
         return $user->lab_name !== null && $user->lab_name === $lab->name;
     }
 
+    public function update(User $user, PortfolioCase $portfolioCase): bool
+    {
+        if (! $user->hasRole('lab_manager') && ! $user->hasRole('receptionist')) {
+            return false;
+        }
+
+        return $user->lab_name !== null && $user->lab_name === $portfolioCase->order?->lab?->name;
+    }
+
     public function delete(User $user, PortfolioCase $portfolioCase): bool
     {
         if (! $user->hasRole('lab_manager')) {
