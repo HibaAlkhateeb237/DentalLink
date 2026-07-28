@@ -47,6 +47,13 @@ class LabManagerOrderController extends Controller
                 }
             });
 
+            // Reset sort_order for departments NOT in the new list (remove from workflow)
+            Department::query()
+                ->where('lab_id', $labId)
+                ->whereNotIn('id', $departmentIds)
+                ->where('sort_order', '>', 0)
+                ->update(['sort_order' => 0]);
+
             return Department::query()
                 ->select(['id', 'name', 'sort_order', 'time_allowed'])
                 ->where('lab_id', $labId)

@@ -158,6 +158,20 @@ class LabController extends Controller
         );
     }
 
+    public function assignPackage(Request $request, Lab $lab): JsonResponse
+    {
+        $request->validate([
+            'package_id' => ['required', 'integer', 'exists:packages,id'],
+        ]);
+
+        $lab->update(['package_id' => $request->input('package_id')]);
+
+        return $this->apiResponse->success(
+            $this->labService->getAdminLabDetails($lab),
+            __('labs.package_assigned_successfully')
+        );
+    }
+
     public function adminStats(): JsonResponse
     {
         return $this->apiResponse->success(

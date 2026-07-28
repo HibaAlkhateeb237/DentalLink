@@ -340,6 +340,8 @@ class LabService
     {
         $manager = $this->resolveManagersByLabIds([$lab->id])->get($lab->id);
 
+        $lab->loadMissing('package');
+
         return $this->buildLabPayload($lab, $manager);
     }
 
@@ -419,6 +421,16 @@ class LabService
             'is_active' => (bool) $lab->is_active,
             'created_at' => $lab->created_at,
             'updated_at' => $lab->updated_at,
+            'package' => $lab->relationLoaded('package') && $lab->package !== null
+                ? [
+                    'id' => $lab->package->id,
+                    'name' => $lab->package->name,
+                    'description' => $lab->package->description,
+                    'duration_days' => $lab->package->duration_days,
+                    'price' => $lab->package->price,
+                    'is_active' => $lab->package->is_active,
+                ]
+                : null,
             'manager' => $this->buildManagerPayload($manager),
         ];
     }
