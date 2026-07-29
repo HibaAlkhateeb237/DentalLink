@@ -170,6 +170,21 @@ class LabService
                 'is_management' => true,
             ]);
 
+            $departments = [
+                ['name' => 'Gypsum', 'sort_order' => 1],
+                ['name' => 'Design', 'sort_order' => 2],
+                ['name' => 'Roughing', 'sort_order' => 3],
+                ['name' => 'Polishing', 'sort_order' => 4],
+            ];
+
+            foreach ($departments as $dept) {
+                Department::query()->create([
+                    'lab_id' => $lab->id,
+                    'name' => $dept['name'],
+                    'sort_order' => $dept['sort_order'],
+                ]);
+            }
+
             $manager = User::query()->create([
                 'name' => $validated['manager_name'],
                 'email' => $validated['email'],
