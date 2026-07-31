@@ -4,6 +4,7 @@
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeliveryEmployeeTaskController;
 use App\Http\Controllers\DeliveryTrackingController;
 use App\Http\Controllers\DentalCompensationTypeController;
@@ -46,6 +47,10 @@ Route::get('/ping', function () {
         'errors' => null,
     ]);
 });
+
+// Dashboard API
+Route::middleware(['auth:sanctum'])->get('/dashboard', [DashboardController::class, 'index'])
+    ->name('dashboard.index');
 
 Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleEvent'])
     ->name('stripe.webhook');
