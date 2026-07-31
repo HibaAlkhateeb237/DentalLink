@@ -5,6 +5,8 @@ namespace App\Http\Services;
 use App\Models\DepartmentUserRole;
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -29,6 +31,16 @@ class LabDoctorBalanceService
      */
     public function getDoctorBalances(int $labId, ?string $search = null): Collection
     {
+        return $this->buildDoctorBalancesQuery($labId, $search)->get();
+    }
+
+    public function getDoctorBalancesPaginated(int $labId, ?string $search, int $page, int $perPage): LengthAwarePaginator
+    {
+        return $this->buildDoctorBalancesQuery($labId, $search)->paginate($perPage, ['*'], 'page', $page);
+    }
+
+    private function buildDoctorBalancesQuery(int $labId, ?string $search): Builder
+    {
         $doctorRoleId = Role::query()
             ->where('name', 'doctor')
             ->where('guard_name', 'sanctum')
@@ -40,10 +52,13 @@ class LabDoctorBalanceService
                 'users.name',
                 'users.email',
                 'users.phone',
+                'users.location',
+                'users.location_lat',
+                'users.location_lng',
             ])
             ->join('orders', 'orders.user_id', '=', 'users.id')
             ->where('orders.lab_id', $labId)
-            ->groupBy('users.id', 'users.name', 'users.email', 'users.phone');
+            ->groupBy('users.id', 'users.name', 'users.email', 'users.phone', 'users.location', 'users.location_lat', 'users.location_lng');
 
         if ($search !== null && $search !== '') {
             $baseQuery->where(function ($query) use ($search): void {
@@ -68,7 +83,6 @@ class LabDoctorBalanceService
             ->selectRaw('COALESCE(SUM(orders.remaining_amount), 0) as total_remaining')
             ->selectRaw('COUNT(orders.id) as orders_count')
             ->selectRaw('COALESCE(SUM(orders.price - orders.remaining_amount), 0) as total_paid')
-            ->orderBy('users.name')
-            ->get();
+            ->orderBy('users.name');
     }
 }

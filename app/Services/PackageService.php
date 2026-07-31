@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 class PackageService
 {
-    public function search(?string $q): Builder
+    public function search(?string $q, ?float $minPrice = null, ?float $maxPrice = null, ?int $minDuration = null, ?int $maxDuration = null, ?User $user = null): Builder
     {
         $query = Package::query();
 
@@ -19,6 +19,26 @@ class PackageService
                 $sub->where('name', 'like', "%$q%")
                     ->orWhere('description', 'like', "%$q%");
             });
+        }
+
+        if ($minPrice !== null) {
+            $query->where('price', '>=', $minPrice);
+        }
+
+        if ($maxPrice !== null) {
+            $query->where('price', '<=', $maxPrice);
+        }
+
+        if ($minDuration !== null) {
+            $query->where('duration_days', '>=', $minDuration);
+        }
+
+        if ($maxDuration !== null) {
+            $query->where('duration_days', '<=', $maxDuration);
+        }
+
+        if ($user && ! $user->hasRole('system_admin')) {
+            $query->where('is_active', true);
         }
 
         return $query->orderByDesc('id');

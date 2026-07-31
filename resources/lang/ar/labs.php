@@ -15,4 +15,6 @@ return [
     'deleted_successfully' => 'تم حذف المخبَر بنجاح.',
     'delivery_settings_retrieved_successfully' => 'تم جلب إعدادات التسليم بنجاح.',
     'delivery_settings_updated_successfully' => 'تم تحديث إعدادات التسليم بنجاح.',
+    'package_assigned_successfully' => 'تم تعيين الباقة بنجاح.',
+    'package_history_retrieved' => 'تم جلب سجل الباقات بنجاح.',
 ];

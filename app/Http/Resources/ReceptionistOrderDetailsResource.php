@@ -73,6 +73,10 @@ class ReceptionistOrderDetailsResource extends JsonResource
             'requires_resubmission' => (bool) $this->requires_resubmission,
             'resubmission_reason' => $this->resubmission_reason,
             'resubmission_requested_at' => $this->resubmission_requested_at,
+            'tooth_shade_name' => $this->toothShade?->name,
+            'material_type' => $this->dentalCompensationTypePrice?->dentalCompensationType?->name,
+            'case_name' => $this->whenLoaded('portfolioCase', fn () => $this->portfolioCase?->case_name),
+            'is_published' => $this->whenLoaded('portfolioCase', fn () => (bool) $this->portfolioCase?->is_published),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'doctor' => $this->user === null

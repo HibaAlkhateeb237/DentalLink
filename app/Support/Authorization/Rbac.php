@@ -58,6 +58,7 @@ final class Rbac
                 'payments.manage',
                 'reports.view',
                 'wallets.view',
+                'packages.view',
             ],
             'delivery' => [
                 'delivery.view-assigned',
@@ -75,6 +76,9 @@ final class Rbac
                 'delivery.update-any',
                 'delivery.cancel',
                 'users.assign-role',
+                'packages.create',
+                'packages.update',
+                'packages.delete',
             ])
             ->unique()
             ->values()

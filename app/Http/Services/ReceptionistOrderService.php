@@ -115,6 +115,9 @@ class ReceptionistOrderService
             'tasks.user:id,name,email',
             'payments:id,user_id,amount,payment_method,paid_at',
             'payments.user:id,name,email',
+            'toothShade:id,name',
+            'dentalCompensationTypePrice:id,dental_compensation_type_id',
+            'dentalCompensationTypePrice.dentalCompensationType:id,name',
             'portfolioCase:id,order_id,case_name,before_image_path,after_image_path,duration_minutes,is_published',
         ])->loadSum('payments as paid_amount', 'payment_order.amount');
     }

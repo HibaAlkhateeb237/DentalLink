@@ -67,4 +67,105 @@ class LabPortfolioService
             throw $exception;
         }
     }
+
+    public function updateCase(
+        PortfolioCase $portfolioCase,
+        array $validated,
+        ?UploadedFile $beforeImage = null,
+        ?UploadedFile $afterImage = null,
+    ): PortfolioCase {
+        $attributes = [];
+
+        if (isset($validated['case_name'])) {
+            $attributes['case_name'] = $validated['case_name'];
+        }
+
+        if (isset($validated['is_published'])) {
+            $attributes['is_published'] = (bool) $validated['is_published'];
+        }
+
+        if ($beforeImage !== null) {
+            if ($portfolioCase->before_image_path) {
+                Storage::disk('public')->delete($portfolioCase->before_image_path);
+            }
+            $attributes['before_image_path'] = $beforeImage->store('labs/portfolio', 'public');
+        }
+
+        if ($afterImage !== null) {
+            if ($portfolioCase->after_image_path) {
+                Storage::disk('public')->delete($portfolioCase->after_image_path);
+            }
+            $attributes['after_image_path'] = $afterImage->store('labs/portfolio', 'public');
+        }
+
+        return DB::transaction(function () use ($portfolioCase, $attributes): PortfolioCase {
+            return $this->labPortfolioRepository->updateCase($portfolioCase, $attributes);
+        });
+    }
+
+    public function updateCaseForLab(
+        Lab $lab,
+        int $portfolioCaseId,
+        array $validated,
+        ?UploadedFile $beforeImage = null,
+        ?UploadedFile $afterImage = null,
+    ): PortfolioCase {
+        $portfolioCase = $this->labPortfolioRepository->findPortfolioCaseForLab($portfolioCaseId, $lab);
+
+        if ($portfolioCase === null) {
+            throw ValidationException::withMessages([
+                'portfolio_case_id' => [__('lab_portfolio.case_not_found')],
+            ]);
+        }
+
+        $beforeImagePath = null;
+        $afterImagePath = null;
+
+        if ($beforeImage !== null) {
+            $beforeImagePath = $beforeImage->store('labs/portfolio', 'public');
+        }
+
+        if ($afterImage !== null) {
+            $afterImagePath = $afterImage->store('labs/portfolio', 'public');
+        }
+
+        try {
+            return DB::transaction(function () use ($portfolioCase, $validated, $beforeImagePath, $afterImagePath): PortfolioCase {
+                $attributes = [];
+
+                if (isset($validated['case_name'])) {
+                    $attributes['case_name'] = $validated['case_name'];
+                }
+
+                if (isset($validated['is_published'])) {
+                    $attributes['is_published'] = (bool) $validated['is_published'];
+                }
+
+                if ($beforeImagePath !== null) {
+                    $attributes['before_image_path'] = $beforeImagePath;
+                    if ($portfolioCase->before_image_path) {
+                        Storage::disk('public')->delete($portfolioCase->before_image_path);
+                    }
+                }
+
+                if ($afterImagePath !== null) {
+                    $attributes['after_image_path'] = $afterImagePath;
+                    if ($portfolioCase->after_image_path) {
+                        Storage::disk('public')->delete($portfolioCase->after_image_path);
+                    }
+                }
+
+                return $this->labPortfolioRepository->updateCase($portfolioCase, $attributes);
+            });
+        } catch (\Throwable $exception) {
+            if ($beforeImagePath !== null) {
+                Storage::disk('public')->delete($beforeImagePath);
+            }
+            if ($afterImagePath !== null) {
+                Storage::disk('public')->delete($afterImagePath);
+            }
+
+            throw $exception;
+        }
+    }
 }

@@ -1,0 +1,138 @@
+{
+  "info": {
+    "name": "DentaLink - Department Routes",
+    "description": "API endpoints for managing lab department workflow sequence and timing",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{sanctum_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api",
+      "type": "string"
+    },
+    {
+      "key": "sanctum_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "lab_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "order_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Set Department Route (Lab Manager)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/lab/orders/departments",
+          "host": ["{{base_url}}"],
+          "path": ["lab", "orders", "departments"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"department_ids\": [1, 2, 3, 4],\n  \"department_time_allowed_hours\": [24, 12, 48, 6]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Sets the department workflow sequence and time allowed per department. Requires lab_manager role."
+      },
+      "response": []
+    },
+    {
+      "name": "Get Department Route for Order",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/lab/orders/{{order_id}}/departments",
+          "host": ["{{base_url}}"],
+          "path": ["lab", "orders", "{{order_id}}", "departments"]
+        },
+        "description": "Returns the department route for a specific order with task statuses. Requires lab_manager, receptionist, department_manager, or lab_technician role."
+      },
+      "response": []
+    },
+    {
+      "name": "Get Lab Department Route",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/lab/department-route",
+          "host": ["{{base_url}}"],
+          "path": ["lab", "department-route"]
+        },
+        "description": "Returns the lab's department workflow route. Requires lab_manager, receptionist, department_manager, or lab_technician role."
+      },
+      "response": []
+    },
+    {
+      "name": "Get All Labs Department Routes (System Admin)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/lab/department-route?lab_id={{lab_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["lab", "department-route"],
+          "query": [
+            {
+              "key": "lab_id",
+              "value": "{{lab_id}}",
+              "disabled": true,
+              "description": "Optional: specify lab_id for system_admin"
+            }
+          ]
+        },
+        "description": "Returns all labs with their department routes. Requires system_admin role."
+      },
+      "response": []
+    }
+  ]
+}

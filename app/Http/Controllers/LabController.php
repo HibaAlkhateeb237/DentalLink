@@ -158,6 +158,31 @@ class LabController extends Controller
         );
     }
 
+    public function assignPackage(Request $request, Lab $lab): JsonResponse
+    {
+        $request->validate([
+            'package_id' => ['required', 'integer', 'exists:packages,id'],
+        ]);
+
+        $this->labService->assignPackage($lab, $request->input('package_id'), $request->user());
+
+        return $this->apiResponse->success(
+            $this->labService->getAdminLabDetails($lab),
+            __('labs.package_assigned_successfully')
+        );
+    }
+
+    public function packageHistory(Request $request, Lab $lab): JsonResponse
+    {
+        $perPage = $request->integer('per_page', 20);
+        $history = $this->labService->getLabPackageHistory($lab->id, $perPage);
+
+        return $this->apiResponse->success(
+            $history->toArray(),
+            __('labs.package_history_retrieved')
+        );
+    }
+
     public function adminStats(): JsonResponse
     {
         return $this->apiResponse->success(

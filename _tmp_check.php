@@ -1,8 +1,12 @@
 <?php
+
+use App\Models\DentalCompensationType;
+use Illuminate\Contracts\Console\Kernel;
+
 require 'vendor/autoload.php';
 $app = require 'bootstrap/app.php';
-$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
-$c = App\Models\DentalCompensationType::first();
+$app->make(Kernel::class)->bootstrap();
+$c = DentalCompensationType::first();
 echo json_encode([
     'id' => $c->id,
     'name' => $c->name,
