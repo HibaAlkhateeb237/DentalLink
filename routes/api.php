@@ -271,11 +271,11 @@ Route::prefix('auth')->group(function (): void {
             Route::post('/tasks/status/bulk', [DeliveryEmployeeTaskController::class, 'bulkUpdateStatus'])
                 ->name('delivery.tasks.status.bulk-update');
 
-            Route::post('/tracking/{orderId}/start', [DeliveryTrackingController::class, 'startTrip'])
+            Route::post('/tracking/start', [DeliveryTrackingController::class, 'startTrip'])
                 ->name('delivery.tracking.start');
-            Route::post('/tracking/{orderId}/location', [DeliveryTrackingController::class, 'updateLocation'])
+            Route::post('/tracking/location', [DeliveryTrackingController::class, 'updateLocation'])
                 ->name('delivery.tracking.location');
-            Route::post('/tracking/{orderId}/end', [DeliveryTrackingController::class, 'endTrip'])
+            Route::post('/tracking/end', [DeliveryTrackingController::class, 'endTrip'])
                 ->name('delivery.tracking.end');
         });
 

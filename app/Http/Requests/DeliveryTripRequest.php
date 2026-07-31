@@ -6,7 +6,7 @@ use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class UpdateDeliveryLocationRequest extends FormRequest
+class DeliveryTripRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -18,9 +18,6 @@ class UpdateDeliveryLocationRequest extends FormRequest
         return [
             'task_ids' => ['required', 'array', 'min:1'],
             'task_ids.*' => ['required', 'integer', 'exists:delivery_tasks,id'],
-            'latitude' => ['required', 'numeric', 'between:-90,90'],
-            'longitude' => ['required', 'numeric', 'between:-180,180'],
-            'location_recorded_at' => ['nullable', 'date'],
         ];
     }
 

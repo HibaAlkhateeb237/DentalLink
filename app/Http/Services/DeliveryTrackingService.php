@@ -5,167 +5,252 @@ namespace App\Http\Services;
 use App\Events\DeliveryLocationUpdated;
 use App\Models\DeliveryTask;
 use App\Models\DeliveryTrack;
-use App\Models\Order;
 use App\Models\User;
 use App\Notifications\Tracking\TrackingStateNotification;
-use App\Support\DeliveryStatus;
 use App\Support\DeliveryTrackStatus;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class DeliveryTrackingService
 {
     /**
-     * Start a delivery trip: create or update the tracking record to 'started'.
+     * Start a delivery trip for a group of tasks (single doctor).
+     *
+     * @param  int[]  $taskIds
+     * @return array{doctor_id:int, tracks:Collection<int, DeliveryTrack>}
      */
-    public function startTrip(int $orderId, User $deliveryPerson): DeliveryTrack
+    public function startTrip(array $taskIds, User $deliveryPerson): array
     {
-        return DB::transaction(function () use ($orderId, $deliveryPerson): DeliveryTrack {
-            $order = $this->findOrder($orderId);
-            $this->validateDeliveryAssignment($order, $deliveryPerson);
+        return DB::transaction(function () use ($taskIds, $deliveryPerson): array {
+            $tasks = $this->resolveTasks($taskIds, $deliveryPerson);
+            $this->assertSameDoctor($tasks);
 
-            $existingTrack = DeliveryTrack::where('order_id', $orderId)->first();
+            $doctorId = $this->doctorIdFromTasks($tasks);
+            $orderIds = $tasks->pluck('order_id')->all();
 
-            // Validate state transition
-            if ($existingTrack !== null) {
-                if (! DeliveryTrackStatus::canTransition($existingTrack->status, DeliveryTrackStatus::STARTED)) {
-                    $nextAllowed = DeliveryTrackStatus::getNextAllowedStates($existingTrack->status);
-                    throw ValidationException::withMessages([
-                        'order_id' => "Cannot start trip. Invalid status transition from '{$existingTrack->status}' to 'started'. Can only start from: ".(empty($nextAllowed) ? "'pending'" : "'".implode("', '", $nextAllowed)."'"),
-                    ]);
-                }
-            }
+            $this->assertCanTransitionTo($orderIds, $deliveryPerson, DeliveryTrackStatus::STARTED);
 
-            $track = DeliveryTrack::updateOrCreate(
-                ['order_id' => $orderId],
-                [
-                    'delivery_person_id' => $deliveryPerson->id,
-                    'status' => DeliveryTrackStatus::STARTED,
-                ],
-            );
+            $tracks = $this->upsertTracks($orderIds, $deliveryPerson, [
+                'status' => DeliveryTrackStatus::STARTED,
+            ]);
 
-            DB::afterCommit(function () use ($order): void {
-                $order->user->notify(new TrackingStateNotification($order, 'started'));
+            DB::afterCommit(function () use ($tasks): void {
+                $tasks->each(function (DeliveryTask $task): void {
+                    $task->order->user->notify(new TrackingStateNotification($task->order, 'started'));
+                });
             });
 
-            return $track;
+            return ['doctor_id' => $doctorId, 'tracks' => $tracks];
         });
     }
 
     /**
-     * Update the delivery person's latest location and broadcast via Pusher.
+     * Update the delivery person's latest location for a group of tasks and broadcast via Pusher.
+     *
+     * @param  int[]  $taskIds
+     * @return array{doctor_id:int, tracks:Collection<int, DeliveryTrack>}
      */
     public function updateLocation(
-        int $orderId,
+        array $taskIds,
         User $deliveryPerson,
         float $latitude,
         float $longitude,
         ?string $locationRecordedAt = null,
-    ): DeliveryTrack {
-        return DB::transaction(function () use ($orderId, $deliveryPerson, $latitude, $longitude, $locationRecordedAt): DeliveryTrack {
-            $order = $this->findOrder($orderId);
-            $this->validateDeliveryAssignment($order, $deliveryPerson);
-            $this->validateActiveTrip($orderId);
+    ): array {
+        return DB::transaction(function () use ($taskIds, $deliveryPerson, $latitude, $longitude, $locationRecordedAt): array {
+            $tasks = $this->resolveTasks($taskIds, $deliveryPerson);
+            $this->assertSameDoctor($tasks);
 
-            $track = DeliveryTrack::updateOrCreate(
-                ['order_id' => $orderId],
-                [
-                    'delivery_person_id' => $deliveryPerson->id,
-                    'latitude' => $latitude,
-                    'longitude' => $longitude,
-                    'location_recorded_at' => $locationRecordedAt ?? now(),
-                ],
-            );
+            $doctorId = $this->doctorIdFromTasks($tasks);
+            $orderIds = $tasks->pluck('order_id')->all();
 
-            DB::afterCommit(function () use ($track): void {
+            $this->assertTripNotTerminal($orderIds, $deliveryPerson);
+
+            $tracks = $this->upsertTracks($orderIds, $deliveryPerson, [
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'location_recorded_at' => $locationRecordedAt ?? now(),
+            ]);
+
+            DB::afterCommit(function () use ($doctorId, $taskIds, $orderIds, $deliveryPerson, $latitude, $longitude, $tracks): void {
                 broadcast(new DeliveryLocationUpdated(
-                    orderId: $track->order_id,
-                    latitude: $track->latitude,
-                    longitude: $track->longitude,
-                    deliveryPersonId: $track->delivery_person_id,
-                    status: $track->status,
-                    locationRecordedAt: $track->location_recorded_at?->toIso8601String(),
+                    doctorId: $doctorId,
+                    taskIds: $taskIds,
+                    orderIds: $orderIds,
+                    latitude: $latitude,
+                    longitude: $longitude,
+                    deliveryPersonId: $deliveryPerson->id,
+                    status: $tracks->first()->status,
+                    locationRecordedAt: $tracks->first()->location_recorded_at?->toIso8601String(),
                 ));
             });
 
-            return $track;
+            return ['doctor_id' => $doctorId, 'tracks' => $tracks];
         });
     }
 
     /**
-     * End the delivery trip: mark as 'arrived'.
+     * End the delivery trip for a group of tasks: mark all as 'arrived'.
+     *
+     * @param  int[]  $taskIds
+     * @return array{doctor_id:int, tracks:Collection<int, DeliveryTrack>}
      */
-    public function endTrip(int $orderId, User $deliveryPerson): DeliveryTrack
+    public function endTrip(array $taskIds, User $deliveryPerson): array
     {
-        return DB::transaction(function () use ($orderId, $deliveryPerson): DeliveryTrack {
-            $order = $this->findOrder($orderId);
-            $this->validateDeliveryAssignment($order, $deliveryPerson);
+        return DB::transaction(function () use ($taskIds, $deliveryPerson): array {
+            $tasks = $this->resolveTasks($taskIds, $deliveryPerson);
+            $this->assertSameDoctor($tasks);
 
-            $track = DeliveryTrack::where('order_id', $orderId)
+            $doctorId = $this->doctorIdFromTasks($tasks);
+            $orderIds = $tasks->pluck('order_id')->all();
+
+            $this->assertCanTransitionTo($orderIds, $deliveryPerson, DeliveryTrackStatus::ARRIVED);
+
+            $tracks = DeliveryTrack::whereIn('order_id', $orderIds)
                 ->where('delivery_person_id', $deliveryPerson->id)
-                ->firstOrFail();
+                ->get();
 
-            if (! DeliveryTrackStatus::canTransition($track->status, DeliveryTrackStatus::ARRIVED)) {
-                $nextAllowed = DeliveryTrackStatus::getNextAllowedStates($track->status);
-                throw ValidationException::withMessages([
-                    'order_id' => "Cannot end trip. Invalid status transition from '{$track->status}' to 'arrived'. Can only end from: ".(empty($nextAllowed) ? "'started'" : "'".implode("', '", $nextAllowed)."'"),
-                ]);
+            foreach ($tracks as $track) {
+                $track->update(['status' => DeliveryTrackStatus::ARRIVED]);
             }
 
-            $track->update(['status' => DeliveryTrackStatus::ARRIVED]);
+            DB::afterCommit(function () use ($doctorId, $taskIds, $orderIds, $deliveryPerson, $tracks, $tasks): void {
+                $lastTrack = $tracks->first();
 
-            DB::afterCommit(function () use ($track, $order): void {
                 broadcast(new DeliveryLocationUpdated(
-                    orderId: $track->order_id,
-                    latitude: (float) $track->latitude,
-                    longitude: (float) $track->longitude,
-                    deliveryPersonId: $track->delivery_person_id,
+                    doctorId: $doctorId,
+                    taskIds: $taskIds,
+                    orderIds: $orderIds,
+                    latitude: (float) $lastTrack->latitude,
+                    longitude: (float) $lastTrack->longitude,
+                    deliveryPersonId: $deliveryPerson->id,
                     status: DeliveryTrackStatus::ARRIVED,
                     locationRecordedAt: now()->toIso8601String(),
                 ));
 
-                $order->user->notify(new TrackingStateNotification($order, 'arrived'));
+                $tasks->each(function (DeliveryTask $task): void {
+                    $task->order->user->notify(new TrackingStateNotification($task->order, 'arrived'));
+                });
             });
 
-            return $track->refresh();
+            return ['doctor_id' => $doctorId, 'tracks' => $tracks];
         });
     }
 
-    private function findOrder(int $orderId): Order
+    /**
+     * Resolve the given task ids to delivery tasks assigned to the delivery person.
+     *
+     * @param  int[]  $taskIds
+     * @return Collection<int, DeliveryTask>
+     */
+    private function resolveTasks(array $taskIds, User $deliveryPerson): Collection
     {
-        $order = Order::find($orderId);
-
-        if ($order === null) {
-            throw ValidationException::withMessages([
-                'order_id' => __('validation.exists', ['attribute' => 'order']),
-            ]);
-        }
-
-        return $order;
-    }
-
-    private function validateDeliveryAssignment(Order $order, User $deliveryPerson): void
-    {
-        $hasActiveAssignment = DeliveryTask::where('order_id', $order->id)
+        $tasks = DeliveryTask::query()
+            ->whereIn('id', $taskIds)
             ->where('user_id', $deliveryPerson->id)
-            ->whereIn('status', DeliveryStatus::ASSIGNED_STATUSES)
-            ->exists();
+            ->with(['order.user'])
+            ->get();
 
-        if (! $hasActiveAssignment) {
+        if ($tasks->count() !== count($taskIds)) {
             throw ValidationException::withMessages([
-                'order_id' => 'You are not assigned to deliver this order.',
+                'task_ids' => __('orders.tracking_task_not_found'),
+            ]);
+        }
+
+        return $tasks;
+    }
+
+    /**
+     * @param  Collection<int, DeliveryTask>  $tasks
+     */
+    private function assertSameDoctor(Collection $tasks): void
+    {
+        if ($tasks->pluck('order.user_id')->unique()->count() !== 1) {
+            throw ValidationException::withMessages([
+                'task_ids' => __('orders.tracking_tasks_same_doctor'),
             ]);
         }
     }
 
-    private function validateActiveTrip(int $orderId): void
+    /**
+     * @param  Collection<int, DeliveryTask>  $tasks
+     */
+    private function doctorIdFromTasks(Collection $tasks): int
     {
-        $track = DeliveryTrack::where('order_id', $orderId)->first();
+        return (int) $tasks->first()->order->user_id;
+    }
 
-        if ($track !== null && in_array($track->status, [DeliveryTrackStatus::ARRIVED, DeliveryTrackStatus::CANCELLED], true)) {
-            throw ValidationException::withMessages([
-                'order_id' => "Cannot update location for a trip with status '{$track->status}'.",
-            ]);
+    /**
+     * Enforce the state machine for every order of the trip.
+     *
+     * @param  int[]  $orderIds
+     */
+    private function assertCanTransitionTo(array $orderIds, User $deliveryPerson, string $targetStatus): void
+    {
+        foreach ($orderIds as $orderId) {
+            $track = DeliveryTrack::where('order_id', $orderId)
+                ->where('delivery_person_id', $deliveryPerson->id)
+                ->first();
+
+            $currentStatus = $track?->status ?? DeliveryTrackStatus::PENDING;
+
+            if (! DeliveryTrackStatus::canTransition($currentStatus, $targetStatus)) {
+                throw ValidationException::withMessages([
+                    'task_ids' => __(
+                        'orders.tracking_invalid_transition',
+                        [
+                            'order_id' => $orderId,
+                            'from' => $currentStatus,
+                            'to' => $targetStatus,
+                            'allowed' => implode(', ', DeliveryTrackStatus::getNextAllowedStates($currentStatus)),
+                        ],
+                    ),
+                ]);
+            }
         }
+    }
+
+    /**
+     * @param  int[]  $orderIds
+     */
+    private function assertTripNotTerminal(array $orderIds, User $deliveryPerson): void
+    {
+        foreach ($orderIds as $orderId) {
+            $track = DeliveryTrack::where('order_id', $orderId)
+                ->where('delivery_person_id', $deliveryPerson->id)
+                ->first();
+
+            if ($track !== null && in_array($track->status, [DeliveryTrackStatus::ARRIVED, DeliveryTrackStatus::CANCELLED], true)) {
+                throw ValidationException::withMessages([
+                    'task_ids' => __('orders.tracking_location_after_terminal', [
+                        'order_id' => $orderId,
+                        'status' => $track->status,
+                    ]),
+                ]);
+            }
+        }
+    }
+
+    /**
+     * @param  int[]  $orderIds
+     * @param  array<string, mixed>  $attributes
+     * @return Collection<int, DeliveryTrack>
+     */
+    private function upsertTracks(array $orderIds, User $deliveryPerson, array $attributes): Collection
+    {
+        $tracks = new Collection;
+
+        foreach ($orderIds as $orderId) {
+            $tracks->push(DeliveryTrack::updateOrCreate(
+                ['order_id' => $orderId],
+                [
+                    'delivery_person_id' => $deliveryPerson->id,
+                    ...$attributes,
+                ],
+            ));
+        }
+
+        return $tracks;
     }
 }

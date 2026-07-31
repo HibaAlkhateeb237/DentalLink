@@ -34,6 +34,18 @@ return [
     'delivery_status_updated' => 'Delivery status updated successfully',
     'delivery_status_transition_invalid' => 'Cannot change delivery status to the requested status',
 
+    // Delivery tracking
+    'tracking_started' => 'Delivery trip started successfully',
+    'tracking_location_updated' => 'Location updated successfully',
+    'tracking_ended' => 'Delivery trip ended successfully',
+    'tracking_task_ids_required' => 'The delivery tasks field is required',
+    'tracking_task_ids_invalid' => 'The delivery tasks must be an array',
+    'tracking_task_ids_min_one' => 'You must select at least one delivery task',
+    'tracking_task_not_found' => 'One or more delivery tasks do not exist or are not assigned to you',
+    'tracking_tasks_same_doctor' => 'All delivery tasks must belong to the same doctor',
+    'tracking_invalid_transition' => "Cannot change tracking status for order #:order_id from ':from' to ':to'. Allowed: :allowed",
+    'tracking_location_after_terminal' => "Cannot update location for order #:order_id because the trip has status ':status'.",
+
     // Direction labels
     'direction_to_lab' => 'To Lab',
     'direction_to_doctor' => 'To Doctor',

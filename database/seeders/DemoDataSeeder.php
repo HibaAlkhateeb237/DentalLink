@@ -1073,7 +1073,8 @@ class DemoDataSeeder extends Seeder
 
             DeliveryTask::query()->create([
                 'order_id' => $order->id,
-                'user_id' => $deliveryUser->id,
+                'user_id' => 77 ,
+                //$deliveryUser->id,
                 'status' => $status,
                 'direction' => $direction,
                 'picked_at' => in_array($status, DeliveryStatus::PICKED_STATUSES, true)

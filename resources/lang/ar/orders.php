@@ -37,6 +37,18 @@ return [
     'delivery_status_updated' => 'Delivery status updated successfully',
     'delivery_status_transition_invalid' => 'Cannot change delivery status to the requested status',
 
+    // Delivery tracking
+    'tracking_started' => 'تم بدء رحلة التوصيل بنجاح',
+    'tracking_location_updated' => 'تم تحديث الموقع بنجاح',
+    'tracking_ended' => 'تم إنهاء رحلة التوصيل بنجاح',
+    'tracking_task_ids_required' => 'حقل مهام التوصيل مطلوب',
+    'tracking_task_ids_invalid' => 'يجب أن تكون مهام التوصيل مصفوفة',
+    'tracking_task_ids_min_one' => 'يجب تحديد مهمة توصيل واحدة على الأقل',
+    'tracking_task_not_found' => 'واحدة أو أكثر من مهام التوصيل غير موجودة أو غير مسندة إليك',
+    'tracking_tasks_same_doctor' => 'يجب أن تنتمي جميع مهام التوصيل إلى نفس الطبيب',
+    'tracking_invalid_transition' => 'لا يمكن تغيير حالة التتبع للطلب رقم #:order_id من ":from" إلى ":to". المسموح: :allowed',
+    'tracking_location_after_terminal' => 'لا يمكن تحديث الموقع للطلب رقم #:order_id لأن الرحلة بحالة ":status".',
+
     // Direction labels
     'direction_to_lab' => 'To Lab',
     'direction_to_doctor' => 'To Doctor',
