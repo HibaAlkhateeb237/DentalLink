@@ -164,11 +164,22 @@ class LabController extends Controller
             'package_id' => ['required', 'integer', 'exists:packages,id'],
         ]);
 
-        $lab->update(['package_id' => $request->input('package_id')]);
+        $this->labService->assignPackage($lab, $request->input('package_id'), $request->user());
 
         return $this->apiResponse->success(
             $this->labService->getAdminLabDetails($lab),
             __('labs.package_assigned_successfully')
+        );
+    }
+
+    public function packageHistory(Request $request, Lab $lab): JsonResponse
+    {
+        $perPage = $request->integer('per_page', 20);
+        $history = $this->labService->getLabPackageHistory($lab->id, $perPage);
+
+        return $this->apiResponse->success(
+            $history->toArray(),
+            __('labs.package_history_retrieved')
         );
     }
 

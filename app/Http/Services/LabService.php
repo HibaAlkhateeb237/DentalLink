@@ -6,6 +6,7 @@ use App\Http\Repositories\LabRepository;
 use App\Models\Department;
 use App\Models\DepartmentUserRole;
 use App\Models\Lab;
+use App\Models\LabPackageHistory;
 use App\Models\Order;
 use App\Models\Role;
 use App\Models\Task;
@@ -358,6 +359,36 @@ class LabService
         $lab->loadMissing('package');
 
         return $this->buildLabPayload($lab, $manager);
+    }
+
+    public function assignPackage(Lab $lab, int $packageId, ?User $user = null): void
+    {
+        DB::transaction(function () use ($lab, $packageId, $user): void {
+            // Close previous package history if exists
+            $lab->packageHistories()
+                ->whereNull('unassigned_at')
+                ->update(['unassigned_at' => now()]);
+
+            // Update current package
+            $lab->update(['package_id' => $packageId]);
+
+            // Create new history entry
+            LabPackageHistory::create([
+                'lab_id' => $lab->id,
+                'package_id' => $packageId,
+                'assigned_at' => now(),
+                'assigned_by' => $user?->id,
+            ]);
+        });
+    }
+
+    public function getLabPackageHistory(int $labId, int $perPage = 20)
+    {
+        return LabPackageHistory::query()
+            ->with(['package', 'assignedBy'])
+            ->where('lab_id', $labId)
+            ->orderByDesc('assigned_at')
+            ->paginate($perPage);
     }
 
     public function getLabStats(): array

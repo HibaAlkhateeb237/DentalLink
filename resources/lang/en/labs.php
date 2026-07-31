@@ -15,4 +15,6 @@ return [
     'deleted_successfully' => 'Lab deleted successfully',
     'delivery_settings_retrieved_successfully' => 'Delivery settings retrieved successfully',
     'delivery_settings_updated_successfully' => 'Delivery settings updated successfully',
+    'package_assigned_successfully' => 'Package assigned successfully',
+    'package_history_retrieved' => 'Package history retrieved successfully',
 ];

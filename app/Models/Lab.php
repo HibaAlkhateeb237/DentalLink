@@ -85,4 +85,9 @@ class Lab extends Model
     {
         return $this->belongsTo(Package::class);
     }
+
+    public function packageHistories(): HasMany
+    {
+        return $this->hasMany(LabPackageHistory::class);
+    }
 }
