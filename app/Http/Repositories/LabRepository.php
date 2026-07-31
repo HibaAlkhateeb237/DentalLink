@@ -14,7 +14,8 @@ class LabRepository
         return Lab::query()
             ->select('labs.*')
             ->selectRaw('(SELECT AVG(reviews.rating) FROM reviews INNER JOIN orders ON orders.id = reviews.order_id WHERE orders.lab_id = labs.id) as rating')
-            ->selectRaw('(SELECT COUNT(*) FROM reviews INNER JOIN orders ON orders.id = reviews.order_id WHERE orders.lab_id = labs.id) as reviews_count');
+            ->selectRaw('(SELECT COUNT(*) FROM reviews INNER JOIN orders ON orders.id = reviews.order_id WHERE orders.lab_id = labs.id) as reviews_count')
+            ->with('package');
     }
 
     private function queryActiveWithReviewStats(): Builder

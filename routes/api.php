@@ -16,6 +16,7 @@ use App\Http\Controllers\LabController;
 use App\Http\Controllers\LabDeliverySettingController;
 use App\Http\Controllers\LabEmployeeController;
 use App\Http\Controllers\LabManagerOrderController;
+use App\Http\Controllers\LabPackageController;
 use App\Http\Controllers\LabPortfolioController;
 use App\Http\Controllers\LabPricingController;
 use App\Http\Controllers\LabRoleController;
@@ -60,6 +61,7 @@ Route::middleware(['auth:sanctum', 'role:system_admin'])->prefix('admin/labs')->
 
     // Package assignment
     Route::post('/{lab}/package', [LabController::class, 'assignPackage'])->name('admin.labs.package.assign');
+    Route::get('/{lab}/package/history', [LabController::class, 'packageHistory'])->name('admin.labs.package.history');
 
     // Stripe Connect management
     Route::post('/{lab}/stripe/connect', [LabController::class, 'createStripeAccount'])->name('admin.labs.stripe.connect');
@@ -226,6 +228,12 @@ Route::prefix('auth')->group(function (): void {
         // Lab manager - Doctor balances (billed / paid / owed)
         Route::middleware(['role:lab_manager,receptionist'])->get('lab/doctors/balances', [DoctorBalanceController::class, 'index'])
             ->name('lab.doctors.balances');
+
+        // Lab manager - Current package & history
+        Route::middleware(['role:lab_manager'])->prefix('lab/package')->group(function (): void {
+            Route::get('/', [LabPackageController::class, 'show'])->name('lab.package.show');
+            Route::get('/history', [LabPackageController::class, 'history'])->name('lab.package.history');
+        });
 
         //         // Lab manager / Receptionist - Per-doctor refund summary (orders count, paid, due)
         //         Route::middleware(['role:lab_manager,receptionist'])->get('lab/refunds', [RefundController::class, 'index'])

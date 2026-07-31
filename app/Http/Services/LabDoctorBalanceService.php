@@ -52,10 +52,13 @@ class LabDoctorBalanceService
                 'users.name',
                 'users.email',
                 'users.phone',
+                'users.location',
+                'users.location_lat',
+                'users.location_lng',
             ])
             ->join('orders', 'orders.user_id', '=', 'users.id')
             ->where('orders.lab_id', $labId)
-            ->groupBy('users.id', 'users.name', 'users.email', 'users.phone');
+            ->groupBy('users.id', 'users.name', 'users.email', 'users.phone', 'users.location', 'users.location_lat', 'users.location_lng');
 
         if ($search !== null && $search !== '') {
             $baseQuery->where(function ($query) use ($search): void {

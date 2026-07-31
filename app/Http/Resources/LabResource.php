@@ -32,6 +32,9 @@ class LabResource extends JsonResource
             'reviews_count' => $this->reviews_count ?? 0,
             'orders_count' => isset($this->orders_count) ? (int) $this->orders_count : null,
             'photo' => $this->toPublicUrl($this->photo ?? null),
+            'package' => $this->whenLoaded('package', function () {
+                return new PackageResource($this->package);
+            }),
         ];
     }
 

@@ -21,7 +21,14 @@ class PackageController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = $this->service->search($request->query('q'));
+        $query = $this->service->search(
+            $request->query('q'),
+            $request->filled('min_price') ? $request->float('min_price') : null,
+            $request->filled('max_price') ? $request->float('max_price') : null,
+            $request->filled('min_duration') ? $request->integer('min_duration') : null,
+            $request->filled('max_duration') ? $request->integer('max_duration') : null,
+            $request->user(),
+        );
         $perPage = $request->integer('per_page', 20);
         $perPage = max(1, min($perPage, 100));
         $packages = $query->paginate($perPage);
