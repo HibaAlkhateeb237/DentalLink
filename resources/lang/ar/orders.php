@@ -49,6 +49,11 @@ return [
     'tracking_invalid_transition' => 'لا يمكن تغيير حالة التتبع للطلب رقم #:order_id من ":from" إلى ":to". المسموح: :allowed',
     'tracking_location_after_terminal' => 'لا يمكن تحديث الموقع للطلب رقم #:order_id لأن الرحلة بحالة ":status".',
 
+    // State recovery
+    'tracking_doctor_id_required' => 'معرف الطبيب مطلوب لمدير النظام.',
+    'tracking_no_active_trip' => 'لا توجد رحلة توصيل نشطة.',
+    'tracking_active_trip_retrieved' => 'تم استرداد رحلة التوصيل النشطة بنجاح.',
+
     // Direction labels
     'direction_to_lab' => 'To Lab',
     'direction_to_doctor' => 'To Doctor',

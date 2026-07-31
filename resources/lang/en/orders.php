@@ -46,6 +46,11 @@ return [
     'tracking_invalid_transition' => "Cannot change tracking status for order #:order_id from ':from' to ':to'. Allowed: :allowed",
     'tracking_location_after_terminal' => "Cannot update location for order #:order_id because the trip has status ':status'.",
 
+    // State recovery
+    'tracking_doctor_id_required' => 'The doctor_id parameter is required for system_admin.',
+    'tracking_no_active_trip' => 'No active delivery trip found.',
+    'tracking_active_trip_retrieved' => 'Active delivery trip retrieved successfully.',
+
     // Direction labels
     'direction_to_lab' => 'To Lab',
     'direction_to_doctor' => 'To Doctor',

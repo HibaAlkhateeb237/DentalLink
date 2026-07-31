@@ -253,4 +253,68 @@ class DeliveryTrackingService
 
         return $tracks;
     }
+
+    /**
+     * Get the active delivery trip for a doctor (if any).
+     *
+     * @return array{doctor_id:int, task_ids:int[], order_ids:int[], tracks:Collection<int, DeliveryTrack>, delivery_person:array}|null
+     */
+    public function getActiveTripForDoctor(int $doctorId): ?array
+    {
+        // Find all tracks with STARTED status for orders belonging to this doctor
+        $tracks = DeliveryTrack::query()
+            ->where('status', DeliveryTrackStatus::STARTED)
+            ->whereHas('order', function ($query) use ($doctorId): void {
+                $query->where('user_id', $doctorId);
+            })
+            ->with(['order', 'deliveryPerson'])
+            ->get();
+
+        if ($tracks->isEmpty()) {
+            return null;
+        }
+
+        // Group by delivery person (in case multiple delivery people have active trips for this doctor)
+        // We return the first active trip (most recent by location_recorded_at)
+        $grouped = $tracks->groupBy('delivery_person_id');
+
+        // For now, return the trip with the most recent location update
+        $activeTrip = $grouped->map(function ($personTracks) {
+            return $personTracks->sortByDesc('location_recorded_at')->first();
+        })->sortByDesc('location_recorded_at')->first();
+
+        if ($activeTrip === null) {
+            return null;
+        }
+
+        // Get all tracks for this delivery person and doctor (the full trip)
+        $tripTracks = DeliveryTrack::query()
+            ->where('status', DeliveryTrackStatus::STARTED)
+            ->where('delivery_person_id', $activeTrip->delivery_person_id)
+            ->whereHas('order', function ($query) use ($doctorId): void {
+                $query->where('user_id', $doctorId);
+            })
+            ->with(['order', 'deliveryPerson'])
+            ->get();
+
+        // Get the associated task_ids
+        $orderIds = $tripTracks->pluck('order_id')->all();
+        $taskIds = DeliveryTask::query()
+            ->whereIn('order_id', $orderIds)
+            ->where('user_id', $activeTrip->delivery_person_id)
+            ->pluck('id')
+            ->all();
+
+        return [
+            'doctor_id' => $doctorId,
+            'task_ids' => array_values($taskIds),
+            'order_ids' => array_values($orderIds),
+            'tracks' => $tripTracks,
+            'delivery_person' => [
+                'id' => $activeTrip->deliveryPerson->id,
+                'name' => $activeTrip->deliveryPerson->name,
+                'phone' => $activeTrip->deliveryPerson->phone,
+            ],
+        ];
+    }
 }

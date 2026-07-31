@@ -156,6 +156,12 @@ Route::prefix('auth')->group(function (): void {
             //  Route::post('/{order}/pricing/calculate', [OrderPricingController::class, 'calculate'])->name('orders.pricing.calculate');
         });
 
+        // Doctor tracking state recovery endpoint
+        Route::middleware(['role:doctor,system_admin'])->prefix('doctor')->group(function (): void {
+            Route::get('/tracking/active', [DeliveryTrackingController::class, 'getActiveTrip'])
+                ->name('doctor.tracking.active');
+        });
+
         // ----------------------------------receptionist-----------------------------------------------------------------
 
         Route::middleware(['role:receptionist,lab_manager'])->prefix('orders')->group(function (): void {

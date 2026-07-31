@@ -299,6 +299,182 @@ class DeliveryTrackingApiTest extends TestCase
         ], $event->broadcastWith());
     }
 
+    public function test_doctor_can_get_active_trip(): void
+    {
+        $doctor = User::factory()->create();
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $doctor->roles()->sync([$role->id]);
+
+        $task = $this->createAssignedTask($doctor);
+
+        Sanctum::actingAs($this->deliveryEmployee);
+        $this->postJson('/api/auth/delivery/tracking/start', ['task_ids' => [$task->id]])->assertStatus(201);
+        $this->postJson('/api/auth/delivery/tracking/location', [
+            'task_ids' => [$task->id],
+            'latitude' => 33.5138070,
+            'longitude' => 36.2765279,
+        ])->assertOk();
+
+        Sanctum::actingAs($doctor);
+
+        $response = $this->getJson('/api/auth/doctor/tracking/active');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.active', true)
+            ->assertJsonPath('data.doctor_id', $doctor->id)
+            ->assertJsonPath('data.task_ids', [$task->id])
+            ->assertJsonPath('data.order_ids', [$task->order_id])
+            ->assertJsonPath('data.tracks.0.status', DeliveryTrackStatus::STARTED)
+            ->assertJsonPath('data.tracks.0.latitude', '33.5138070')
+            ->assertJsonPath('data.tracks.0.longitude', '36.2765279')
+            ->assertJsonPath('data.delivery_person.id', $this->deliveryEmployee->id);
+    }
+
+    public function test_doctor_gets_no_active_trip_when_none_exists(): void
+    {
+        $doctor = User::factory()->create();
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $doctor->roles()->sync([$role->id]);
+
+        Sanctum::actingAs($doctor);
+
+        $response = $this->getJson('/api/auth/doctor/tracking/active');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.active', false)
+            ->assertJsonPath('data.message', __('orders.tracking_no_active_trip'));
+    }
+
+    public function test_doctor_cannot_see_other_doctors_active_trip(): void
+    {
+        $doctor1 = User::factory()->create();
+        $doctor2 = User::factory()->create();
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $doctor1->roles()->sync([$role->id]);
+        $doctor2->roles()->sync([$role->id]);
+
+        $task = $this->createAssignedTask($doctor1);
+
+        Sanctum::actingAs($this->deliveryEmployee);
+        $this->postJson('/api/auth/delivery/tracking/start', ['task_ids' => [$task->id]])->assertStatus(201);
+
+        Sanctum::actingAs($doctor2);
+
+        $response = $this->getJson('/api/auth/doctor/tracking/active');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.active', false);
+    }
+
+    public function test_system_admin_can_get_active_trip_for_any_doctor(): void
+    {
+        $doctor = User::factory()->create();
+        $admin = User::factory()->create();
+        $adminRole = Role::query()->where('name', 'system_admin')->where('guard_name', 'sanctum')->firstOrFail();
+        $admin->roles()->sync([$adminRole->id]);
+
+        $task = $this->createAssignedTask($doctor);
+
+        Sanctum::actingAs($this->deliveryEmployee);
+        $this->postJson('/api/auth/delivery/tracking/start', ['task_ids' => [$task->id]])->assertStatus(201);
+
+        Sanctum::actingAs($admin);
+
+        $response = $this->getJson('/api/auth/doctor/tracking/active?doctor_id='.$doctor->id);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.active', true)
+            ->assertJsonPath('data.doctor_id', $doctor->id);
+    }
+
+    public function test_system_admin_requires_doctor_id_param(): void
+    {
+        $admin = User::factory()->create();
+        $adminRole = Role::query()->where('name', 'system_admin')->where('guard_name', 'sanctum')->firstOrFail();
+        $admin->roles()->sync([$adminRole->id]);
+
+        Sanctum::actingAs($admin);
+
+        $response = $this->getJson('/api/auth/doctor/tracking/active');
+
+        $response
+            ->assertStatus(400)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', __('orders.tracking_doctor_id_required'));
+    }
+
+    public function test_non_doctor_non_admin_cannot_access_active_trip(): void
+    {
+        $receptionist = User::factory()->create();
+        $role = Role::query()->where('name', 'receptionist')->where('guard_name', 'sanctum')->firstOrFail();
+        $receptionist->roles()->sync([$role->id]);
+
+        Sanctum::actingAs($receptionist);
+
+        $response = $this->getJson('/api/auth/doctor/tracking/active');
+
+        $response->assertForbidden();
+    }
+
+    public function test_active_trip_returns_correct_data_after_location_update(): void
+    {
+        $doctor = User::factory()->create();
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $doctor->roles()->sync([$role->id]);
+
+        $tasks = [
+            $this->createAssignedTask($doctor),
+            $this->createAssignedTask($doctor),
+        ];
+        $taskIds = array_map(static fn (DeliveryTask $task): int => $task->id, $tasks);
+
+        Sanctum::actingAs($this->deliveryEmployee);
+        $this->postJson('/api/auth/delivery/tracking/start', ['task_ids' => $taskIds])->assertStatus(201);
+        $this->postJson('/api/auth/delivery/tracking/location', [
+            'task_ids' => $taskIds,
+            'latitude' => 33.5138070,
+            'longitude' => 36.2765279,
+        ])->assertOk();
+
+        Sanctum::actingAs($doctor);
+
+        $response = $this->getJson('/api/auth/doctor/tracking/active');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.active', true)
+            ->assertJsonCount(2, 'data.tracks')
+            ->assertJsonPath('data.tracks.0.latitude', '33.5138070')
+            ->assertJsonPath('data.tracks.0.longitude', '36.2765279')
+            ->assertJsonPath('data.tracks.1.latitude', '33.5138070')
+            ->assertJsonPath('data.tracks.1.longitude', '36.2765279');
+    }
+
+    public function test_active_trip_returns_false_after_trip_ended(): void
+    {
+        $doctor = User::factory()->create();
+        $role = Role::query()->where('name', 'doctor')->where('guard_name', 'sanctum')->firstOrFail();
+        $doctor->roles()->sync([$role->id]);
+
+        $task = $this->createAssignedTask($doctor);
+
+        Sanctum::actingAs($this->deliveryEmployee);
+        $this->postJson('/api/auth/delivery/tracking/start', ['task_ids' => [$task->id]])->assertStatus(201);
+        $this->postJson('/api/auth/delivery/tracking/end', ['task_ids' => [$task->id]])->assertOk();
+
+        Sanctum::actingAs($doctor);
+
+        $response = $this->getJson('/api/auth/doctor/tracking/active');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.active', false);
+    }
+
     private function createOrder(User $doctor): Order
     {
         return Order::query()->create([

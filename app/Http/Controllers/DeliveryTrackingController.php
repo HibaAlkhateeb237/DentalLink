@@ -9,6 +9,7 @@ use App\Http\Services\DeliveryTrackingService;
 use App\Models\DeliveryTrack;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class DeliveryTrackingController extends Controller
 {
@@ -75,6 +76,44 @@ class DeliveryTrackingController extends Controller
         return $this->apiResponse->success(
             $this->tripPayload($doctorId, $taskIds, $tracks),
             __('orders.tracking_ended'),
+        );
+    }
+
+    public function getActiveTrip(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user === null) {
+            return $this->apiResponse->error(__('auth.unauthenticated'), 401);
+        }
+
+        // Determine the doctor_id: if user is doctor, use their own ID; if system_admin, require doctor_id param
+        if ($user->hasRole('doctor')) {
+            $doctorId = $user->id;
+        } elseif ($user->hasRole('system_admin')) {
+            $doctorId = $request->integer('doctor_id');
+            if ($doctorId <= 0) {
+                return $this->apiResponse->error(__('orders.tracking_doctor_id_required'), 400);
+            }
+        } else {
+            return $this->apiResponse->error(__('auth.forbidden'), 403);
+        }
+
+        $activeTrip = $this->trackingService->getActiveTripForDoctor($doctorId);
+
+        if ($activeTrip === null) {
+            return $this->apiResponse->success([
+                'active' => false,
+                'message' => __('orders.tracking_no_active_trip'),
+            ], __('orders.tracking_no_active_trip'));
+        }
+
+        return $this->apiResponse->success(
+            array_merge($this->tripPayload($activeTrip['doctor_id'], $activeTrip['task_ids'], $activeTrip['tracks']), [
+                'active' => true,
+                'delivery_person' => $activeTrip['delivery_person'],
+            ]),
+            __('orders.tracking_active_trip_retrieved'),
         );
     }
 
