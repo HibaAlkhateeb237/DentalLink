@@ -106,13 +106,13 @@ class OrderController extends Controller
         if ($isDepartmentManagerRoute) {
             $departmentIds = $this->taskRepository->getManagedDepartmentIds($request->user());
 
-            $tasks = Task::query()
+            $task = Task::query()
                 ->where('order_id', $order->id)
                 ->whereIn('department_id', $departmentIds)
                 ->where('status', TaskStatus::PENDING_REVIEW)
                 ->first();
 
-            if ($tasks==null) {
+            if ($task==null) {
                 return $this->apiResponse->error(
                     __('لا يوجد مهام بحاجة لتقييم لهذا الطلب في أقسامك.'),
                     404
@@ -121,7 +121,7 @@ class OrderController extends Controller
 
             return $this->apiResponse->success([
                 'order' => OrderShortResource::make($order),
-                'tasks' => TaskResource::make($tasks),
+                'task' => TaskResource::make($task),
             ], __('orders.retrieved_successfully'));
         }
 
