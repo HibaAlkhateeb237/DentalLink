@@ -18,7 +18,9 @@ use App\Http\Services\OrderNotificationService;
 use App\Http\Services\OrderService;
 use App\Models\Order;
 use App\Models\Task;
+use App\Repositories\TaskRepository;
 use App\Support\OrderStatus;
+use App\Support\TaskStatus;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -28,7 +30,8 @@ class OrderController extends Controller
         private OrderService $orderService,
         private OrderNotificationService $notificationService,
         private ApiResponse $apiResponse,
-        private DoctorOrderTrackingService $trackingService
+        private DoctorOrderTrackingService $trackingService,
+        private TaskRepository $taskRepository
     ) {}
 
     public function store(OrderStoreRequest $request): JsonResponse
@@ -98,20 +101,42 @@ class OrderController extends Controller
             ->where('qr_code', $qr)
             ->firstOrFail();
 
+        $order->load(['toothShade', 'dentalCompensationTypePrice.dentalCompensationType', 'orderTeeth', 'orderFiles']);
+
+        if ($isDepartmentManagerRoute) {
+            $departmentIds = $this->taskRepository->getManagedDepartmentIds($request->user());
+
+            $tasks = Task::query()
+                ->where('order_id', $order->id)
+                ->whereIn('department_id', $departmentIds)
+                ->where('status', TaskStatus::PENDING_REVIEW)
+                ->get();
+
+            if ($tasks->isEmpty()) {
+                return $this->apiResponse->error(
+                    __('لا يوجد مهام بحاجة لتقييم لهذا الطلب في أقسامك.'),
+                    404
+                );
+            }
+
+            return $this->apiResponse->success([
+                'order' => OrderShortResource::make($order),
+                'tasks' => TaskResource::collection($tasks),
+            ], __('orders.retrieved_successfully'));
+        }
+
         $task = Task::query()
             ->where('order_id', $order->id)
             ->where('user_id', $request->user()->id)
             ->first();
 
-        if (! $task && ! $isDepartmentManagerRoute) {
+        if (! $task) {
             return $this->apiResponse->error(__('You have no task associated with this order.'), 404);
         }
 
-        $order->load(['toothShade', 'dentalCompensationTypePrice.dentalCompensationType', 'orderTeeth', 'orderFiles']);
-
         return $this->apiResponse->success([
             'order' => OrderShortResource::make($order),
-            'task' => $task ? TaskResource::make($task) : null,
+            'task' => TaskResource::make($task),
         ], __('orders.retrieved_successfully'));
     }
 
