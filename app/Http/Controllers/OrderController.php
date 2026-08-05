@@ -110,9 +110,9 @@ class OrderController extends Controller
                 ->where('order_id', $order->id)
                 ->whereIn('department_id', $departmentIds)
                 ->where('status', TaskStatus::PENDING_REVIEW)
-                ->get();
+                ->first();
 
-            if ($tasks->isEmpty()) {
+            if ($tasks==null) {
                 return $this->apiResponse->error(
                     __('لا يوجد مهام بحاجة لتقييم لهذا الطلب في أقسامك.'),
                     404
@@ -121,7 +121,7 @@ class OrderController extends Controller
 
             return $this->apiResponse->success([
                 'order' => OrderShortResource::make($order),
-                'tasks' => TaskResource::collection($tasks),
+                'tasks' => TaskResource::make($tasks),
             ], __('orders.retrieved_successfully'));
         }
 
