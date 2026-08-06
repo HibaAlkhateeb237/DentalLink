@@ -1,0 +1,336 @@
+{
+	"info": {
+		"_postman_id": "dashboard-api",
+		"name": "DentaLink Dashboard API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "1"
+	},
+	"item": [
+		{
+			"name": "Get Dashboard Statistics",
+			"request": { 
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/dashboard?from=2024-03-01&to=2024-03-31",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"dashboard"
+					],
+					"query": [
+						{
+							"key": "from",
+							"value": "2024-03-01",
+							"description": "Start date (YYYY-MM-DD)"
+						},
+						{
+							"key": "to",
+							"value": "2024-03-31",
+							"description": "End date (YYYY-MM-DD)"
+						}
+					]
+				},
+				"description": "Get dashboard statistics for a date range using 'from' and 'to' parameters"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Dashboard Statistics (Month/Year)",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/dashboard?month=3&year=2024",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"dashboard"
+					],
+					"query": [
+						{
+							"key": "month",
+							"value": "3",
+							"description": "Month (1-12)"
+						},
+						{
+							"key": "year",
+							"value": "2024",
+							"description": "Year (YYYY)"
+						}
+					]
+				},
+				"description": "Get dashboard statistics for a specific month/year"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Dashboard Statistics (Current Month - Default)",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/dashboard",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"dashboard"
+					]
+				},
+				"description": "Get dashboard statistics for current month (default when no params provided)"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Dashboard Statistics (Last 7 Days)",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/dashboard?from={{7_days_ago}}&to={{today}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"dashboard"
+					],
+					"query": [
+						{
+							"key": "from",
+							"value": "{{7_days_ago}}",
+							"description": "Start date - 7 days ago"
+						},
+						{
+							"key": "to",
+							"value": "{{today}}",
+							"description": "End date - today"
+						}
+					]
+				},
+				"description": "Get dashboard statistics for last 7 days"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Dashboard Statistics (Last 30 Days)",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/dashboard?from={{30_days_ago}}&to={{today}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"dashboard"
+					],
+					"query": [
+						{
+							"key": "from",
+							"value": "{{30_days_ago}}",
+							"description": "Start date - 30 days ago"
+						},
+						{
+							"key": "to",
+							"value": "{{today}}",
+							"description": "End date - today"
+						}
+					]
+				},
+				"description": "Get dashboard statistics for last 30 days"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Dashboard Statistics (Year to Date)",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/dashboard?from={{year_start}}&to={{today}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"dashboard"
+					],
+					"query": [
+						{
+							"key": "from",
+							"value": "{{year_start}}",
+							"description": "Start of current year"
+						},
+						{
+							"key": "to",
+							"value": "{{today}}",
+							"description": "End date - today"
+						}
+					]
+				},
+				"description": "Get dashboard statistics for year to date"
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Set dynamic date variables",
+					"const today = new Date();",
+					"const formatDate = (date) => date.toISOString().split('T')[0];",
+					"",
+					"pm.environment.set('today', formatDate(today));",
+					"",
+					"const sevenDaysAgo = new Date(today);",
+					"sevenDaysAgo.setDate(today.getDate() - 7);",
+					"pm.environment.set('7_days_ago', formatDate(sevenDaysAgo));",
+					"",
+					"const thirtyDaysAgo = new Date(today);",
+					"thirtyDaysAgo.setDate(today.getDate() - 30);",
+					"pm.environment.set('30_days_ago', formatDate(thirtyDaysAgo));",
+					"",
+					"const yearStart = new Date(today.getFullYear(), 0, 1);",
+					"pm.environment.set('year_start', formatDate(yearStart));"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
