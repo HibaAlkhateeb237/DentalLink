@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Http\Services\StripeConnectService;
 use App\Models\DeliveryTask;
 use App\Models\DentalCompensationType;
 use App\Models\DentalCompensationTypePrice;
@@ -33,6 +34,7 @@ use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -40,6 +42,10 @@ use Illuminate\Support\Str;
 class DemoDataSeeder extends Seeder
 {
     use WithoutModelEvents;
+
+    public function __construct(
+        private StripeConnectService $stripeConnectService,
+    ) {}
 
     /**
      * Run the database seeds.
@@ -227,12 +233,35 @@ class DemoDataSeeder extends Seeder
 
             if ($index === 0) {
                 $lab->update(['stripe_account_id' => 'acct_1Tu5f32F7fiRM0kt']);
+            } else {
+                $this->createStripeAccountForLab($lab);
             }
 
             $labs[] = $lab;
         }
 
         return $labs;
+    }
+
+    private function createStripeAccountForLab(Lab $lab): void
+    {
+        try {
+            $result = $this->stripeConnectService->createConnectedAccountForLab($lab);
+
+            if (($result['success'] ?? false) === false) {
+                Log::warning('DemoDataSeeder: Could not create a Stripe connected account for lab', [
+                    'lab_id' => $lab->id,
+                    'lab_name' => $lab->name,
+                    'message' => $result['message'] ?? 'Unknown error',
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('DemoDataSeeder: Stripe account creation failed for lab', [
+                'lab_id' => $lab->id,
+                'lab_name' => $lab->name,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -1073,8 +1102,8 @@ class DemoDataSeeder extends Seeder
 
             DeliveryTask::query()->create([
                 'order_id' => $order->id,
-                'user_id' => 77 ,
-                //$deliveryUser->id,
+                'user_id' => 77,
+                // $deliveryUser->id,
                 'status' => $status,
                 'direction' => $direction,
                 'picked_at' => in_array($status, DeliveryStatus::PICKED_STATUSES, true)

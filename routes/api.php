@@ -70,7 +70,6 @@ Route::middleware(['auth:sanctum', 'role:system_admin'])->prefix('admin/labs')->
 
     // Stripe Connect management
     Route::post('/{lab}/stripe/connect', [LabController::class, 'createStripeAccount'])->name('admin.labs.stripe.connect');
-    Route::get('/{lab}/stripe/account-link', [LabController::class, 'createAccountLink'])->name('admin.labs.stripe.account-link');
 });
 
 // Packages management (system_admin full access, lab_manager view only)
@@ -245,6 +244,10 @@ Route::prefix('auth')->group(function (): void {
             Route::get('/', [LabPackageController::class, 'show'])->name('lab.package.show');
             Route::get('/history', [LabPackageController::class, 'history'])->name('lab.package.history');
         });
+
+        // Lab manager - Stripe Connect onboarding
+        Route::middleware(['role:lab_manager'])->get('lab/stripe/account-link', [LabController::class, 'createAccountLink'])
+            ->name('lab.stripe.account-link');
 
         //         // Lab manager / Receptionist - Per-doctor refund summary (orders count, paid, due)
         //         Route::middleware(['role:lab_manager,receptionist'])->get('lab/refunds', [RefundController::class, 'index'])

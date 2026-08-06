@@ -6,7 +6,6 @@ use App\Http\Services\StripeConnectService;
 use App\Models\Lab;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Validation\ValidationException;
-use Laravel\Sanctum\Exceptions\MissingAbilityException;
 use Tests\TestCase;
 
 class StripeConnectServiceTest extends TestCase
@@ -91,12 +90,19 @@ class StripeConnectServiceTest extends TestCase
             'stripe_account_id' => null,
         ]);
 
-        $this->expectException(MissingAbilityException::class);
-        $this->stripeConnectService->createAccountLink(
-            $lab,
-            'https://example.com/return',
-            'https://example.com/refresh'
-        );
+        try {
+            $this->stripeConnectService->createAccountLink(
+                $lab,
+                'https://example.com/return',
+                'https://example.com/refresh'
+            );
+            $this->fail('Expected ValidationException was not thrown.');
+        } catch (ValidationException $e) {
+            $this->assertSame(
+                'Lab does not have a connected Stripe account',
+                $e->errors()['stripe_account_id'][0]
+            );
+        }
     }
 
     /** @test */

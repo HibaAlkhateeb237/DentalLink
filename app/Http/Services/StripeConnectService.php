@@ -5,7 +5,6 @@ namespace App\Http\Services;
 use App\Models\Lab;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
-use Laravel\Sanctum\Exceptions\MissingAbilityException;
 use Stripe\StripeClient;
 
 class StripeConnectService
@@ -139,7 +138,9 @@ class StripeConnectService
     private function validateAccountExists(Lab $lab): void
     {
         if (empty($lab->stripe_account_id)) {
-            throw new MissingAbilityException('Lab does not have a connected Stripe account');
+            throw ValidationException::withMessages([
+                'stripe_account_id' => ['Lab does not have a connected Stripe account'],
+            ]);
         }
     }
 

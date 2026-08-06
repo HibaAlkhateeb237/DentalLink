@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Services\StripeConnectService;
 use App\Models\Department;
 use App\Models\DepartmentUserRole;
 use App\Models\Lab;
@@ -166,5 +167,47 @@ class DemoDataSeederTest extends TestCase
 
         Storage::disk('public')->assertMissing('orders/stale-order/qr.png');
         $this->assertNotEmpty(Storage::disk('public')->allFiles('orders'));
+    }
+
+    public function test_demo_data_seeder_creates_stripe_account_for_each_lab_except_first(): void
+    {
+        $this->mock(StripeConnectService::class)
+            ->shouldReceive('createConnectedAccountForLab')
+            ->andReturnUsing(function (Lab $lab): array {
+                $lab->forceFill(['stripe_account_id' => 'acct_seeded_'.$lab->id])->save();
+
+                return ['success' => true, 'stripe_account_id' => 'acct_seeded_'.$lab->id];
+            });
+
+        $this->seed(DemoDataSeeder::class);
+
+        $labs = Lab::query()->orderBy('id')->get();
+        $this->assertNotEmpty($labs);
+
+        $firstLab = $labs->first();
+        $this->assertSame('acct_1Tu5f32F7fiRM0kt', $firstLab->stripe_account_id);
+
+        foreach ($labs->skip(1) as $lab) {
+            $this->assertSame('acct_seeded_'.$lab->id, $lab->stripe_account_id);
+        }
+    }
+
+    public function test_demo_data_seeder_continues_when_stripe_account_creation_fails(): void
+    {
+        $this->mock(StripeConnectService::class)
+            ->shouldReceive('createConnectedAccountForLab')
+            ->andReturn(['success' => false, 'message' => 'Stripe unavailable']);
+
+        $this->seed(DemoDataSeeder::class);
+
+        $labs = Lab::query()->orderBy('id')->get();
+        $this->assertNotEmpty($labs);
+
+        $firstLab = $labs->first();
+        $this->assertSame('acct_1Tu5f32F7fiRM0kt', $firstLab->stripe_account_id);
+
+        foreach ($labs->skip(1) as $lab) {
+            $this->assertNull($lab->stripe_account_id);
+        }
     }
 }

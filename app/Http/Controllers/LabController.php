@@ -10,10 +10,12 @@ use App\Http\Resources\LabResource;
 use App\Http\Responses\ApiResponse;
 use App\Http\Services\LabService;
 use App\Http\Services\StripeConnectService;
+use App\Models\DepartmentUserRole;
 use App\Models\Lab;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class LabController extends Controller
 {
@@ -228,15 +230,31 @@ class LabController extends Controller
         return $this->apiResponse->success($result, $result['message'], $status);
     }
 
-    public function createAccountLink(Lab $lab, Request $request): JsonResponse
+    public function createAccountLink(Request $request): JsonResponse
     {
-        $returnUrl = $request->query('return_url', url('/admin/labs/'.$lab->id));
-        $refreshUrl = $request->query('refresh_url', url('/admin/labs/'.$lab->id));
+        $lab = $this->resolveAuthenticatedLab($request->user());
+
+        $returnUrl = $request->query('return_url', url('/lab'));
+        $refreshUrl = $request->query('refresh_url', url('/lab'));
 
         $result = $this->connectService->createAccountLink($lab, $returnUrl, $refreshUrl);
 
         $status = isset($result['url']) ? 200 : 400;
 
         return $this->apiResponse->success($result, $result['message'] ?? 'Account link created', $status);
+    }
+
+    private function resolveAuthenticatedLab($user): Lab
+    {
+        $labId = DepartmentUserRole::query()
+            ->join('departments', 'departments.id', '=', 'department_user_roles.department_id')
+            ->where('department_user_roles.user_id', $user->id)
+            ->value('departments.lab_id');
+
+        if (! $labId) {
+            throw new NotFoundHttpException(__('messages.not_found'));
+        }
+
+        return Lab::query()->findOrFail($labId);
     }
 }
