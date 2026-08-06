@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class LabService
 {
@@ -172,10 +173,10 @@ class LabService
             ]);
 
             $departments = [
-                ['name' => 'Gypsum', 'sort_order' => 1],
-                ['name' => 'Design', 'sort_order' => 2],
-                ['name' => 'Roughing', 'sort_order' => 3],
-                ['name' => 'Polishing', 'sort_order' => 4],
+                ['name' => 'Gypsum', 'sort_order' => 1, 'time_allowed' => 7],
+                ['name' => 'Design', 'sort_order' => 2, 'time_allowed' => 2],
+                ['name' => 'Roughing', 'sort_order' => 3, 'time_allowed' => 2],
+                ['name' => 'Polishing', 'sort_order' => 4, 'time_allowed' => 2],
             ];
 
             foreach ($departments as $dept) {
@@ -183,6 +184,7 @@ class LabService
                     'lab_id' => $lab->id,
                     'name' => $dept['name'],
                     'sort_order' => $dept['sort_order'],
+                    'time_allowed' => $dept['time_allowed'],
                 ]);
             }
 
