@@ -34,7 +34,6 @@ class DashboardService
             'department_workload' => $this->getDepartmentWorkload($labIds, $from, $to),
             'top_clinics' => $this->getTopClinics($labIds, $from, $to),
             'yearly_performance_chart' => $this->getYearlyPerformanceChart($labIds, $from, $to),
-            'orders_summary' => $this->getOrdersSummary($labIds, $from, $to),
             'date_range' => [
                 'from' => $from->format('Y-m-d'),
                 'to' => $to->format('Y-m-d'),
@@ -235,30 +234,6 @@ class DashboardService
             'yearly_total_revenue' => round($months->sum('revenue'), 2),
             'yearly_total_orders' => $months->sum('orders_count'),
             'yearly_completed_orders' => $months->sum('completed_count'),
-        ];
-    }
-
-    private function getOrdersSummary(array $labIds, Carbon $from, Carbon $to): array
-    {
-        $orders = Order::query()
-            ->whereIn('lab_id', $labIds)
-            ->whereBetween('created_at', [$from, $to])
-            ->get(['id', 'status', 'price', 'priority']);
-
-        $statusCounts = $orders->groupBy('status')->map->count()->toArray();
-        $priorityCounts = $orders->groupBy('priority')->map->count()->toArray();
-
-        return [
-            'total_orders' => $orders->count(),
-            'total_value' => round($orders->sum('price'), 2),
-            'by_status' => $statusCounts,
-            'by_priority' => $priorityCounts,
-            'completed' => $statusCounts[OrderStatus::COMPLETED] ?? 0,
-            'in_progress' => $statusCounts[OrderStatus::IN_PROGRESS] ?? 0,
-            'pending' => $statusCounts[OrderStatus::PENDING] ?? 0,
-            'new' => $statusCounts[OrderStatus::NEW] ?? 0,
-            'try_on' => $statusCounts[OrderStatus::TRY_ON] ?? 0,
-            'resend_wrong_impression' => $statusCounts[OrderStatus::RESEND_WRONG_IMPRESSION] ?? 0,
         ];
     }
 }
