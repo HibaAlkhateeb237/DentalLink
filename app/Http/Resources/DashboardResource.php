@@ -16,7 +16,6 @@ class DashboardResource extends JsonResource
             'department_workload' => $this->resource['department_workload'] ?? [],
             'top_clinics' => $this->resource['top_clinics'] ?? [],
             'yearly_performance_chart' => $this->resource['yearly_performance_chart'] ?? [],
-            'orders_summary' => $this->resource['orders_summary'] ?? [],
             'date_range' => $this->resource['date_range'] ?? [],
         ];
     }

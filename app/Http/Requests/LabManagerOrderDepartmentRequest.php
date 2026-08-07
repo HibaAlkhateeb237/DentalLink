@@ -36,7 +36,6 @@ class LabManagerOrderDepartmentRequest extends FormRequest
                 'distinct',
                 Rule::exists('departments', 'id')->where(function ($query): void {
                     $query->where('lab_id', $this->managerLabId)
-                        ->where('sort_order', '>', 0)
                         ->where('is_management', false);
                 }),
             ],

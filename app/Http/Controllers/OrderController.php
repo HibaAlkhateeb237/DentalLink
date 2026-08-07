@@ -112,7 +112,7 @@ class OrderController extends Controller
                 ->where('status', TaskStatus::PENDING_REVIEW)
                 ->first();
 
-            if ($task==null) {
+            if ($task == null) {
                 return $this->apiResponse->error(
                     __('لا يوجد مهام بحاجة لتقييم لهذا الطلب في أقسامك.'),
                     404
