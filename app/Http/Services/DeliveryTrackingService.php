@@ -35,10 +35,14 @@ class DeliveryTrackingService
                 'status' => DeliveryTrackStatus::STARTED,
             ]);
 
-            DB::afterCommit(function () use ($tasks): void {
-                $tasks->each(function (DeliveryTask $task): void {
-                    $task->order->user->notify(new TrackingStateNotification($task->order, 'started'));
-                });
+            DB::afterCommit(function () use ($tasks, $deliveryPerson): void {
+                $orders = $tasks->pluck('order');
+
+                $tasks->first()->order->user->notify(new TrackingStateNotification(
+                    orders: $orders,
+                    state: 'started',
+                    deliveryPersonName: $deliveryPerson->name,
+                ));
             });
 
             return ['doctor_id' => $doctorId, 'tracks' => $tracks];
@@ -129,9 +133,13 @@ class DeliveryTrackingService
                     locationRecordedAt: now()->toIso8601String(),
                 ));
 
-                $tasks->each(function (DeliveryTask $task): void {
-                    $task->order->user->notify(new TrackingStateNotification($task->order, 'arrived'));
-                });
+                $orders = $tasks->pluck('order');
+
+                $tasks->first()->order->user->notify(new TrackingStateNotification(
+                    orders: $orders,
+                    state: 'arrived',
+                    deliveryPersonName: $deliveryPerson->name,
+                ));
             });
 
             return ['doctor_id' => $doctorId, 'tracks' => $tracks];

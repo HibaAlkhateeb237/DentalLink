@@ -11,9 +11,11 @@ use App\Models\Lab;
 use App\Models\Order;
 use App\Models\Role;
 use App\Models\User;
+use App\Notifications\Tracking\TrackingStateNotification;
 use App\Support\DeliveryTrackStatus;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -88,6 +90,74 @@ class DeliveryTrackingApiTest extends TestCase
                 'status' => DeliveryTrackStatus::STARTED,
             ]);
         }
+    }
+
+    public function test_start_trip_sends_single_notification_with_all_orders_to_doctor(): void
+    {
+        $doctor = User::factory()->create();
+        $tasks = [
+            $this->createAssignedTask($doctor),
+            $this->createAssignedTask($doctor),
+        ];
+        $taskIds = array_map(static fn (DeliveryTask $task): int => $task->id, $tasks);
+        $expectedOrderIds = array_map(static fn (DeliveryTask $task): int => $task->order_id, $tasks);
+
+        Notification::fake();
+
+        Sanctum::actingAs($this->deliveryEmployee);
+
+        $this->postJson('/api/auth/delivery/tracking/start', [
+            'task_ids' => $taskIds,
+        ])->assertStatus(201);
+
+        Notification::assertSentTo(
+            $doctor,
+            TrackingStateNotification::class,
+            function (TrackingStateNotification $notification) use ($expectedOrderIds): bool {
+                return $notification->state === 'started'
+                    && $notification->orders->count() === 2
+                    && $notification->orders->pluck('id')->all() === $expectedOrderIds
+                    && $notification->deliveryPersonName === $this->deliveryEmployee->name;
+            }
+        );
+
+        Notification::assertCount(1, TrackingStateNotification::class);
+    }
+
+    public function test_end_trip_sends_single_notification_with_all_orders_to_doctor(): void
+    {
+        $doctor = User::factory()->create();
+        $tasks = [
+            $this->createAssignedTask($doctor),
+            $this->createAssignedTask($doctor),
+        ];
+        $taskIds = array_map(static fn (DeliveryTask $task): int => $task->id, $tasks);
+        $expectedOrderIds = array_map(static fn (DeliveryTask $task): int => $task->order_id, $tasks);
+
+        Sanctum::actingAs($this->deliveryEmployee);
+
+        $this->postJson('/api/auth/delivery/tracking/start', [
+            'task_ids' => $taskIds,
+        ])->assertStatus(201);
+
+        Notification::fake();
+
+        $this->postJson('/api/auth/delivery/tracking/end', [
+            'task_ids' => $taskIds,
+        ])->assertOk();
+
+        Notification::assertSentTo(
+            $doctor,
+            TrackingStateNotification::class,
+            function (TrackingStateNotification $notification) use ($expectedOrderIds): bool {
+                return $notification->state === 'arrived'
+                    && $notification->orders->count() === 2
+                    && $notification->orders->pluck('id')->all() === $expectedOrderIds
+                    && $notification->deliveryPersonName === $this->deliveryEmployee->name;
+            }
+        );
+
+        Notification::assertCount(1, TrackingStateNotification::class);
     }
 
     public function test_start_trip_requires_task_ids(): void

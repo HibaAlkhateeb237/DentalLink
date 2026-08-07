@@ -7,6 +7,7 @@ use App\Notifications\Channels\FcmChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Collection;
 
 class TrackingStateNotification extends Notification implements ShouldQueue
 {
@@ -16,9 +17,13 @@ class TrackingStateNotification extends Notification implements ShouldQueue
 
     public int $timeout = 30;
 
+    /**
+     * @param  Collection<int, Order>  $orders
+     */
     public function __construct(
-        public readonly Order $order,
+        public readonly Collection $orders,
         public readonly string $state,
+        public readonly string $deliveryPersonName = '',
     ) {}
 
     public function via(object $notifiable): array
@@ -32,9 +37,9 @@ class TrackingStateNotification extends Notification implements ShouldQueue
             'title' => $this->getTitle(),
             'body' => $this->getBody(),
             'data' => [
-                'order_id' => (string) $this->order->id,
-                'serial_number' => $this->order->serial_number ?? '',
-                'patient_name' => $this->order->patient_name ?? '',
+                'order_ids' => $this->encodeList($this->orders->pluck('id')->all()),
+                'serial_numbers' => $this->encodeList($this->orders->pluck('serial_number')->all()),
+                'patient_names' => $this->encodeList($this->orders->pluck('patient_name')->all()),
                 'tracking_state' => $this->state,
                 'type' => 'tracking_state_change',
             ],
@@ -44,9 +49,9 @@ class TrackingStateNotification extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         return [
-            'order_id' => $this->order->id,
-            'serial_number' => $this->order->serial_number,
-            'patient_name' => $this->order->patient_name,
+            'order_ids' => $this->orders->pluck('id')->all(),
+            'serial_numbers' => $this->orders->pluck('serial_number')->all(),
+            'patient_names' => $this->orders->pluck('patient_name')->all(),
             'tracking_state' => $this->state,
             'message' => $this->getBody(),
         ];
@@ -64,11 +69,40 @@ class TrackingStateNotification extends Notification implements ShouldQueue
 
     private function getBody(): string
     {
+        $orderCount = $this->orders->count();
+
+        $orderList = $this->orders->pluck('serial_number')
+            ->filter()
+            ->map(fn (string $serial): string => "#{$serial}")
+            ->implode(', ');
+
+        if ($orderList === '') {
+            $orderList = $this->orders
+                ->pluck('id')
+                ->map(fn (int $id): string => "#{$id}")
+                ->implode(', ');
+        }
+
+        $deliveryPerson = $this->deliveryPersonName !== '' ? " {$this->deliveryPersonName}" : '';
+
         return match ($this->state) {
-            'started' => "Delivery person is on the way for order #{$this->order->serial_number}.",
-            'arrived' => "Delivery person has arrived for order #{$this->order->serial_number}.",
-            'cancelled' => "Delivery tracking for order #{$this->order->serial_number} has been cancelled.",
-            default => "Tracking status changed for order #{$this->order->serial_number}.",
+            'started' => "Delivery person{$deliveryPerson} is on the way with {$orderCount} order(s): {$orderList}.",
+            'arrived' => "Delivery person{$deliveryPerson} has arrived with {$orderCount} order(s): {$orderList}.",
+            'cancelled' => "Delivery tracking has been cancelled for {$orderCount} order(s): {$orderList}.",
+            default => "Tracking status changed for {$orderCount} order(s): {$orderList}.",
         };
+    }
+
+    /**
+     * @param  mixed[]  $values
+     */
+    private function encodeList(array $values): string
+    {
+        $encoded = json_encode(array_map(
+            static fn (mixed $value): string => (string) $value,
+            array_values($values),
+        ), JSON_UNESCAPED_UNICODE);
+
+        return $encoded === false ? '[]' : $encoded;
     }
 }
