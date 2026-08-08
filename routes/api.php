@@ -120,7 +120,7 @@ Route::prefix('auth')->group(function (): void {
             ->name('labs.portfolio.index');
 
         Route::middleware(['role:receptionist,lab_manager'])->prefix('labs')->group(function (): void {
-            Route::put('/{lab}/portfolio/{portfolioCase}', [LabPortfolioController::class, 'update'])->name('labs.portfolio.update');
+            Route::post('/{lab}/portfolio/{portfolioCase}', [LabPortfolioController::class, 'update'])->name('labs.portfolio.update');
             Route::post('/{lab}/portfolio', [LabPortfolioController::class, 'store'])->name('labs.portfolio.store');
         });
 

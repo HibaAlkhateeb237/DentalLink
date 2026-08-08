@@ -77,6 +77,7 @@ class ReceptionistOrderDetailsResource extends JsonResource
             'material_type' => $this->dentalCompensationTypePrice?->dentalCompensationType?->name,
             'case_name' => $this->whenLoaded('portfolioCase', fn () => $this->portfolioCase?->case_name),
             'is_published' => $this->whenLoaded('portfolioCase', fn () => (bool) $this->portfolioCase?->is_published),
+            'portfolio_id' => $this->whenLoaded('portfolioCase', fn () => $this->portfolioCase?->id),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'doctor' => $this->user === null
