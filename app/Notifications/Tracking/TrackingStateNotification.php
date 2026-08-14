@@ -23,7 +23,9 @@ class TrackingStateNotification extends Notification implements ShouldQueue
     public function __construct(
         public readonly Collection $orders,
         public readonly string $state,
+        public readonly string $deliveryPersonId = '',
         public readonly string $deliveryPersonName = '',
+        public readonly string $deliveryPersonPhone = '',
     ) {}
 
     public function via(object $notifiable): array
@@ -42,6 +44,9 @@ class TrackingStateNotification extends Notification implements ShouldQueue
                 'patient_names' => $this->encodeList($this->orders->pluck('patient_name')->all()),
                 'tracking_state' => $this->state,
                 'type' => 'tracking_state_change',
+                'delivery_person_id' => $this->deliveryPersonId,
+                'delivery_person_name' => $this->deliveryPersonName,
+                'delivery_person_phone' => $this->deliveryPersonPhone,
             ],
         ];
     }
@@ -54,6 +59,9 @@ class TrackingStateNotification extends Notification implements ShouldQueue
             'patient_names' => $this->orders->pluck('patient_name')->all(),
             'tracking_state' => $this->state,
             'message' => $this->getBody(),
+            'delivery_person_id' => $this->deliveryPersonId,
+            'delivery_person_name' => $this->deliveryPersonName,
+            'delivery_person_phone' => $this->deliveryPersonPhone,
         ];
     }
 
@@ -83,11 +91,9 @@ class TrackingStateNotification extends Notification implements ShouldQueue
                 ->implode(', ');
         }
 
-        $deliveryPerson = $this->deliveryPersonName !== '' ? " {$this->deliveryPersonName}" : '';
-
         return match ($this->state) {
-            'started' => "Delivery person{$deliveryPerson} is on the way with {$orderCount} order(s): {$orderList}.",
-            'arrived' => "Delivery person{$deliveryPerson} has arrived with {$orderCount} order(s): {$orderList}.",
+            'started' => "The driver is on the way with {$orderCount} order(s): {$orderList}.",
+            'arrived' => "The driver has arrived with {$orderCount} order(s): {$orderList}.",
             'cancelled' => "Delivery tracking has been cancelled for {$orderCount} order(s): {$orderList}.",
             default => "Tracking status changed for {$orderCount} order(s): {$orderList}.",
         };

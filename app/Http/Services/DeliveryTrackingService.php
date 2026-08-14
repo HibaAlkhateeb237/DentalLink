@@ -41,7 +41,9 @@ class DeliveryTrackingService
                 $tasks->first()->order->user->notify(new TrackingStateNotification(
                     orders: $orders,
                     state: 'started',
+                    deliveryPersonId: $deliveryPerson->id,
                     deliveryPersonName: $deliveryPerson->name,
+                    deliveryPersonPhone: $deliveryPerson->phone ?? '',
                 ));
             });
 
@@ -138,7 +140,9 @@ class DeliveryTrackingService
                 $tasks->first()->order->user->notify(new TrackingStateNotification(
                     orders: $orders,
                     state: 'arrived',
+                    deliveryPersonId: $deliveryPerson->id,
                     deliveryPersonName: $deliveryPerson->name,
+                    deliveryPersonPhone: $deliveryPerson->phone ?? '',
                 ));
             });
 

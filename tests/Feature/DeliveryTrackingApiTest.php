@@ -418,7 +418,7 @@ class DeliveryTrackingApiTest extends TestCase
             ->assertJsonPath('data.message', __('orders.tracking_no_active_trip'));
     }
 
-public function test_doctor_cannot_see_other_doctors_active_trip(): void
+    public function test_doctor_cannot_see_other_doctors_active_trip(): void
     {
         $doctor1 = User::factory()->create();
         $doctor2 = User::factory()->create();

@@ -89,7 +89,7 @@ class DeliveryTrackingController extends Controller
 
         // Get order IDs from request body (new API format)
         $orderIds = $request->input('order_ids');
-        if (empty($orderIds) || !is_array($orderIds)) {
+        if (empty($orderIds) || ! is_array($orderIds)) {
             return $this->apiResponse->error(__('orders.tracking_order_ids_required'), 400);
         }
         // Convert to integer array
