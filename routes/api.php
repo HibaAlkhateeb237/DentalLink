@@ -157,7 +157,7 @@ Route::prefix('auth')->group(function (): void {
 
         // Doctor tracking state recovery endpoint
         Route::middleware(['role:doctor,system_admin'])->prefix('doctor')->group(function (): void {
-            Route::get('/tracking/active', [DeliveryTrackingController::class, 'getActiveTrip'])
+            Route::post('/tracking/active', [DeliveryTrackingController::class, 'getActiveTrip'])
                 ->name('doctor.tracking.active');
         });
 
