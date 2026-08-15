@@ -87,19 +87,15 @@ class DeliveryTrackingController extends Controller
             return $this->apiResponse->error(__('auth.unauthenticated'), 401);
         }
 
-        // Determine the doctor_id: if user is doctor, use their own ID; if system_admin, require doctor_id param
-        if ($user->hasRole('doctor')) {
-            $doctorId = $user->id;
-        } elseif ($user->hasRole('system_admin')) {
-            $doctorId = $request->integer('doctor_id');
-            if ($doctorId <= 0) {
-                return $this->apiResponse->error(__('orders.tracking_doctor_id_required'), 400);
-            }
-        } else {
-            return $this->apiResponse->error(__('auth.forbidden'), 403);
+        // Get order IDs from request body (new API format)
+        $orderIds = $request->input('order_ids');
+        if (empty($orderIds) || ! is_array($orderIds)) {
+            return $this->apiResponse->error(__('orders.tracking_order_ids_required'), 400);
         }
+        // Convert to integer array
+        $orderIds = array_map('intval', $orderIds);
 
-        $activeTrip = $this->trackingService->getActiveTripForDoctor($doctorId);
+        $activeTrip = $this->trackingService->getActiveTripForDoctor($orderIds);
 
         if ($activeTrip === null) {
             return $this->apiResponse->success([
@@ -109,7 +105,7 @@ class DeliveryTrackingController extends Controller
         }
 
         return $this->apiResponse->success(
-            array_merge($this->tripPayload($activeTrip['doctor_id'], $activeTrip['task_ids'], $activeTrip['tracks']), [
+            array_merge($this->tripPayload($activeTrip['delivery_person_id'], $activeTrip['task_ids'], $activeTrip['tracks']), [
                 'active' => true,
                 'delivery_person' => $activeTrip['delivery_person'],
             ]),
@@ -121,10 +117,10 @@ class DeliveryTrackingController extends Controller
      * @param  int[]  $taskIds
      * @param  Collection<int, DeliveryTrack>  $tracks
      */
-    private function tripPayload(int $doctorId, array $taskIds, Collection $tracks): array
+    private function tripPayload(int $deliveryPersonId, array $taskIds, Collection $tracks): array
     {
         return [
-            'doctor_id' => $doctorId,
+            'delivery_person_id' => $deliveryPersonId,
             'task_ids' => array_values($taskIds),
             'order_ids' => $tracks->pluck('order_id')->values()->all(),
             'tracks' => $tracks->map(function (DeliveryTrack $track): array {

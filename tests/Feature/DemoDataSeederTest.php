@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Http\Services\StripeConnectService;
 use App\Models\Department;
 use App\Models\DepartmentUserRole;
 use App\Models\Lab;
@@ -169,45 +168,29 @@ class DemoDataSeederTest extends TestCase
         $this->assertNotEmpty(Storage::disk('public')->allFiles('orders'));
     }
 
-    public function test_demo_data_seeder_creates_stripe_account_for_each_lab_except_first(): void
+    public function test_demo_data_seeder_assigns_pre_created_stripe_accounts_to_labs(): void
     {
-        $this->mock(StripeConnectService::class)
-            ->shouldReceive('createConnectedAccountForLab')
-            ->andReturnUsing(function (Lab $lab): array {
-                $lab->forceFill(['stripe_account_id' => 'acct_seeded_'.$lab->id])->save();
-
-                return ['success' => true, 'stripe_account_id' => 'acct_seeded_'.$lab->id];
-            });
-
         $this->seed(DemoDataSeeder::class);
+
+        $expectedAccountIds = [
+            'acct_1Tu5f32F7fiRM0kt',
+            'acct_1U1hVTCBpoWAMxEt',
+            'acct_1U1hVbFr48catWJK',
+            'acct_1U1hVfC6NE5EioXM',
+            'acct_1U1hVjCFjCYiY5H3',
+            'acct_1U1hVnC59piAVsvx',
+            'acct_1U1hVr2FR143pRH8',
+            'acct_1U1hVvCKm6COTOM5',
+            'acct_1U1hVyCQn5Sdfwxb',
+            'acct_1U1hW1FmxWaxvHxR',
+        ];
 
         $labs = Lab::query()->orderBy('id')->get();
         $this->assertNotEmpty($labs);
+        $this->assertCount(count($expectedAccountIds), $labs);
 
-        $firstLab = $labs->first();
-        $this->assertSame('acct_1Tu5f32F7fiRM0kt', $firstLab->stripe_account_id);
-
-        foreach ($labs->skip(1) as $lab) {
-            $this->assertSame('acct_seeded_'.$lab->id, $lab->stripe_account_id);
-        }
-    }
-
-    public function test_demo_data_seeder_continues_when_stripe_account_creation_fails(): void
-    {
-        $this->mock(StripeConnectService::class)
-            ->shouldReceive('createConnectedAccountForLab')
-            ->andReturn(['success' => false, 'message' => 'Stripe unavailable']);
-
-        $this->seed(DemoDataSeeder::class);
-
-        $labs = Lab::query()->orderBy('id')->get();
-        $this->assertNotEmpty($labs);
-
-        $firstLab = $labs->first();
-        $this->assertSame('acct_1Tu5f32F7fiRM0kt', $firstLab->stripe_account_id);
-
-        foreach ($labs->skip(1) as $lab) {
-            $this->assertNull($lab->stripe_account_id);
+        foreach ($expectedAccountIds as $index => $accountId) {
+            $this->assertSame($accountId, $labs[$index]->stripe_account_id);
         }
     }
 }

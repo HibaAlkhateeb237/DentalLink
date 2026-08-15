@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Http\Services\StripeConnectService;
 use App\Models\DeliveryTask;
 use App\Models\DentalCompensationType;
 use App\Models\DentalCompensationTypePrice;
@@ -34,7 +33,6 @@ use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -43,9 +41,23 @@ class DemoDataSeeder extends Seeder
 {
     use WithoutModelEvents;
 
-    public function __construct(
-        private StripeConnectService $stripeConnectService,
-    ) {}
+    /**
+     * Pre-created Stripe Connected accounts assigned to each seeded lab, in lab creation order.
+     *
+     * @var array<int, string>
+     */
+    private const STRIPE_ACCOUNT_IDS = [
+        'acct_1Tu5f32F7fiRM0kt',
+        'acct_1U1hVTCBpoWAMxEt',
+        'acct_1U1hVbFr48catWJK',
+        'acct_1U1hVfC6NE5EioXM',
+        'acct_1U1hVjCFjCYiY5H3',
+        'acct_1U1hVnC59piAVsvx',
+        'acct_1U1hVr2FR143pRH8',
+        'acct_1U1hVvCKm6COTOM5',
+        'acct_1U1hVyCQn5Sdfwxb',
+        'acct_1U1hW1FmxWaxvHxR',
+    ];
 
     /**
      * Run the database seeds.
@@ -231,37 +243,12 @@ class DemoDataSeeder extends Seeder
 
             $lab->wallet()->create(['balance' => 0, 'currency' => 'USD']);
 
-            if ($index === 0) {
-                $lab->update(['stripe_account_id' => 'acct_1Tu5f32F7fiRM0kt']);
-            } else {
-                $this->createStripeAccountForLab($lab);
-            }
+            $lab->update(['stripe_account_id' => self::STRIPE_ACCOUNT_IDS[$index]]);
 
             $labs[] = $lab;
         }
 
         return $labs;
-    }
-
-    private function createStripeAccountForLab(Lab $lab): void
-    {
-        try {
-            $result = $this->stripeConnectService->createConnectedAccountForLab($lab);
-
-            if (($result['success'] ?? false) === false) {
-                Log::warning('DemoDataSeeder: Could not create a Stripe connected account for lab', [
-                    'lab_id' => $lab->id,
-                    'lab_name' => $lab->name,
-                    'message' => $result['message'] ?? 'Unknown error',
-                ]);
-            }
-        } catch (\Throwable $e) {
-            Log::warning('DemoDataSeeder: Stripe account creation failed for lab', [
-                'lab_id' => $lab->id,
-                'lab_name' => $lab->name,
-                'error' => $e->getMessage(),
-            ]);
-        }
     }
 
     /**

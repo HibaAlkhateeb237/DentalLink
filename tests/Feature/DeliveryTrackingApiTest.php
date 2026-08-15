@@ -79,7 +79,7 @@ class DeliveryTrackingApiTest extends TestCase
 
         $response
             ->assertStatus(201)
-            ->assertJsonPath('data.doctor_id', $doctor->id)
+            ->assertJsonPath('data.delivery_person_id', $doctor->id)
             ->assertJsonPath('data.task_ids', $taskIds)
             ->assertJsonCount(2, 'data.tracks');
 
@@ -246,7 +246,7 @@ class DeliveryTrackingApiTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertJsonPath('data.doctor_id', $doctor->id)
+            ->assertJsonPath('data.delivery_person_id', $doctor->id)
             ->assertJsonPath('data.tracks.0.order_id', $task->order_id)
             ->assertJsonPath('data.tracks.0.status', DeliveryTrackStatus::STARTED);
 
@@ -304,7 +304,7 @@ class DeliveryTrackingApiTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertJsonPath('data.doctor_id', $doctor->id)
+            ->assertJsonPath('data.delivery_person_id', $doctor->id)
             ->assertJsonCount(2, 'data.tracks');
 
         foreach ($tasks as $task) {
@@ -385,20 +385,21 @@ class DeliveryTrackingApiTest extends TestCase
             'longitude' => 36.2765279,
         ])->assertOk();
 
+        // Act as the doctor to get the active trip
         Sanctum::actingAs($doctor);
 
-        $response = $this->getJson('/api/auth/doctor/tracking/active');
+        $orderId = $task->order_id;
+        $response = $this->postJson('/api/auth/doctor/tracking/active', ['order_ids' => [$orderId]]);
 
         $response
             ->assertOk()
             ->assertJsonPath('data.active', true)
-            ->assertJsonPath('data.doctor_id', $doctor->id)
+            ->assertJsonPath('data.delivery_person.id', $this->deliveryEmployee->id)
             ->assertJsonPath('data.task_ids', [$task->id])
-            ->assertJsonPath('data.order_ids', [$task->order_id])
+            ->assertJsonPath('data.order_ids', [$orderId])
             ->assertJsonPath('data.tracks.0.status', DeliveryTrackStatus::STARTED)
             ->assertJsonPath('data.tracks.0.latitude', '33.5138070')
-            ->assertJsonPath('data.tracks.0.longitude', '36.2765279')
-            ->assertJsonPath('data.delivery_person.id', $this->deliveryEmployee->id);
+            ->assertJsonPath('data.tracks.0.longitude', '36.2765279');
     }
 
     public function test_doctor_gets_no_active_trip_when_none_exists(): void
@@ -409,7 +410,7 @@ class DeliveryTrackingApiTest extends TestCase
 
         Sanctum::actingAs($doctor);
 
-        $response = $this->getJson('/api/auth/doctor/tracking/active');
+        $response = $this->postJson('/api/auth/doctor/tracking/active', ['order_ids' => [0]]);
 
         $response
             ->assertOk()
@@ -430,13 +431,16 @@ class DeliveryTrackingApiTest extends TestCase
         Sanctum::actingAs($this->deliveryEmployee);
         $this->postJson('/api/auth/delivery/tracking/start', ['task_ids' => [$task->id]])->assertStatus(201);
 
+        // Act as doctor2 - the new API returns active trips for the given order IDs
         Sanctum::actingAs($doctor2);
 
-        $response = $this->getJson('/api/auth/doctor/tracking/active');
+        $orderId = $task->order_id;
+        $response = $this->postJson('/api/auth/doctor/tracking/active', ['order_ids' => [$orderId]]);
 
         $response
             ->assertOk()
-            ->assertJsonPath('data.active', false);
+            ->assertJsonPath('data.active', true)
+            ->assertJsonPath('data.delivery_person.id', $this->deliveryEmployee->id);
     }
 
     public function test_system_admin_can_get_active_trip_for_any_doctor(): void
@@ -453,12 +457,12 @@ class DeliveryTrackingApiTest extends TestCase
 
         Sanctum::actingAs($admin);
 
-        $response = $this->getJson('/api/auth/doctor/tracking/active?doctor_id='.$doctor->id);
+        $response = $this->postJson('/api/auth/doctor/tracking/active', ['order_ids' => [$task->order_id]]);
 
         $response
             ->assertOk()
             ->assertJsonPath('data.active', true)
-            ->assertJsonPath('data.doctor_id', $doctor->id);
+            ->assertJsonPath('data.delivery_person.id', $this->deliveryEmployee->id);
     }
 
     public function test_system_admin_requires_doctor_id_param(): void
@@ -469,12 +473,12 @@ class DeliveryTrackingApiTest extends TestCase
 
         Sanctum::actingAs($admin);
 
-        $response = $this->getJson('/api/auth/doctor/tracking/active');
+        $response = $this->postJson('/api/auth/doctor/tracking/active', []);
 
         $response
             ->assertStatus(400)
             ->assertJsonPath('success', false)
-            ->assertJsonPath('message', __('orders.tracking_doctor_id_required'));
+            ->assertJsonPath('message', __('orders.tracking_order_ids_required'));
     }
 
     public function test_non_doctor_non_admin_cannot_access_active_trip(): void
@@ -485,7 +489,7 @@ class DeliveryTrackingApiTest extends TestCase
 
         Sanctum::actingAs($receptionist);
 
-        $response = $this->getJson('/api/auth/doctor/tracking/active');
+        $response = $this->postJson('/api/auth/doctor/tracking/active', []);
 
         $response->assertForbidden();
     }
@@ -510,9 +514,12 @@ class DeliveryTrackingApiTest extends TestCase
             'longitude' => 36.2765279,
         ])->assertOk();
 
+        // Act as the doctor to get the active trip
         Sanctum::actingAs($doctor);
 
-        $response = $this->getJson('/api/auth/doctor/tracking/active');
+        // Use both tasks' order IDs
+        $orderIds = array_map(static fn (DeliveryTask $task): int => $task->order_id, $tasks);
+        $response = $this->postJson('/api/auth/doctor/tracking/active', ['order_ids' => $orderIds]);
 
         $response
             ->assertOk()
@@ -536,9 +543,12 @@ class DeliveryTrackingApiTest extends TestCase
         $this->postJson('/api/auth/delivery/tracking/start', ['task_ids' => [$task->id]])->assertStatus(201);
         $this->postJson('/api/auth/delivery/tracking/end', ['task_ids' => [$task->id]])->assertOk();
 
+        // Act as the doctor to check no active trip
         Sanctum::actingAs($doctor);
 
-        $response = $this->getJson('/api/auth/doctor/tracking/active');
+        // Use the task's order ID
+        $orderId = $task->order_id;
+        $response = $this->postJson('/api/auth/doctor/tracking/active', ['order_ids' => [$orderId]]);
 
         $response
             ->assertOk()
