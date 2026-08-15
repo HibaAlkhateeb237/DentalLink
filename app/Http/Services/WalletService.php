@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Log;
 
 class WalletService
 {
+    public function __construct(private readonly SystemLogService $systemLogs) {}
+
     public function creditFromPayment(Payment $payment, Order $order): Transaction
     {
         $lab = $order->lab;
@@ -48,7 +50,7 @@ class WalletService
         $wallet->increment('balance', $creditAmount);
         $wallet->refresh();
 
-        return Transaction::query()->create([
+        $transaction = Transaction::query()->create([
             'wallet_id' => $wallet->id,
             'type' => 'order_payment_credit',
             'amount' => $creditAmount,
@@ -67,5 +69,23 @@ class WalletService
                 'payment_intent_id' => $payment->payment_intent_id,
             ],
         ]);
+
+        $this->systemLogs->info(
+            'wallet.credited',
+            "Wallet credited {$creditAmount} for order {$order->serial_number}",
+            [
+                'wallet_id' => $wallet->id,
+                'transaction_id' => $transaction->id,
+                'amount' => $creditAmount,
+                'balance_after' => $wallet->balance,
+                'order_id' => $order->id,
+                'order_serial' => $order->serial_number,
+                'payment_id' => $payment->id,
+            ],
+            $lab->id,
+            $payment->user_id,
+        );
+
+        return $transaction;
     }
 }

@@ -15,6 +15,8 @@ use Illuminate\Validation\ValidationException;
 
 class ReceptionistOrderService
 {
+    public function __construct(private SystemLogService $systemLogs) {}
+
     /**
      * @param  array{per_page?:int,status?:string,priority?:string,doctor_id?:int,search?:string,from_date?:string,to_date?:string,sort_by?:string,sort_direction?:string,requires_resubmission?:bool}  $validated
      */
@@ -238,6 +240,20 @@ class ReceptionistOrderService
 
             // Notify doctor when order status changes to resend_wrong_impression
             $this->notifyDoctorForOrderChanges($order, $from, $toStatus);
+
+            $this->systemLogs->info(
+                'order.status.changed',
+                "Order {$order->serial_number} status changed from {$from} to {$toStatus}",
+                [
+                    'order_id' => $order->id,
+                    'order_serial' => $order->serial_number,
+                    'from_status' => $from,
+                    'to_status' => $toStatus,
+                    'reason' => $reason,
+                ],
+                $order->lab_id,
+                $actorId,
+            );
         });
 
         return $this->getOrderDetails($order->fresh());

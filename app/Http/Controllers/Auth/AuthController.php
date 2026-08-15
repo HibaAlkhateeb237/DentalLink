@@ -15,6 +15,7 @@ use App\Http\Resources\Auth\AuthUserResource;
 use App\Http\Resources\RoleResource;
 use App\Http\Responses\ApiResponse;
 use App\Http\Services\RoleService;
+use App\Http\Services\SystemLogService;
 use App\Models\User;
 use App\Services\Auth\AuthService;
 use Illuminate\Http\JsonResponse;
@@ -27,6 +28,7 @@ class AuthController extends Controller
     public function __construct(
         private readonly AuthService $authService,
         private readonly RoleService $roleService,
+        private readonly SystemLogService $systemLogs,
         private readonly ApiResponse $apiResponse,
     ) {}
 
@@ -155,6 +157,14 @@ class AuthController extends Controller
         /** @var User $user */
         $user = $result['user'];
 
+        $this->systemLogs->info(
+            'auth.user.registered',
+            "User {$user->email} registered a new account",
+            ['email' => $user->email, 'roles' => $user->effectiveRoleNames()],
+            null,
+            $user->id,
+        );
+
         return $this->apiResponse->success(
             [
                 'token' => $result['token'],
@@ -200,6 +210,15 @@ class AuthController extends Controller
         if ($result['status'] === 'invalid_email' || $result['status'] === 'invalid_password') {
             RateLimiter::hit($throttleKey, 60);
 
+            $this->systemLogs->warning(
+                'auth.login.failed',
+                'Login attempt failed',
+                [
+                    'email' => $credentials['email'],
+                    'reason' => $result['status'],
+                ],
+            );
+
             $failedField = $result['status'] === 'invalid_email' ? 'email' : 'password';
             $messageKey = $result['status'] === 'invalid_email' ? 'auth.login_email_not_found' : 'auth.login_password_incorrect';
 
@@ -225,6 +244,14 @@ class AuthController extends Controller
             ->unique()
             ->values()
             ->first();
+
+        $this->systemLogs->info(
+            'auth.login.success',
+            "User {$user->email} logged in successfully",
+            ['email' => $user->email],
+            $labId,
+            $user->id,
+        );
 
         $departments = $user->departmentUserRoles
             ->map(static fn ($departmentUserRole): array => [
@@ -375,6 +402,22 @@ class AuthController extends Controller
 
         $this->authService->assignRole($request->validated());
 
+        $actor = $request->user();
+        $actor?->loadMissing('departmentUserRoles.department.lab');
+
+        $this->systemLogs->warning(
+            'admin.role.assigned',
+            "Role {$request->string('role')} assigned to user #{$request->integer('user_id')}",
+            [
+                'user_id' => $request->integer('user_id'),
+                'role' => $request->string('role')->toString(),
+                'department_id' => $request->integer('department_id') ?: null,
+                'assigned_by' => $actor?->id,
+            ],
+            $this->resolveUserLabId($actor),
+            $actor?->id,
+        );
+
         return $this->apiResponse->success(null, __('auth.role_assigned_successfully'), 200);
     }
 
@@ -390,6 +433,14 @@ class AuthController extends Controller
         }
 
         $this->authService->changePassword($user, $request->string('password')->toString());
+
+        $this->systemLogs->warning(
+            'auth.password.changed',
+            "User {$user->email} changed their password",
+            ['user_id' => $user->id],
+            $this->resolveUserLabId($user),
+            $user->id,
+        );
 
         return $this->apiResponse->success(null, __('auth.password_updated_successfully'), 200);
     }
@@ -407,6 +458,21 @@ class AuthController extends Controller
     private function verifyOtpThrottleKey(Request $request): string
     {
         return Str::transliterate('register-otp-verify|'.Str::lower($request->string('email')->toString()).'|'.$request->ip());
+    }
+
+    private function resolveUserLabId(?User $user): ?int
+    {
+        if ($user === null) {
+            return null;
+        }
+
+        $user->loadMissing('departmentUserRoles.department.lab');
+
+        return $user->departmentUserRoles
+            ->map(static fn ($departmentUserRole): ?int => $departmentUserRole->department?->lab_id ?? $departmentUserRole->department?->lab?->id)
+            ->filter()
+            ->unique()
+            ->first();
     }
 
     private function applyLocale(Request $request): void

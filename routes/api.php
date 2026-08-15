@@ -30,6 +30,7 @@ use App\Http\Controllers\ReceptionistDeliveryTaskController;
 use App\Http\Controllers\ReceptionistOrderController;
 // use App\Http\Controllers\RefundController;
 use App\Http\Controllers\StripeWebhookController;
+use App\Http\Controllers\SystemLogController;
 use App\Http\Controllers\TaskWorkflowController;
 use App\Http\Controllers\ToothShadeController;
 use App\Http\Controllers\WalletController;
@@ -61,7 +62,7 @@ Route::middleware(['auth:sanctum', 'role:system_admin'])->prefix('admin/labs')->
     Route::get('/inactive', [LabController::class, 'inactiveLabs'])->name('admin.labs.inactive');
     Route::get('/{lab}', [LabController::class, 'adminShow'])->name('admin.labs.show');
     Route::post('/', [LabController::class, 'store'])->name('admin.labs.store');
-    Route::put('/{lab}', [LabController::class, 'update'])->name('admin.labs.update');
+    Route::post('/{lab}', [LabController::class, 'update'])->name('admin.labs.update');
     Route::delete('/{lab}', [LabController::class, 'destroy'])->name('admin.labs.destroy');
 
     // Package assignment
@@ -317,6 +318,12 @@ Route::prefix('auth')->group(function (): void {
             Route::get('/', [NotificationController::class, 'index'])->name('notifications.index');
             Route::post('/device-tokens', [DeviceTokenController::class, 'store'])->name('device-tokens.store');
             Route::delete('/device-tokens/{deviceToken}', [DeviceTokenController::class, 'destroy'])->name('device-tokens.destroy');
+        });
+
+        // Lab manager - System logs
+        Route::middleware(['role:lab_manager'])->prefix('system-logs')->group(function (): void {
+            Route::get('/', [SystemLogController::class, 'index'])->name('system-logs.index');
+            Route::get('/{systemLog}', [SystemLogController::class, 'show'])->name('system-logs.show');
         });
 
         // ==========================================================================

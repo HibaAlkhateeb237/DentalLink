@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class PackageService
 {
@@ -74,6 +75,14 @@ class PackageService
 
     public function delete(Package $package, User $user): void
     {
-        DB::transaction(fn () => $package->delete());
+        DB::transaction(function () use ($package) {
+            if ($package->labs()->exists()) {
+                throw ValidationException::withMessages([
+                    'package' => [__('packages.cannot_delete_assigned')],
+                ]);
+            }
+
+            $package->delete();
+        });
     }
 }

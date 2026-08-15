@@ -5,6 +5,7 @@ namespace App\Http\Services;
 use App\Events\DeliveryLocationUpdated;
 use App\Models\DeliveryTask;
 use App\Models\DeliveryTrack;
+use App\Models\Order;
 use App\Models\User;
 use App\Notifications\Tracking\TrackingStateNotification;
 use App\Support\DeliveryTrackStatus;
@@ -14,6 +15,8 @@ use Illuminate\Validation\ValidationException;
 
 class DeliveryTrackingService
 {
+    public function __construct(private readonly SystemLogService $systemLogs) {}
+
     /**
      * Start a delivery trip for a group of tasks (single doctor).
      *
@@ -34,6 +37,18 @@ class DeliveryTrackingService
             $tracks = $this->upsertTracks($orderIds, $deliveryPerson, [
                 'status' => DeliveryTrackStatus::STARTED,
             ]);
+
+            $this->systemLogs->info(
+                'delivery.trip.started',
+                "Delivery trip started by {$deliveryPerson->name}",
+                [
+                    'doctor_id' => $doctorId,
+                    'order_ids' => $orderIds,
+                    'task_ids' => $taskIds,
+                ],
+                $this->resolveLabIdFromTasks($tasks),
+                $deliveryPerson->id,
+            );
 
             DB::afterCommit(function () use ($tasks, $deliveryPerson): void {
                 $orders = $tasks->pluck('order');
@@ -118,6 +133,18 @@ class DeliveryTrackingService
             foreach ($tracks as $track) {
                 $track->update(['status' => DeliveryTrackStatus::ARRIVED]);
             }
+
+            $this->systemLogs->info(
+                'delivery.trip.ended',
+                "Delivery trip ended by {$deliveryPerson->name}",
+                [
+                    'doctor_id' => $doctorId,
+                    'order_ids' => $orderIds,
+                    'task_ids' => $taskIds,
+                ],
+                $this->resolveLabIdFromTasks($tasks),
+                $deliveryPerson->id,
+            );
 
             DB::afterCommit(function () use ($doctorId, $taskIds, $orderIds, $deliveryPerson, $tracks, $tasks): void {
                 $lastTrack = $tracks->first();
@@ -260,6 +287,20 @@ class DeliveryTrackingService
         }
 
         return $tracks;
+    }
+
+    /**
+     * @param  Collection<int, DeliveryTask>  $tasks
+     */
+    private function resolveLabIdFromTasks(Collection $tasks): ?int
+    {
+        $orderId = $tasks->first()?->order_id;
+
+        if ($orderId === null) {
+            return null;
+        }
+
+        return Order::query()->whereKey($orderId)->value('lab_id');
     }
 
     /**

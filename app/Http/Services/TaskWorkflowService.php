@@ -20,7 +20,8 @@ class TaskWorkflowService
 {
     public function __construct(
         private TaskRepository $taskRepository,
-        private OrderNotificationService $orderNotificationService
+        private OrderNotificationService $orderNotificationService,
+        private readonly SystemLogService $systemLogs
     ) {}
 
     public function moveForward(Task $task): string
@@ -39,7 +40,10 @@ class TaskWorkflowService
         }
 
         try {
-            return DB::transaction(function () use ($task) {
+            return DB::transaction(function () use ($task, $currentUserId) {
+                $task->loadMissing('order');
+                $labId = $task->order?->lab_id;
+
                 $this->taskRepository->completeTask($task);
 
                 $currentDepartment = $task['department'];
@@ -51,6 +55,19 @@ class TaskWorkflowService
                     $this->notifyDoctorsAboutCaseTransfer($task, $currentDepartment, $nextDepartment);
                     $this->orderNotificationService->notifyDepartmentManagerAboutUrgentCase($newTask);
 
+                    $this->systemLogs->info(
+                        'task.moved_forward',
+                        "Task #{$task->id} moved forward to department {$nextDepartment['name']}",
+                        [
+                            'task_id' => $task->id,
+                            'order_id' => $task->order_id,
+                            'from_department_id' => $task->department_id,
+                            'to_department_id' => $nextDepartment['id'],
+                        ],
+                        $labId,
+                        $currentUserId,
+                    );
+
                     return "تم إنهاء المهمة ونقلها إلى القسم التالي: ({$nextDepartment['name']}).";
                 }
 
@@ -59,6 +76,17 @@ class TaskWorkflowService
                 ]);
 
                 $this->orderNotificationService->notifyOrderCompleted($task->order);
+
+                $this->systemLogs->info(
+                    'order.completed',
+                    "Order #{$task->order_id} completed",
+                    [
+                        'order_id' => $task->order_id,
+                        'task_id' => $task->id,
+                    ],
+                    $labId,
+                    $currentUserId,
+                );
 
                 return 'تم إنهاء المرحلة الأخيرة بنجاح، والطلب الآن مكتمل بالكامل وجاهز للتسليم!';
             });
@@ -82,11 +110,25 @@ class TaskWorkflowService
         }
 
         try {
-            return DB::transaction(function () use ($task) {
+            return DB::transaction(function () use ($task, $currentUserId) {
+                $task->loadMissing('order');
+                $labId = $task->order?->lab_id;
 
                 $task->update(['status' => TaskStatus::ASSIGNED]);
 
                 $this->taskRepository->markLastSessionAsReturned($task['id']);
+
+                $this->systemLogs->info(
+                    'task.moved_backward',
+                    "Task #{$task->id} moved backward to assigned",
+                    [
+                        'task_id' => $task->id,
+                        'order_id' => $task->order_id,
+                        'department_id' => $task->department_id,
+                    ],
+                    $labId,
+                    $currentUserId,
+                );
 
                 return "تم إرجاع المهمة بنجاح إلى الفني المكلّف في قسم ({$task->department->name}) لإعادة العمل.";
             });
@@ -135,13 +177,29 @@ class TaskWorkflowService
         }
 
         try {
-            return DB::transaction(function () use ($task, $technicianId) {
+            return DB::transaction(function () use ($task, $technicianId, $currentUserId) {
+                $task->loadMissing('order');
+                $labId = $task->order?->lab_id;
+
                 $this->taskRepository->assignTechnicianToTask($task, $technicianId);
 
                 $technician = User::find($technicianId);
                 if ($technician) {
                     $technician->notify(new TaskAssigned($task->fresh()));
                 }
+
+                $this->systemLogs->info(
+                    'task.assigned',
+                    "Task #{$task->id} assigned to technician #{$technicianId}",
+                    [
+                        'task_id' => $task->id,
+                        'order_id' => $task->order_id,
+                        'department_id' => $task->department_id,
+                        'technician_id' => $technicianId,
+                    ],
+                    $labId,
+                    $currentUserId,
+                );
 
                 return 'تم تعيين الفني بنجاح، والمهمة الآن جاهزة لبدء العمل عليها.';
             });
