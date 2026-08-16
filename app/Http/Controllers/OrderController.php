@@ -85,7 +85,7 @@ class OrderController extends Controller
             );
         }
 
-        $order->load(['toothShade', 'dentalCompensationTypePrice.dentalCompensationType', 'orderTeeth', 'orderFiles']);
+        $order->load(['lab', 'toothShade', 'dentalCompensationTypePrice.dentalCompensationType', 'orderTeeth', 'orderFiles']);
 
         return $this->apiResponse->success(
             OrderDetailResource::make($order),
