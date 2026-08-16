@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Lab;
 use App\Models\Role;
 use App\Models\User;
 use Database\Factories\PackageFactory;
@@ -151,6 +152,31 @@ class PackageApiTest extends TestCase
             ->assertJsonPath('data.price', '99.99');
 
         $this->assertDatabaseHas('packages', ['id' => $package->id, 'name' => 'Updated Plan']);
+    }
+
+    public function test_admin_cannot_delete_assigned_package(): void
+    {
+        $package = PackageFactory::new()->create();
+
+        Lab::query()->create([
+            'name' => 'Assigned Lab',
+            'license_number' => 'LAB-'.fake()->unique()->numberBetween(1000, 9999),
+            'phone' => fake()->phoneNumber(),
+            'address' => fake()->address(),
+            'latitude' => fake()->latitude(),
+            'longitude' => fake()->longitude(),
+            'is_active' => true,
+            'package_id' => $package->id,
+        ]);
+
+        Sanctum::actingAs($this->admin());
+
+        $this->deleteJson('/api/admin/packages/'.$package->id)
+            ->assertStatus(400)
+            ->assertJsonPath('success', false)
+            ->assertJsonValidationErrors(['package']);
+
+        $this->assertDatabaseHas('packages', ['id' => $package->id]);
     }
 
     public function test_admin_can_delete_package(): void

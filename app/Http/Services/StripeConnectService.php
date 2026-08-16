@@ -9,6 +9,8 @@ use Stripe\StripeClient;
 
 class StripeConnectService
 {
+    public function __construct(private readonly SystemLogService $systemLogs) {}
+
     public function createConnectedAccountForLab(Lab $lab): array
     {
         if ($lab->stripe_account_id) {
@@ -38,6 +40,16 @@ class StripeConnectService
         $lab->save();
 
         $lab->refresh();
+
+        $this->systemLogs->info(
+            'lab.stripe.onboarded',
+            "Lab {$lab->name} connected to Stripe",
+            [
+                'lab_id' => $lab->id,
+                'stripe_account_id' => $accountId,
+            ],
+            $lab->id,
+        );
 
         return $this->createSuccessResponse(
             'Connected account created successfully',

@@ -1,0 +1,138 @@
+{
+	"info": {
+		"_postman_id": "system-logs-api",
+		"name": "DentaLink System Logs API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "1"
+	},
+	"item": [
+		{
+			"name": "List System Logs",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "X-Locale",
+						"value": "ar",
+						"description": "ar or en"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/auth/system-logs?per_page=15&level=&event=&user_id=",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"auth",
+						"system-logs"
+					],
+					"query": [
+						{
+							"key": "per_page",
+							"value": "15",
+							"description": "Items per page (1-100, default 15)"
+						},
+						{
+							"key": "level",
+							"value": "",
+							"description": "Filter by level: info, warning, error"
+						},
+						{
+							"key": "event",
+							"value": "",
+							"description": "Filter by event name, e.g. order.created, auth.login.failed"
+						},
+						{
+							"key": "user_id",
+							"value": "",
+							"description": "Filter logs recorded by a specific user id"
+						}
+					]
+				},
+				"description": "List system logs scoped to the lab manager's lab. Requires a lab_manager bearer token."
+			},
+			"response": []
+		},
+		{
+			"name": "Get System Log Detail",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "X-Locale",
+						"value": "ar",
+						"description": "ar or en"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/auth/system-logs/{{log_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"auth",
+						"system-logs",
+						"{{log_id}}"
+					]
+				},
+				"description": "Get a single system log. Returns 404 if the log belongs to another lab."
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "log_id",
+			"value": "1",
+			"type": "string"
+		}
+	]
+}

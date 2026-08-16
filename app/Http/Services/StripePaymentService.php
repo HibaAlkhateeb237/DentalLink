@@ -15,6 +15,7 @@ class StripePaymentService
 {
     public function __construct(
         private StripeConnectService $connectService,
+        private readonly SystemLogService $systemLogs,
     ) {}
 
     public function createCheckoutSession(Order $order, User $doctor): array
@@ -179,18 +180,7 @@ class StripePaymentService
         $payment->update(['payment_status' => $status]);
 
         if ($status === 'succeeded' && ! $payment->paid_at) {
-            DB::transaction(function () use ($payment): void {
-                $payment->update(['paid_at' => now()]);
-                $payment->orders()->update(['remaining_amount' => 0]);
-
-                foreach ($payment->orders as $order) {
-                    app(WalletService::class)->creditFromPayment($payment, $order);
-                }
-            });
-
-            foreach ($payment->orders as $order) {
-                app(OrderNotificationService::class)->notifyDoctorPaymentCompleted($order);
-            }
+            $this->finalizeSuccessfulPayment($payment);
         }
     }
 
@@ -223,18 +213,7 @@ class StripePaymentService
         ]);
 
         if ($status === 'succeeded' && ! $payment->paid_at) {
-            DB::transaction(function () use ($payment): void {
-                $payment->update(['paid_at' => now()]);
-                $payment->orders()->update(['remaining_amount' => 0]);
-
-                foreach ($payment->orders as $order) {
-                    app(WalletService::class)->creditFromPayment($payment, $order);
-                }
-            });
-
-            foreach ($payment->orders as $order) {
-                app(OrderNotificationService::class)->notifyDoctorPaymentCompleted($order);
-            }
+            $this->finalizeSuccessfulPayment($payment);
         }
     }
 
@@ -281,18 +260,38 @@ class StripePaymentService
         $payment->update($update);
 
         if ($paymentStatus === 'paid' && ! $payment->paid_at) {
-            DB::transaction(function () use ($payment): void {
-                $payment->update(['paid_at' => now()]);
-                $payment->orders()->update(['remaining_amount' => 0]);
+            $this->finalizeSuccessfulPayment($payment);
+        }
+    }
 
-                foreach ($payment->orders as $order) {
-                    app(WalletService::class)->creditFromPayment($payment, $order);
-                }
-            });
+    private function finalizeSuccessfulPayment(Payment $payment): void
+    {
+        DB::transaction(function () use ($payment): void {
+            $payment->update(['paid_at' => now()]);
+            $payment->orders()->update(['remaining_amount' => 0]);
 
             foreach ($payment->orders as $order) {
-                app(OrderNotificationService::class)->notifyDoctorPaymentCompleted($order);
+                app(WalletService::class)->creditFromPayment($payment, $order);
+
+                $this->systemLogs->info(
+                    'payment.completed',
+                    "Payment received for order {$order->serial_number}",
+                    [
+                        'payment_id' => $payment->id,
+                        'charge_id' => $payment->charge_id,
+                        'amount' => $payment->amount,
+                        'currency' => $payment->currency,
+                        'order_id' => $order->id,
+                        'order_serial' => $order->serial_number,
+                    ],
+                    $order->lab_id,
+                    $order->user_id,
+                );
             }
+        });
+
+        foreach ($payment->orders as $order) {
+            app(OrderNotificationService::class)->notifyDoctorPaymentCompleted($order);
         }
     }
 

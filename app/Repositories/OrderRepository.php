@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Http\Repositories\LabPricingRepository;
 use App\Http\Services\OrderNotificationService;
+use App\Http\Services\SystemLogService;
 use App\Models\DentalCompensationTypePrice;
 use App\Models\Lab;
 use App\Models\Order;
@@ -22,6 +23,7 @@ class OrderRepository
     public function __construct(
         private LabPricingRepository $labPricingRepository,
         private OrderNotificationService $notificationService,
+        private SystemLogService $systemLogs,
     ) {}
 
     /**
@@ -97,6 +99,19 @@ class OrderRepository
             $order->remaining_amount = $totalPrice;
             $order->serial_number = sprintf('ORD-%06d', $order->id);
             $order->save();
+
+            $this->systemLogs->info(
+                'order.created',
+                "Order {$order->serial_number} was created",
+                [
+                    'order_id' => $order->id,
+                    'order_serial' => $order->serial_number,
+                    'case_type' => $caseType,
+                    'priority' => $data['priority'],
+                ],
+                $lab->id,
+                $doctor->id,
+            );
 
             // Notify receptionist about new order after the order is committed.
             DB::afterCommit(function () use ($order): void {
