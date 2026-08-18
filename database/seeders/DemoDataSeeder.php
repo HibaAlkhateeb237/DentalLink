@@ -90,7 +90,14 @@ class DemoDataSeeder extends Seeder
         $this->seedOrderDetails($orders);
         $this->seedTasksAndWorkSessions($orders, $departmentsByLab, $technicianIdsByDepartment);
         $this->seedPayments($orders);
-        $this->seedDeliveryTasks($orders, $usersByRole['delivery']);
+        $deliveryUsersByLabId = collect($usersByRole['delivery'])
+            ->mapWithKeys(fn (User $user) => [
+                collect($labs)->firstWhere('name', $user->lab_name)?->id => $user,
+            ])
+            ->filter()
+            ->all();
+
+        $this->seedDeliveryTasks($orders, $deliveryUsersByLabId);
         $this->seedReviews($orders);
         $this->seedFavorites($usersByRole['doctor'], $labs);
         $this->seedPortfolioCases($orders);
@@ -342,16 +349,13 @@ class DemoDataSeeder extends Seeder
             }
         }
 
-        for ($index = 1; $index <= 10; $index++) {
-
-            $correspondingLab = $labs[($index - 1) % count($labs)];
-
+        foreach ($labs as $index => $lab) {
             $usersByRole['delivery'][] = User::query()->create([
-                'name' => 'Delivery '.$index,
-                'email' => 'delivery'.$index.'@demo.local',
-                'phone' => '09996'.str_pad((string) $index, 5, '0', STR_PAD_LEFT),
+                'name' => 'Delivery '.($index + 1),
+                'email' => 'delivery'.($index + 1).'@demo.local',
+                'phone' => '09996'.str_pad((string) ($index + 1), 5, '0', STR_PAD_LEFT),
                 'password' => 'Password@123',
-                'lab_name' => $correspondingLab->name,
+                'lab_name' => $lab->name,
             ]);
         }
 
@@ -1068,9 +1072,9 @@ class DemoDataSeeder extends Seeder
 
     /**
      * @param  array<int, Order>  $orders
-     * @param  array<int, User>  $deliveryUsers
+     * @param  array<int, User>  $deliveryUsersByLabId  keyed by lab ID
      */
-    private function seedDeliveryTasks(array $orders, array $deliveryUsers): void
+    private function seedDeliveryTasks(array $orders, array $deliveryUsersByLabId): void
     {
         $deliveryStatuses = DeliveryStatus::ALL;
 
@@ -1079,8 +1083,13 @@ class DemoDataSeeder extends Seeder
                 continue;
             }
 
+            $deliveryUser = $deliveryUsersByLabId[$order->lab_id] ?? null;
+
+            if ($deliveryUser === null) {
+                continue;
+            }
+
             $status = $deliveryStatuses[$index % count($deliveryStatuses)];
-            $deliveryUser = $deliveryUsers[$index % count($deliveryUsers)];
 
             $direction = match ($order->status) {
                 OrderStatus::COMPLETED => DeliveryTaskDirection::TO_DOCTOR,
@@ -1089,8 +1098,7 @@ class DemoDataSeeder extends Seeder
 
             DeliveryTask::query()->create([
                 'order_id' => $order->id,
-                'user_id' => 77,
-                // $deliveryUser->id,
+                'user_id' => $deliveryUser->id,
                 'status' => $status,
                 'direction' => $direction,
                 'picked_at' => in_array($status, DeliveryStatus::PICKED_STATUSES, true)
