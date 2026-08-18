@@ -20,7 +20,7 @@ class AuthService
 {
     private const LOGIN_MAX_FAILED_ATTEMPTS = 5;
 
-    private const LOGIN_LOCK_SECONDS = 900;
+    private const LOGIN_LOCK_SECONDS = 60;
 
     private const OTP_EXPIRES_IN_SECONDS = 600;
 
