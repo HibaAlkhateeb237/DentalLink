@@ -33,8 +33,19 @@ class SystemLogController extends Controller
             'lab_id' => $labId,
         ])->paginate($request->integer('per_page', 15));
 
+        $resource = SystemLogResource::collection($logs);
+        $resourceArray = $resource->response()->getData(true);
+
+        $data = [
+            'data' => $resourceArray['data'],
+            'total' => $resourceArray['meta']['total'] ?? 0,
+            'per_page' => $resourceArray['meta']['per_page'] ?? $request->integer('per_page', 15),
+            'current_page' => $resourceArray['meta']['current_page'] ?? 1,
+            'last_page' => $resourceArray['meta']['last_page'] ?? 1,
+        ];
+
         return $this->apiResponse->success(
-            SystemLogResource::collection($logs),
+            $data,
             __('system_logs.retrieved_successfully')
         );
     }

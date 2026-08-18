@@ -85,7 +85,7 @@ class SystemLogApiTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonCount(2, 'data')
+            ->assertJsonCount(2, 'data.data')
             ->assertJsonMissing(['lab_id' => $otherLab->id]);
     }
 
