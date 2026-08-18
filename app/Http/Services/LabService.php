@@ -269,7 +269,7 @@ class LabService
             $lab->save();
 
             $manager = User::query()
-                ->select(['users.id', 'users.name', 'users.email', 'users.phone'])
+                ->select(['users.id', 'users.name', 'users.email', 'users.phone', 'users.profile_image'])
                 ->join('department_user_roles', 'department_user_roles.user_id', '=', 'users.id')
                 ->join('roles', 'roles.id', '=', 'department_user_roles.role_id')
                 ->join('departments', 'departments.id', '=', 'department_user_roles.department_id')
@@ -421,6 +421,7 @@ class LabService
                 'users.name',
                 'users.email',
                 'users.phone',
+                'users.profile_image',
                 DB::raw('departments.lab_id as lab_id'),
             ])
             ->join('department_user_roles', 'department_user_roles.user_id', '=', 'users.id')
@@ -492,11 +493,25 @@ class LabService
             return null;
         }
 
+        $photoUrl = null;
+        if ($manager->profile_image) {
+            if (str_starts_with($manager->profile_image, 'http://') || str_starts_with($manager->profile_image, 'https://')) {
+                $photoUrl = $manager->profile_image;
+            } else {
+                try {
+                    $photoUrl = url(Storage::url($manager->profile_image));
+                } catch (\Throwable $e) {
+                    $photoUrl = null;
+                }
+            }
+        }
+
         return [
             'id' => $manager->id,
             'name' => $manager->name,
             'email' => $manager->email,
             'phone' => $manager->phone,
+            'profile_image' => $photoUrl,
         ];
     }
 
