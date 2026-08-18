@@ -1368,7 +1368,7 @@ class DemoDataSeeder extends Seeder
                 DeliveryStatus::RECEIVED => 10,
                 DeliveryStatus::EMPTY => 5,
             ]);
-            $deliveryUser = $deliveryUsersByLabId[$index % count($deliveryUsersByLabId)];
+            $deliveryUser = $deliveryUsersByLabId[$order->lab_id] ?? null;
 
             if ($deliveryUser === null) {
                 continue;
