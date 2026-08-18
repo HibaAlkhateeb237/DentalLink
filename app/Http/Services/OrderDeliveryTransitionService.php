@@ -24,10 +24,16 @@ class OrderDeliveryTransitionService
         $newStatus = $this->resolveNewStatus($originalStatus, $direction, $order);
 
         DB::transaction(function () use ($order, $newStatus, $originalStatus, $direction) {
-            $order->update([
+            $updateData = [
                 'status' => $newStatus,
                 'is_in_delivery' => false,
-            ]);
+            ];
+
+            if ($newStatus === OrderStatus::COMPLETED) {
+                $updateData['delivered_at'] = now();
+            }
+
+            $order->update($updateData);
 
             OrderStatusHistory::create([
                 'order_id' => $order->id,
