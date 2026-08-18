@@ -60,6 +60,10 @@ return [
             'report' => false,
         ],
 
+        'google' => [
+            'driver' => 'google',
+        ],
+
     ],
 
     /*

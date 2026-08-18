@@ -150,7 +150,9 @@ class DoctorOrdersListApiTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.id', $order->id)
-            ->assertJsonPath('data.user_id', $doctor->id);
+            ->assertJsonPath('data.user_id', $doctor->id)
+            ->assertJsonPath('data.lab_name', 'Test Lab')
+            ->assertJsonPath('data.lab_phone', '1111111');
     }
 
     public function test_doctor_cannot_view_other_doctors_orders(): void
