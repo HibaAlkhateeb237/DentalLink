@@ -389,7 +389,7 @@ class DemoDataSeeder extends Seeder
     {
         $departmentsByLab = [];
 
-        $departmentNames = ['الجص', 'الحواف', 'التصميم', 'السيراميك', 'التلميع'];
+        $departmentNames = ['الجبصين', 'الحواف', 'التصميم', 'التخزيف', 'التلميع'];
 
         $compensationTypes = [
             ['name' => 'تاج زركون', 'code' => 'zircon_crown'],
