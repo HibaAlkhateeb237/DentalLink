@@ -23,13 +23,13 @@ class DepartmentSeeder extends Seeder
         }
 
         $departmentNames = [
-            'reception',
-            'plaster',
-            'margins',
-            'design',
-            'ceramics',
-            'polishing',
-            'Management',
+            'الاستقبال',
+            'الجبص',
+            'الحواف',
+            'التصميم',
+            'السيراميك',
+            'التلميع',
+            'الإدارة',
         ];
 
         $now = now();
@@ -41,7 +41,7 @@ class DepartmentSeeder extends Seeder
                     'lab_id' => $lab->id,
                     'name' => $departmentName,
                     'description' => null,
-                    'is_management' => $departmentName === 'Management',
+                    'is_management' => $departmentName === 'الإدارة',
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
@@ -65,7 +65,7 @@ class DepartmentSeeder extends Seeder
 
         $managementDepartmentsByLabId = Department::query()
             ->select(['id', 'lab_id'])
-            ->where('name', 'Management')
+            ->where('name', 'الإدارة')
             ->where('is_management', true)
             ->whereIn('lab_id', $labs->pluck('id'))
             ->get()
@@ -81,7 +81,7 @@ class DepartmentSeeder extends Seeder
             $manager = User::query()->updateOrCreate(
                 ['email' => 'manager.lab'.$lab->id.'@dentalink.local'],
                 [
-                    'name' => $lab->name.' Manager',
+                    'name' => 'مدير '.$lab->name,
                     'phone' => $lab->phone,
                     'location' => $lab->address,
                     'location_lat' => $lab->latitude,

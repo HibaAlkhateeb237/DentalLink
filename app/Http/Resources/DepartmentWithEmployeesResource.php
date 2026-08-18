@@ -100,7 +100,7 @@ class DepartmentWithEmployeesResource extends JsonResource
         return [
             'id' => $this->id,
             'lab_id' => $this->lab_id,
-            'name' => $this->name,
+            'name' => $this->translated_name,
             'description' => $this->description,
             'is_management' => $this->is_management,
             'lab' => $this->lab === null

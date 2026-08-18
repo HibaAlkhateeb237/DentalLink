@@ -107,7 +107,7 @@ class ReceptionistOrderDetailsResource extends JsonResource
                     ? null
                     : [
                         'id' => $task->department->id,
-                        'name' => $task->department->name,
+                        'name' => $task->department->translated_name,
                     ],
                 'employee' => $task->user === null
                     ? null

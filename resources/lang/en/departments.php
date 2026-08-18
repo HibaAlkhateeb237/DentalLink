@@ -8,4 +8,15 @@ return [
     'updated_successfully' => 'Department updated successfully',
     'deleted_successfully' => 'Department deleted successfully',
     'cannot_delete_with_employees' => 'Department cannot be deleted while it has employees.',
+
+    'names' => [
+        'الجبص' => 'Gypsum',
+        'الحواف' => 'Edges',
+        'التصميم' => 'Design',
+        'السيراميك' => 'Ceramic',
+        'التلميع' => 'Polishing',
+        'الاستقبال' => 'Reception',
+        'التوصيل' => 'Delivery',
+        'الإدارة' => 'Management',
+    ],
 ];

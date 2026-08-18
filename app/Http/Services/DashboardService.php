@@ -52,7 +52,7 @@ class DashboardService
             ->whereIn('lab_id', $labIds)
             ->whereNotNull('delivered_at')
             ->where('status', OrderStatus::COMPLETED)
-            ->whereBetween('delivered_at', [$from, $to])
+            ->whereYear('delivered_at', $from->year)
             ->get(['received_at', 'delivered_at']);
 
         if ($orders->isEmpty()) {
@@ -90,7 +90,7 @@ class DashboardService
 
         $ordersCount = Order::query()
             ->whereIn('lab_id', $labIds)
-            ->whereBetween('created_at', [$from, $to])
+            ->whereBetween('received_at', [$from, $to])
             ->count();
 
         $avgOrderValue = $ordersCount > 0 ? $revenue / $ordersCount : 0;
@@ -104,24 +104,25 @@ class DashboardService
 
     private function getTechnicianProductivity(array $labIds, Carbon $from, Carbon $to): array
     {
+        $year = $from->year;
+        $yearStart = Carbon::create($year, 1, 1)->startOfDay();
+        $yearEnd = Carbon::create($year, 12, 31)->endOfDay();
+
         $technicians = User::query()
             ->whereHas('roles', fn (Builder $q) => $q->where('name', 'lab_technician'))
             ->whereHas('departmentUserRoles', fn (Builder $q) => $q->whereIn('department_id', function ($query) use ($labIds) {
                 $query->select('id')->from('departments')->whereIn('lab_id', $labIds);
             }))
-            ->with(['tasks' => fn ($q) => $q->whereBetween('approved_at', [$from, $to])->where('status', 'completed')])
+            ->with(['tasks' => fn ($q) => $q->whereBetween('approved_at', [$yearStart, $yearEnd])->where('status', 'completed')->with('workSessions')])
             ->get();
 
         $productivity = $technicians->map(function (User $technician): array {
             $completedTasks = $technician->tasks->filter(fn (Task $t) => $t->status === 'completed');
-            $totalWorkedMinutes = $completedTasks->sum(fn (Task $t) => $t->workedMinutes());
 
             return [
                 'technician_id' => $technician->id,
                 'name' => $technician->name,
                 'completed_tasks_count' => $completedTasks->count(),
-                'total_worked_hours' => round($totalWorkedMinutes / 60, 2),
-                'avg_time_per_task_hours' => $completedTasks->count() > 0 ? round($totalWorkedMinutes / 60 / $completedTasks->count(), 2) : 0,
             ];
         });
 
@@ -129,15 +130,18 @@ class DashboardService
             'technicians' => $productivity->values()->toArray(),
             'total_technicians' => $productivity->count(),
             'total_completed_tasks' => $productivity->sum('completed_tasks_count'),
-            'total_worked_hours' => round($productivity->sum('total_worked_hours'), 2),
         ];
     }
 
     private function getDepartmentWorkload(array $labIds, Carbon $from, Carbon $to): array
     {
+        $year = $from->year;
+        $yearStart = Carbon::create($year, 1, 1)->startOfDay();
+        $yearEnd = Carbon::create($year, 12, 31)->endOfDay();
+
         $departments = Department::query()
             ->whereIn('lab_id', $labIds)
-            ->with(['tasks' => fn ($q) => $q->whereBetween('approved_at', [$from, $to])])
+            ->with(['tasks' => fn ($q) => $q->whereBetween('approved_at', [$yearStart, $yearEnd])])
             ->get();
 
         $workload = $departments->map(function (Department $dept): array {
@@ -176,7 +180,7 @@ class DashboardService
             ])
             ->join('orders', 'orders.user_id', '=', 'users.id')
             ->whereIn('orders.lab_id', $labIds)
-            ->whereBetween('orders.created_at', [$from, $to])
+            ->whereBetween('orders.received_at', [$from, $to])
             ->groupBy('users.id', 'users.name', 'users.email', 'users.phone')
             ->selectRaw('COUNT(orders.id) as orders_count')
             ->selectRaw('COALESCE(SUM(orders.price), 0) as total_spent')
@@ -201,16 +205,16 @@ class DashboardService
     private function getYearlyPerformanceChart(array $labIds, Carbon $from, Carbon $to): array
     {
         $year = $from->year;
-        $startOfYear = Carbon::create($year, 1, 1)->startOfDay();
-        $endOfYear = Carbon::create($year, 12, 31)->endOfDay();
+        // Only show months up to the current month (or the 'to' month)
+        $currentMonth = min($to->month, now()->month);
 
-        $months = collect(range(1, 12))->map(function (int $month) use ($labIds, $year): array {
+        $months = collect(range(1, $currentMonth))->map(function (int $month) use ($labIds, $year): array {
             $monthStart = Carbon::create($year, $month, 1)->startOfMonth();
             $monthEnd = $monthStart->copy()->endOfMonth();
 
             $orders = Order::query()
                 ->whereIn('lab_id', $labIds)
-                ->whereBetween('created_at', [$monthStart, $monthEnd])
+                ->whereBetween('received_at', [$monthStart, $monthEnd])
                 ->get(['id', 'price', 'status', 'delivered_at']);
 
             $completed = $orders->where('status', OrderStatus::COMPLETED);

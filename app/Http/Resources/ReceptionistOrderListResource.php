@@ -42,7 +42,7 @@ class ReceptionistOrderListResource extends JsonResource
                 : [],
             'departments' => $this->lab?->relationLoaded('departments')
                 ? $this->lab->departments
-                    ->filter(fn ($department) => ! $department->is_management && ! in_array($department->name, ['Reception', 'Delivery', 'Management'], true))
+                    ->filter(fn ($department) => ! $department->is_management && ! in_array($department->name, ['الاستقبال', 'التوصيل', 'الإدارة'], true))
                     ->sortBy(fn ($department) => sprintf('%d-%010d', $department->is_management ? 0 : 1, (int) ($department->sort_order ?? PHP_INT_MAX)))
                     ->values()
                     ->map(function ($department) use ($tasksByDepartmentId, $currentTask): array {
@@ -50,7 +50,7 @@ class ReceptionistOrderListResource extends JsonResource
 
                         return [
                             'id' => $department->id,
-                            'name' => $department->name,
+                            'name' => $department->translated_name,
                             'sort_order' => $department->sort_order,
                             'is_management' => (bool) $department->is_management,
                             'status' => $task?->status,
@@ -65,7 +65,7 @@ class ReceptionistOrderListResource extends JsonResource
                 ? null
                 : [
                     'id' => $currentTask->department->id,
-                    'name' => $currentTask->department->name,
+                    'name' => $currentTask->department->translated_name,
                     'sort_order' => $currentTask->department->sort_order,
                     'task_id' => $currentTask->id,
                     'status' => $currentTask->status,

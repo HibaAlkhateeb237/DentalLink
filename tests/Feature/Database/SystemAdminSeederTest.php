@@ -20,7 +20,7 @@ class SystemAdminSeederTest extends TestCase
         $user = User::query()->where('email', 'system.admin@dentalink.local')->first();
         $this->assertNotNull($user);
 
-        $this->assertSame('System Admin', $user->name);
+        $this->assertSame('مسؤول النظام', $user->name);
         $this->assertTrue(Hash::check('Admin@123456', $user->password));
 
         $systemAdminRole = Role::query()

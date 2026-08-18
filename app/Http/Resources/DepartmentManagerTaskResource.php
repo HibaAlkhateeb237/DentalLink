@@ -27,7 +27,7 @@ class DepartmentManagerTaskResource extends JsonResource
             'status' => $this->status,
             'department' => $this->department === null ? null : [
                 'id' => $this->department->id,
-                'name' => $this->department->name,
+                'name' => $this->department->translated_name,
             ],
             'order' => $this->order === null ? null : [
                 'id' => $this->order->id,
