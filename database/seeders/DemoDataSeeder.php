@@ -92,7 +92,7 @@ class DemoDataSeeder extends Seeder
         $this->seedTasksAndWorkSessions($orders, $departmentsByLab, $technicianIdsByDepartment, $labs[0]->id ?? null);
         $this->seedPayments($orders);
         $deliveryUsersByLabId = collect($usersByRole['delivery'])
-            ->mapWithKeys(fn(User $user) => [
+            ->mapWithKeys(fn (User $user) => [
                 collect($labs)->firstWhere('name', $user->lab_name)?->id => $user,
             ])
             ->filter()
@@ -290,7 +290,7 @@ class DemoDataSeeder extends Seeder
             $lab = Lab::query()->create([
                 'name' => $labData['name'],
                 'description' => $labData['description'] ?? null,
-                'phone' => '+9631100' . str_pad((string) ($index + 1), 4, '0', STR_PAD_LEFT),
+                'phone' => '+9631100'.str_pad((string) ($index + 1), 4, '0', STR_PAD_LEFT),
                 'address' => $labData['address'],
                 'latitude' => $labData['latitude'],
                 'longitude' => $labData['longitude'],
@@ -343,9 +343,9 @@ class DemoDataSeeder extends Seeder
 
         foreach ($labs as $index => $lab) {
             $manager = User::query()->create([
-                'name' => 'مدير مختبر ' . $this->arabicNumber($index + 1),
-                'email' => 'lab.manager' . ($index + 1) . '@demo.local',
-                'phone' => '09991' . str_pad((string) ($index + 1), 5, '0', STR_PAD_LEFT),
+                'name' => 'مدير مختبر '.$this->arabicNumber($index + 1),
+                'email' => 'lab.manager'.($index + 1).'@demo.local',
+                'phone' => '09991'.str_pad((string) ($index + 1), 5, '0', STR_PAD_LEFT),
                 'password' => 'Password@123',
                 'location_lat' => $lab->latitude,
                 'location_lng' => $lab->longitude,
@@ -357,11 +357,11 @@ class DemoDataSeeder extends Seeder
 
         for ($index = 1; $index <= 12; $index++) {
             $usersByRole['doctor'][] = User::query()->create([
-                'name' => 'دكتور ' . $this->arabicNumber($index),
-                'email' => 'doctor' . $index . '@demo.local',
-                'phone' => '09992' . str_pad((string) $index, 5, '0', STR_PAD_LEFT),
+                'name' => 'دكتور '.$this->arabicNumber($index),
+                'email' => 'doctor'.$index.'@demo.local',
+                'phone' => '09992'.str_pad((string) $index, 5, '0', STR_PAD_LEFT),
                 'password' => 'Password@123',
-                'location' => 'عيادة ' . $this->arabicNumber($index),
+                'location' => 'عيادة '.$this->arabicNumber($index),
                 'location_lat' => 33.5000000 + ($index * 0.0010000),
                 'location_lng' => 36.2500000 + ($index * 0.0010000),
             ]);
@@ -369,9 +369,9 @@ class DemoDataSeeder extends Seeder
 
         for ($index = 1; $index <= 3; $index++) {
             $usersByRole['receptionist'][] = User::query()->create([
-                'name' => 'موظف استقبال ' . $this->arabicNumber($index),
-                'email' => 'receptionist' . $index . '@demo.local',
-                'phone' => '09993' . str_pad((string) $index, 5, '0', STR_PAD_LEFT),
+                'name' => 'موظف استقبال '.$this->arabicNumber($index),
+                'email' => 'receptionist'.$index.'@demo.local',
+                'phone' => '09993'.str_pad((string) $index, 5, '0', STR_PAD_LEFT),
                 'password' => 'Password@123',
                 'lab_name' => $firstLabName,
             ]);
@@ -379,9 +379,9 @@ class DemoDataSeeder extends Seeder
 
         for ($index = 1; $index <= 20; $index++) {
             $usersByRole['department_manager'][] = User::query()->create([
-                'name' => 'مدير قسم ' . $this->arabicNumber($index),
-                'email' => 'department.manager' . $index . '@demo.local',
-                'phone' => '09994' . str_pad((string) $index, 5, '0', STR_PAD_LEFT),
+                'name' => 'مدير قسم '.$this->arabicNumber($index),
+                'email' => 'department.manager'.$index.'@demo.local',
+                'phone' => '09994'.str_pad((string) $index, 5, '0', STR_PAD_LEFT),
                 'password' => 'Password@123',
             ]);
         }
@@ -391,9 +391,9 @@ class DemoDataSeeder extends Seeder
                 $technicianNumber = ($labIndex * 5) + $slot;
 
                 $usersByRole['lab_technician'][] = User::query()->create([
-                    'name' => 'فني مختبر ' . $this->arabicNumber($technicianNumber),
-                    'email' => 'technician' . $technicianNumber . '@demo.local',
-                    'phone' => '09995' . str_pad((string) $technicianNumber, 5, '0', STR_PAD_LEFT),
+                    'name' => 'فني مختبر '.$this->arabicNumber($technicianNumber),
+                    'email' => 'technician'.$technicianNumber.'@demo.local',
+                    'phone' => '09995'.str_pad((string) $technicianNumber, 5, '0', STR_PAD_LEFT),
                     'password' => 'Password@123',
                     'lab_name' => $lab->name,
                 ]);
@@ -402,9 +402,9 @@ class DemoDataSeeder extends Seeder
 
         foreach ($labs as $index => $lab) {
             $usersByRole['delivery'][] = User::query()->create([
-                'name' => 'موظف توصيل ' . $this->arabicNumber($index + 1),
-                'email' => 'delivery' . ($index + 1) . '@demo.local',
-                'phone' => '09996' . str_pad((string) ($index + 1), 5, '0', STR_PAD_LEFT),
+                'name' => 'موظف توصيل '.$this->arabicNumber($index + 1),
+                'email' => 'delivery'.($index + 1).'@demo.local',
+                'phone' => '09996'.str_pad((string) ($index + 1), 5, '0', STR_PAD_LEFT),
                 'password' => 'Password@123',
                 'lab_name' => $lab->name,
             ]);
@@ -464,7 +464,7 @@ class DemoDataSeeder extends Seeder
                 $departmentsByLab[$lab->id][] = Department::query()->create([
                     'lab_id' => $lab->id,
                     'name' => $name,
-                    'description' => 'قسم ' . $name . ' في ' . $lab->name,
+                    'description' => 'قسم '.$name.' في '.$lab->name,
                     'sort_order' => $sortOrder++,
                 ]);
             }
@@ -473,7 +473,7 @@ class DemoDataSeeder extends Seeder
                 $departmentsByLab[$lab->id][] = Department::query()->create([
                     'lab_id' => $lab->id,
                     'name' => 'الاستقبال',
-                    'description' => 'قسم استقبال الطلبات في ' . $lab->name,
+                    'description' => 'قسم استقبال الطلبات في '.$lab->name,
                     'sort_order' => 0,
                 ]);
             }
@@ -481,7 +481,7 @@ class DemoDataSeeder extends Seeder
             $departmentsByLab[$lab->id][] = Department::query()->create([
                 'lab_id' => $lab->id,
                 'name' => 'التوصيل',
-                'description' => 'قسم التوصيل واللوجستيات في ' . $lab->name,
+                'description' => 'قسم التوصيل واللوجستيات في '.$lab->name,
                 'sort_order' => 0,
             ]);
 
@@ -504,7 +504,7 @@ class DemoDataSeeder extends Seeder
                     [
                         'name' => $typeName,
                         'category' => 'other', // default category
-                        'description' => $typeName . ' — تسعيرة مرجعية',
+                        'description' => $typeName.' — تسعيرة مرجعية',
                     ],
                 );
 
@@ -755,7 +755,7 @@ class DemoDataSeeder extends Seeder
                     'status' => $status,
                     'order_type' => $types[$orderIndex % count($types)],
                     'case_type' => $caseTypes[$orderIndex % count($caseTypes)],
-                    'notes' => 'طلب تجريبي رقم ' . $this->arabicNumber($orderIndex + 1),
+                    'notes' => 'طلب تجريبي رقم '.$this->arabicNumber($orderIndex + 1),
                     'price' => $price,
                     'remaining_amount' => $remainingAmount,
                     'serial_number' => null,
@@ -823,7 +823,7 @@ class DemoDataSeeder extends Seeder
                         'status' => $status,
                         'order_type' => $types[array_rand($types)],
                         'case_type' => $caseTypes[array_rand($caseTypes)],
-                        'notes' => 'طلب إضافي لشهر ' . $month . ' - ' . $lab->name,
+                        'notes' => 'طلب إضافي لشهر '.$month.' - '.$lab->name,
                         'price' => $price,
                         'remaining_amount' => $remainingAmount,
                         'serial_number' => null,
@@ -865,7 +865,7 @@ class DemoDataSeeder extends Seeder
                 'status' => OrderStatus::NEW,
                 'order_type' => $type,
                 'case_type' => $caseType,
-                'notes' => 'طلب جديد تجريبي لمختبر ' . $lab->name,
+                'notes' => 'طلب جديد تجريبي لمختبر '.$lab->name,
                 'price' => $price,
                 'remaining_amount' => $price,
                 'serial_number' => null,
@@ -911,7 +911,7 @@ class DemoDataSeeder extends Seeder
                 ->size(300)
                 ->build();
 
-            $path = 'orders/' . $order->qr_code . '/qr.png';
+            $path = 'orders/'.$order->qr_code.'/qr.png';
             Storage::disk('public')->put($path, $result->getString());
 
             $order->forceFill([
@@ -944,8 +944,8 @@ class DemoDataSeeder extends Seeder
                 'dental_compensation_type_price_id' => $priceIds->get(0),
             ]);
 
-            $beforeSeed = 'seed-files/before-scan-' . (($index % 3) + 1) . '.jpg';
-            $beforePath = 'orders/' . $order->qr_code . '/scan-before.jpg';
+            $beforeSeed = 'seed-files/before-scan-'.(($index % 3) + 1).'.jpg';
+            $beforePath = 'orders/'.$order->qr_code.'/scan-before.jpg';
             Storage::disk('public')->copy($beforeSeed, $beforePath);
 
             OrderFile::query()->create([
@@ -955,8 +955,8 @@ class DemoDataSeeder extends Seeder
                 'uploaded_at' => $order->created_at,
             ]);
 
-            $afterSeed = 'seed-files/after-scan-' . (($index % 3) + 1) . '.jpg';
-            $afterPath = 'orders/' . $order->qr_code . '/scan-after.jpg';
+            $afterSeed = 'seed-files/after-scan-'.(($index % 3) + 1).'.jpg';
+            $afterPath = 'orders/'.$order->qr_code.'/scan-after.jpg';
             Storage::disk('public')->copy($afterSeed, $afterPath);
 
             OrderFile::query()->create([
@@ -1135,7 +1135,7 @@ class DemoDataSeeder extends Seeder
             }
 
             $labDepts = collect($departmentsByLab[$order->lab_id] ?? [])
-                ->reject(fn(Department $d) => $d->is_management || in_array($d->name, ['الاستقبال', 'Reception']))
+                ->reject(fn (Department $d) => $d->is_management || in_array($d->name, ['الاستقبال', 'Reception']))
                 ->values();
 
             if ($labDepts->isEmpty()) {
@@ -1152,8 +1152,8 @@ class DemoDataSeeder extends Seeder
 
             // Get all technicians for this lab to distribute work
             $labTechnicians = User::query()
-                ->whereHas('roles', fn(EloquentBuilder $q) => $q->where('name', 'lab_technician'))
-                ->whereHas('departmentUserRoles', fn(EloquentBuilder $q) => $q->whereIn('department_id', function ($query) use ($order) {
+                ->whereHas('roles', fn (EloquentBuilder $q) => $q->where('name', 'lab_technician'))
+                ->whereHas('departmentUserRoles', fn (EloquentBuilder $q) => $q->whereIn('department_id', function ($query) use ($order) {
                     $query->select('id')->from('departments')->where('lab_id', $order->lab_id);
                 }))
                 ->get()
@@ -1266,7 +1266,7 @@ class DemoDataSeeder extends Seeder
             'start_time' => $workStart,
             'end_time' => $workEnd,
             'status' => 'completed',
-            'note' => 'تم إنجاز المهمة بنجاح في قسم ' . $dept->name,
+            'note' => 'تم إنجاز المهمة بنجاح في قسم '.$dept->name,
         ]);
     }
 
@@ -1332,7 +1332,7 @@ class DemoDataSeeder extends Seeder
                     'amount' => $paidAmount,
                     'balance_after' => $wallet->balance,
                     'currency' => 'USD',
-                    'description' => 'تم استلام دفعة عن الطلب #' . $order->serial_number,
+                    'description' => 'تم استلام دفعة عن الطلب #'.$order->serial_number,
                     'payable_type' => Order::class,
                     'payable_id' => $order->id,
                     'reference_type' => Payment::class,
@@ -1368,7 +1368,7 @@ class DemoDataSeeder extends Seeder
                 DeliveryStatus::RECEIVED => 10,
                 DeliveryStatus::EMPTY => 5,
             ]);
-            $deliveryUser = $deliveryUsersByLabId[$index % count($deliveryUsersByLabId)];
+            $deliveryUser = $deliveryUsersByLabId[$order->lab_id] ?? null;
 
             if ($deliveryUser === null) {
                 continue;
@@ -1410,8 +1410,8 @@ class DemoDataSeeder extends Seeder
             DeliveryTask::query()->create([
                 'order_id' => $order->id,
                 'user_id' => $deliveryUser->id,
-                'status' => "empty",
-                    //$status,
+                'status' => 'empty',
+                // $status,
                 'direction' => $direction,
                 'picked_at' => $pickedAt,
                 'delivered_at' => $deliveredAt,
@@ -1437,7 +1437,7 @@ class DemoDataSeeder extends Seeder
                 'user_id' => $order->user_id,
                 'order_id' => $order->id,
                 'rating' => 3 + ($index % 3),
-                'comment' => 'مراجعة تجريبية للطلب رقم ' . $order->id,
+                'comment' => 'مراجعة تجريبية للطلب رقم '.$order->id,
             ]);
         }
     }
@@ -1480,9 +1480,9 @@ class DemoDataSeeder extends Seeder
 
             PortfolioCase::query()->create([
                 'order_id' => $order->id,
-                'case_name' => 'حالة من أعمال المختبر #' . $order->id,
-                'before_image_path' => 'labs/portfolio/order-' . $order->id . '-before.jpg',
-                'after_image_path' => 'labs/portfolio/order-' . $order->id . '-after.jpg',
+                'case_name' => 'حالة من أعمال المختبر #'.$order->id,
+                'before_image_path' => 'labs/portfolio/order-'.$order->id.'-before.jpg',
+                'after_image_path' => 'labs/portfolio/order-'.$order->id.'-after.jpg',
                 'duration_minutes' => 90 + (($index % 4) * 20),
                 'is_published' => ($index % 5) !== 0,
             ]);
@@ -1493,7 +1493,7 @@ class DemoDataSeeder extends Seeder
     {
         for ($index = 1; $index <= 8; $index++) {
             RegistrationOtp::query()->create([
-                'email' => 'pending.user' . $index . '@demo.local',
+                'email' => 'pending.user'.$index.'@demo.local',
                 'otp_hash' => bcrypt((string) (100000 + $index)),
                 'expires_at' => now()->addMinutes(15 + $index),
                 'verify_attempts' => $index % 2,
@@ -1525,7 +1525,7 @@ class DemoDataSeeder extends Seeder
                 'notifiable_id' => $user->id,
                 'data' => json_encode([
                     'title' => 'إشعار تجريبي',
-                    'message' => 'إشعار رقم ' . $this->arabicNumber($index + 1) . ' للمستخدم ' . $user->email,
+                    'message' => 'إشعار رقم '.$this->arabicNumber($index + 1).' للمستخدم '.$user->email,
                 ], JSON_UNESCAPED_UNICODE),
                 'read_at' => $index % 2 === 0 ? now()->subDay() : null,
                 'created_at' => now()->subHours($index + 1),
@@ -1544,7 +1544,7 @@ class DemoDataSeeder extends Seeder
                 continue;
             }
 
-            $tokenUser->createToken('demo-token-' . Str::lower(str_replace(' ', '-', $tokenUser->name)), ['*']);
+            $tokenUser->createToken('demo-token-'.Str::lower(str_replace(' ', '-', $tokenUser->name)), ['*']);
         }
     }
 }
