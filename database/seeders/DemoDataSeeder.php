@@ -31,7 +31,6 @@ use Carbon\CarbonImmutable;
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -89,16 +88,9 @@ class DemoDataSeeder extends Seeder
 
         $orders = $this->seedOrders($usersByRole['doctor'], $labs);
         $this->seedOrderDetails($orders);
-        $this->seedTasksAndWorkSessions($orders, $departmentsByLab, $technicianIdsByDepartment, $labs[0]->id ?? null);
+        $this->seedTasksAndWorkSessions($orders, $departmentsByLab, $technicianIdsByDepartment);
         $this->seedPayments($orders);
-        $deliveryUsersByLabId = collect($usersByRole['delivery'])
-            ->mapWithKeys(fn (User $user) => [
-                collect($labs)->firstWhere('name', $user->lab_name)?->id => $user,
-            ])
-            ->filter()
-            ->all();
-
-        $this->seedDeliveryTasks($orders, $deliveryUsersByLabId);
+        $this->seedDeliveryTasks($orders, $usersByRole['delivery']);
         $this->seedReviews($orders);
         $this->seedFavorites($usersByRole['doctor'], $labs);
         $this->seedPortfolioCases($orders);
@@ -142,56 +134,6 @@ class DemoDataSeeder extends Seeder
     }
 
     /**
-     * Convert a western number to Arabic-Indic digits (e.g. 12 → ١٢).
-     */
-    private function arabicNumber(int $number): string
-    {
-        static $digits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-
-        $arabic = '';
-        foreach (str_split((string) $number) as $digit) {
-            $arabic .= $digits[(int) $digit];
-        }
-
-        return $arabic;
-    }
-
-    /**
-     * Generate a random date in 2026 up to current month (August).
-     * Returns CarbonImmutable instance.
-     */
-    private function randomDate2026(?int $month = null, int $dayMin = 1, int $dayMax = 28): CarbonImmutable
-    {
-        $currentMonth = 8; // August 2026
-        $targetMonth = $month ?? random_int(1, $currentMonth);
-        $day = random_int($dayMin, $dayMax);
-        $hour = random_int(8, 18);
-        $minute = random_int(0, 59);
-
-        return CarbonImmutable::create(2026, $targetMonth, $day, $hour, $minute);
-    }
-
-    /**
-     * Generate a date range for an order: received_at and delivered_at.
-     * Ensures delivered_at is after received_at and both in 2026.
-     *
-     * @return array{received_at: CarbonImmutable, delivered_at: CarbonImmutable}
-     */
-    private function generateOrderDates(?int $preferredMonth = null, bool $isUrgent = false): array
-    {
-        $receivedAt = $this->randomDate2026($preferredMonth);
-        $daysToAdd = $isUrgent ? random_int(1, 3) : random_int(3, 7);
-        $deliveredAt = $receivedAt->addDays($daysToAdd);
-
-        // Ensure delivered_at doesn't go past end of 2026
-        if ($deliveredAt->year > 2026) {
-            $deliveredAt = CarbonImmutable::create(2026, 12, 28, 17, 0);
-        }
-
-        return ['received_at' => $receivedAt, 'delivered_at' => $deliveredAt];
-    }
-
-    /**
      * @return array<int, Lab>
      */
     private function seedLabs(): array
@@ -201,7 +143,7 @@ class DemoDataSeeder extends Seeder
         $labsData = [
             [
                 'name' => 'مختبر شام لطب الأسنان',
-                'description' => 'مختبر رائد في طب الأسنان، متخصص في التيجان والجسور وحلول طب الأسنان الرقمي عالية الجودة.',
+                'description' => 'مختبر رائد متخصص في التعويضات السنية عالية الجودة والجسور وحلول طب الأسنان الرقمي.',
                 'address' => 'المزة، دمشق',
                 'latitude' => 33.5102,
                 'longitude' => 36.2384,
@@ -387,8 +329,8 @@ class DemoDataSeeder extends Seeder
         }
 
         foreach ($labs as $labIndex => $lab) {
-            for ($slot = 1; $slot <= 5; $slot++) {
-                $technicianNumber = ($labIndex * 5) + $slot;
+            for ($slot = 1; $slot <= 3; $slot++) {
+                $technicianNumber = ($labIndex * 3) + $slot;
 
                 $usersByRole['lab_technician'][] = User::query()->create([
                     'name' => 'فني مختبر '.$this->arabicNumber($technicianNumber),
@@ -400,13 +342,16 @@ class DemoDataSeeder extends Seeder
             }
         }
 
-        foreach ($labs as $index => $lab) {
+        for ($index = 1; $index <= 10; $index++) {
+
+            $correspondingLab = $labs[($index - 1) % count($labs)];
+
             $usersByRole['delivery'][] = User::query()->create([
-                'name' => 'موظف توصيل '.$this->arabicNumber($index + 1),
-                'email' => 'delivery'.($index + 1).'@demo.local',
-                'phone' => '09996'.str_pad((string) ($index + 1), 5, '0', STR_PAD_LEFT),
+                'name' => 'موظف توصيل '.$this->arabicNumber($index),
+                'email' => 'delivery'.$index.'@demo.local',
+                'phone' => '09996'.str_pad((string) $index, 5, '0', STR_PAD_LEFT),
                 'password' => 'Password@123',
-                'lab_name' => $lab->name,
+                'lab_name' => $correspondingLab->name,
             ]);
         }
 
@@ -647,7 +592,7 @@ class DemoDataSeeder extends Seeder
                 // زيادة عداد الأقسام التشغيلية لتوزيع القسم التالي على المدير الصحيح
                 $operationalDeptIndex++;
 
-                // إسناد الفنيين للأقسام كما هي دون تغيير
+                // إسناد الفنيين (Technicians) للأقسام كما هي دون تغيير
                 $technician = $labTechnicians[$technicianCounter] ?? null;
 
                 if ($technician !== null) {
@@ -667,7 +612,7 @@ class DemoDataSeeder extends Seeder
             $labCounter++;
         }
 
-        // إسناد مدراء المخابر لأقسام الإدارة الأساسية
+        // إسناد مدراء المخابر لأقسام الـ Management الأساسية (باقي الكود كما هو)
         $labManagerRoleId = Role::query()->where('name', 'lab_manager')->where('guard_name', 'sanctum')->value('id');
         if ($labManagerRoleId !== null && ! empty($usersByRole['lab_manager'])) {
             $managementDepartments = Department::query()
@@ -711,56 +656,43 @@ class DemoDataSeeder extends Seeder
         $statuses = OrderStatus::ALL;
         $priorities = ['normal', 'urgent'];
         $types = ['digital', 'physical'];
+
         $caseTypes = ['normal', 'implant', 'bridge'];
         $patientNames = ['علي', 'أحمد', 'عمر', 'ليلى', 'نور', 'يوسف', 'سامر', 'رنا', 'كريم', 'هدى'];
 
         $orders = [];
-        $orderIndex = 0;
+        $index = 0;
 
-        // Target: ~60-80 orders spread across 12 months
-        // ~5-7 orders per month per lab (8 active labs) = ~40-56 orders/month total
-        // We'll create ~48 orders from doctors (4 per doctor * 12 doctors) + 8 lab orders = 56 base
-        // Plus additional orders to fill out each month
-
-        // First, create base orders from each doctor (4 each = 48 orders)
         foreach ($doctors as $doctor) {
             for ($count = 0; $count < 4; $count++) {
-                $lab = $labs[$orderIndex % count($labs)];
-                $status = $statuses[$orderIndex % count($statuses)];
-                $priority = $priorities[$orderIndex % count($priorities)];
-                $price = 180 + (($orderIndex % 10) * 50); // 180-630 range
-                $isCompleted = $status === OrderStatus::COMPLETED;
-                $remainingAmount = $isCompleted ? (random_int(0, 2) === 0 ? 0 : random_int(20, 80)) : $price;
+                $lab = $labs[($index + $count) % count($labs)];
+                $status = $statuses[$index % count($statuses)];
+                $priority = $priorities[$index % count($priorities)];
+                $price = 150 + (($index % 7) * 45);
+                $remainingAmount = in_array($status, ['completed'], true)
+                    ? ($index % 3 === 0 ? 0 : 35)
+                    : $price;
 
-                // Distribute across months: each doctor gets orders in different months
-                $month = (($orderIndex + $count) % 12) + 1;
-                $dates = $this->generateOrderDates($month, $priority === 'urgent');
-                $receivedAt = $dates['received_at'];
-                $deliveredAt = $dates['delivered_at'];
-
-                // For non-completed orders, delivered_at should be in future or null
-                if (! $isCompleted) {
-                    $deliveredAt = $receivedAt->addDays($priority === 'urgent' ? random_int(2, 4) : random_int(4, 10));
-                    if ($deliveredAt->year > 2026) {
-                        $deliveredAt = CarbonImmutable::create(2026, 12, 28, 17, 0);
-                    }
-                }
+                $receivedAt = CarbonImmutable::now()->subHours($index % 6);
+                $deliveredAt = $receivedAt->addDays($priority === 'urgent' ? 2 : 3);
 
                 $order = Order::query()->create([
                     'user_id' => $doctor->id,
                     'lab_id' => $lab->id,
-                    'patient_name' => $patientNames[$orderIndex % count($patientNames)],
+                    'patient_name' => $patientNames[$index % count($patientNames)],
                     'qr_code' => (string) Str::uuid(),
                     'priority' => $priority,
                     'status' => $status,
-                    'order_type' => $types[$orderIndex % count($types)],
-                    'case_type' => $caseTypes[$orderIndex % count($caseTypes)],
-                    'notes' => 'طلب تجريبي رقم '.$this->arabicNumber($orderIndex + 1),
+                    'order_type' => $types[$index % count($types)],
+
+                    'case_type' => $caseTypes[$index % count($caseTypes)],
+                    'notes' => 'طلب تجريبي رقم '.$this->arabicNumber($index + 1),
+
                     'price' => $price,
                     'remaining_amount' => $remainingAmount,
                     'serial_number' => null,
                     'received_at' => $receivedAt,
-                    'delivered_at' => $isCompleted ? $deliveredAt : null,
+                    'delivered_at' => $deliveredAt,
                 ]);
 
                 $order->serial_number = sprintf('ORD-%06d', $order->id);
@@ -769,92 +701,16 @@ class DemoDataSeeder extends Seeder
                 $this->seedOrderQrImage($order);
                 $orders[] = $order->fresh();
 
-                $orderIndex++;
+                $index++;
             }
         }
 
-        // Additional orders per lab per month to ensure good monthly distribution (Jan-Aug only)
-        $additionalOrdersPerLabPerMonth = 2;
-
         foreach ($labs as $lab) {
-            if (! $lab->is_active) {
-                continue;
-            }
-
-            for ($month = 1; $month <= 8; $month++) {
-                for ($i = 0; $i < $additionalOrdersPerLabPerMonth; $i++) {
-                    $doctor = $doctors[array_rand($doctors)];
-                    $priority = $priorities[array_rand($priorities)];
-                    $price = 180 + random_int(0, 9) * 50;
-
-                    // Weight statuses: more completed/delivered for past months, more pending/new for future months
-                    $currentMonth = 8; // August 2026
-                    if ($month < $currentMonth) {
-                        // Past months: mostly completed
-                        $status = $this->weightedStatus(['completed' => 60, 'try_on' => 10, 'resend_wrong_impression' => 5, 'in_progress' => 15, 'new' => 5, 'pending' => 5]);
-                    } elseif ($month === $currentMonth) {
-                        // Current month: mix
-                        $status = $this->weightedStatus(['completed' => 25, 'in_progress' => 30, 'try_on' => 15, 'new' => 15, 'pending' => 10, 'resend_wrong_impression' => 5]);
-                    } else {
-                        // Future months: mostly new/pending
-                        $status = $this->weightedStatus(['new' => 40, 'pending' => 30, 'in_progress' => 20, 'completed' => 5, 'try_on' => 3, 'resend_wrong_impression' => 2]);
-                    }
-
-                    $isCompleted = in_array($status, [OrderStatus::COMPLETED], true);
-                    $remainingAmount = $isCompleted ? (random_int(0, 3) === 0 ? 0 : random_int(10, 60)) : $price;
-
-                    $dates = $this->generateOrderDates($month, $priority === 'urgent');
-                    $receivedAt = $dates['received_at'];
-                    $deliveredAt = $dates['delivered_at'];
-
-                    if (! $isCompleted) {
-                        $deliveredAt = $receivedAt->addDays($priority === 'urgent' ? random_int(2, 4) : random_int(4, 10));
-                        if ($deliveredAt->year > 2026) {
-                            $deliveredAt = CarbonImmutable::create(2026, 12, 28, 17, 0);
-                        }
-                    }
-
-                    $order = Order::query()->create([
-                        'user_id' => $doctor->id,
-                        'lab_id' => $lab->id,
-                        'patient_name' => $patientNames[array_rand($patientNames)],
-                        'qr_code' => (string) Str::uuid(),
-                        'priority' => $priority,
-                        'status' => $status,
-                        'order_type' => $types[array_rand($types)],
-                        'case_type' => $caseTypes[array_rand($caseTypes)],
-                        'notes' => 'طلب إضافي لشهر '.$month.' - '.$lab->name,
-                        'price' => $price,
-                        'remaining_amount' => $remainingAmount,
-                        'serial_number' => null,
-                        'received_at' => $receivedAt,
-                        'delivered_at' => $isCompleted ? $deliveredAt : null,
-                    ]);
-
-                    $order->serial_number = sprintf('ORD-%06d', $order->id);
-                    $order->save();
-
-                    $this->seedOrderQrImage($order);
-                    $orders[] = $order->fresh();
-                }
-            }
-        }
-
-        // Also add the original "new orders per lab" (8 orders)
-        foreach ($labs as $lab) {
-            if (! $lab->is_active) {
-                continue;
-            }
-
             $doctor = $doctors[array_rand($doctors)];
             $patientName = $patientNames[array_rand($patientNames)];
             $type = $types[array_rand($types)];
             $caseType = $caseTypes[array_rand($caseTypes)];
-            $price = 180 + random_int(0, 9) * 50;
-
-            // These are current month orders with NEW status
-            $receivedAt = $this->randomDate2026(8, 1, 15); // Early August
-            $deliveredAt = $receivedAt->addDays(3);
+            $price = 150 + random_int(0, 5) * 45;
 
             $order = Order::query()->create([
                 'user_id' => $doctor->id,
@@ -869,8 +725,8 @@ class DemoDataSeeder extends Seeder
                 'price' => $price,
                 'remaining_amount' => $price,
                 'serial_number' => null,
-                'received_at' => $receivedAt,
-                'delivered_at' => null,
+                'received_at' => now(),
+                'delivered_at' => now()->addDays(3),
             ]);
 
             $order->serial_number = sprintf('ORD-%06d', $order->id);
@@ -881,25 +737,6 @@ class DemoDataSeeder extends Seeder
         }
 
         return $orders;
-    }
-
-    /**
-     * Pick a status based on weights.
-     */
-    private function weightedStatus(array $weights): string
-    {
-        $total = array_sum($weights);
-        $rand = random_int(1, $total);
-        $cumulative = 0;
-
-        foreach ($weights as $status => $weight) {
-            $cumulative += $weight;
-            if ($rand <= $cumulative) {
-                return $status;
-            }
-        }
-
-        return OrderStatus::NEW;
     }
 
     private function seedOrderQrImage(Order $order): void
@@ -988,17 +825,15 @@ class DemoDataSeeder extends Seeder
      * @param  array<int, array<int, Department>>  $departmentsByLab
      * @param  array<int, int>  $technicianIdsByDepartment
      */
-    private function seedTasksAndWorkSessions(array $orders, array $departmentsByLab, array $technicianIdsByDepartment, ?int $firstLabId = null): void
+    private function seedTasksAndWorkSessions(array $orders, array $departmentsByLab, array $technicianIdsByDepartment): void
     {
-        // 1. Get first lab departments for showcase orders (fixed order: الجص, الحواف, التصميم)
-        $firstLabDepartments = $firstLabId !== null ? ($departmentsByLab[$firstLabId] ?? []) : [];
+        // 1. جلب أقسام المخبر الأول فقط لضمان الترتيب الثابت (1: الجص, 2: الحواف, 3: التصميم)
+        $firstLabDepartments = $departmentsByLab[1] ?? [];
 
-        // 2. Get first 5 orders from first lab for showcase
-        $firstLabOrders = $firstLabId !== null
-            ? collect($orders)->where('lab_id', $firstLabId)->take(5)->values()
-            : collect();
+        // 2. فلترة المصفوفة أو جلب أول 5 طلبات تابعة للمخبر الأول حصراً (lab_id = 1)
+        $firstLabOrders = collect($orders)->where('lab_id', 1)->take(5)->values();
 
-        // Ensure we have enough departments and orders
+        // تأكدي من وجود الأقسام والطلبات الكافية لتجنب خطأ الـ Index Undefined
         if (count($firstLabDepartments) < 3 || $firstLabOrders->count() < 5) {
             return;
         }
@@ -1007,21 +842,22 @@ class DemoDataSeeder extends Seeder
         $edges = $firstLabDepartments[1];
         $design = $firstLabDepartments[2];
 
+        // جلب معرّفات الفنيين لكل قسم في المخبر الأول
         $techGypsum = $technicianIdsByDepartment[$gypsum->id] ?? null;
         $techEdges = $technicianIdsByDepartment[$edges->id] ?? null;
         $techDesign = $technicianIdsByDepartment[$design->id] ?? null;
 
-        // --- [Showcase Order 1: Pending assignment in Gypsum] ---
+        // --- [الطلب الأول: بانتظار الإسناد في قسم الجص] ---
         $order1 = $firstLabOrders[0];
         $order1->update(['status' => OrderStatus::PENDING]);
         Task::query()->create([
             'order_id' => $order1->id,
             'department_id' => $gypsum->id,
-            'user_id' => null,
+            'user_id' => null, // لم يُسند بعد ليعبئ تبويب "مهام للإسناد"
             'status' => TaskStatus::PENDING_ASSIGNMENT,
         ]);
 
-        // --- [Showcase Order 2: Assigned but not started] ---
+        // --- [الطلب الثاني: تم الإسناد للفني ولكن لم يبدأ بعد] ---
         $order2 = $firstLabOrders[1];
         $order2->update(['status' => OrderStatus::IN_PROGRESS]);
         Task::query()->create([
@@ -1031,7 +867,7 @@ class DemoDataSeeder extends Seeder
             'status' => TaskStatus::ASSIGNED,
         ]);
 
-        // --- [Showcase Order 3: In progress by Gypsum technician] ---
+        // --- [الطلب الثالث: قيد العمل عليه من قبل فني الجص] ---
         $order3 = $firstLabOrders[2];
         $order3->update(['status' => OrderStatus::IN_PROGRESS]);
         $task3 = Task::query()->create([
@@ -1048,14 +884,14 @@ class DemoDataSeeder extends Seeder
             'note' => 'العمل جاري على تلبسية الزيركون',
         ]);
 
-        // --- [Showcase Order 4: Completed, pending review] ---
+        // --- [الطلب الرابع: انتهى الفني وينتظر تقييم المدير (شاشتكِ المرفقة)] ---
         $order4 = $firstLabOrders[3];
         $order4->update(['status' => OrderStatus::IN_PROGRESS]);
         $task4 = Task::query()->create([
             'order_id' => $order4->id,
             'department_id' => $gypsum->id,
             'user_id' => $techGypsum,
-            'status' => TaskStatus::PENDING_REVIEW,
+            'status' => TaskStatus::PENDING_REVIEW, // يظهر في تبويب "بحاجة لتقييم"
         ]);
         TaskWorkSession::query()->create([
             'task_id' => $task4->id,
@@ -1065,209 +901,110 @@ class DemoDataSeeder extends Seeder
             'note' => 'تم إنهاء النحت والتجهيز بالكامل ميكانيكياً',
         ]);
 
-        // --- [Showcase Order 5: Fully completed through all departments] ---
+        // --- [الطلب الخامس: مرّ بالأقسام بالكامل وهو الآن منتهٍ ومكتمل] ---
         $order5 = $firstLabOrders[4];
         $order5->update(['status' => OrderStatus::COMPLETED]);
 
-        // Use order's received_at as base for work sessions (ensure immutable)
-        $baseTime5 = $order5->received_at ? CarbonImmutable::instance($order5->received_at) : now()->subDays(3);
-
-        // 1. Gypsum task completed
-        $gypsumStart = $baseTime5->addHours(1);
-        $gypsumEnd = $gypsumStart->addHours(3);
+        // 1. مهمة الجص المنتهية تاريخياً
         $task5 = Task::query()->create([
             'order_id' => $order5->id,
             'department_id' => $gypsum->id,
             'user_id' => $techGypsum,
             'status' => TaskStatus::COMPLETED,
-            'approved_at' => $gypsumEnd,
+            'approved_at' => now()->subDays(2),
         ]);
         TaskWorkSession::query()->create([
             'task_id' => $task5->id,
-            'start_time' => $gypsumStart,
-            'end_time' => $gypsumEnd,
+            'start_time' => now()->subDays(2)->subHours(5),
+            'end_time' => now()->subDays(2)->subHours(2),
             'status' => 'completed',
             'note' => 'تم الانتهاء من صب ونحت الخزف بنجاح',
         ]);
 
-        // 2. Edges task completed
-        $edgesStart = $gypsumEnd->addHours(2);
-        $edgesEnd = $edgesStart->addHours(3);
+        // 2. مهمة الحواف المنتهية تاريخياً
         $task6 = Task::query()->create([
             'order_id' => $order5->id,
             'department_id' => $edges->id,
             'user_id' => $techEdges,
             'status' => TaskStatus::COMPLETED,
-            'approved_at' => $edgesEnd,
+            'approved_at' => now()->subDays(1),
         ]);
         TaskWorkSession::query()->create([
             'task_id' => $task6->id,
-            'start_time' => $edgesStart,
-            'end_time' => $edgesEnd,
+            'start_time' => now()->subDays(1)->subHours(4),
+            'end_time' => now()->subDays(1)->subHours(1),
             'status' => 'completed',
             'note' => 'تم تجهيز أسلاك وتقويم الحالة بالكامل',
         ]);
 
-        // 3. Design task completed
-        $designStart = $edgesEnd->addHours(2);
-        $designEnd = $designStart->addHours(4);
+        // 3. مهمة التصميم المنتهية تاريخياً (آخر قسم)
         $task7 = Task::query()->create([
             'order_id' => $order5->id,
             'department_id' => $design->id,
             'user_id' => $techDesign,
             'status' => TaskStatus::COMPLETED,
-            'approved_at' => $designEnd,
+            'approved_at' => now()->subHours(5),
         ]);
         TaskWorkSession::query()->create([
             'task_id' => $task7->id,
-            'start_time' => $designStart,
-            'end_time' => $designEnd,
+            'start_time' => now()->subHours(9),
+            'end_time' => now()->subHours(5),
             'status' => 'completed',
             'note' => 'إنهاء تحضير دعم الزرعة النهائي وإرسالها للمدير للتقييم الأخير',
         ]);
 
+        // Seed tasks for all remaining orders across all labs
         $handledIds = $firstLabOrders->pluck('id')->toArray();
 
-        // Seed tasks for all remaining orders across all labs
         foreach ($orders as $order) {
             if (in_array($order->id, $handledIds, true)) {
                 continue;
             }
 
             $labDepts = collect($departmentsByLab[$order->lab_id] ?? [])
-                ->reject(fn (Department $d) => $d->is_management || in_array($d->name, ['الاستقبال', 'Reception']))
+                ->reject(fn (Department $d) => $d->is_management || in_array($d->name, ['الاستقبال', 'التوصيل']))
                 ->values();
 
             if ($labDepts->isEmpty()) {
                 continue;
             }
 
-            // Use order's received_at as the base timeline (ensure immutable)
-            $baseTime = $order->received_at ? CarbonImmutable::instance($order->received_at) : now();
-            $isCompleted = $order->status === OrderStatus::COMPLETED;
+            $firstDept = $labDepts[0];
 
-            // Use ALL departments for each order to ensure every department gets workload
-            $deptsToUse = $labDepts;
-            $currentTime = $baseTime;
-
-            // Get all technicians for this lab to distribute work
-            $labTechnicians = User::query()
-                ->whereHas('roles', fn (EloquentBuilder $q) => $q->where('name', 'lab_technician'))
-                ->whereHas('departmentUserRoles', fn (EloquentBuilder $q) => $q->whereIn('department_id', function ($query) use ($order) {
-                    $query->select('id')->from('departments')->where('lab_id', $order->lab_id);
-                }))
-                ->get()
-                ->pluck('id')
-                ->toArray();
-
-            $techIndex = 0;
-
-            // Create tasks for ALL departments - use round-robin to distribute work evenly
-            foreach ($deptsToUse as $deptIndex => $dept) {
-                // Use department-assigned technician if available, otherwise cycle through lab technicians
-                $techId = $technicianIdsByDepartment[$dept->id] ?? ($labTechnicians[$techIndex % count($labTechnicians)] ?? null);
-                if (! empty($labTechnicians)) {
-                    $techIndex++;
-                }
-
-                // Create task for every department, but with different statuses based on order status
-                match ($order->status) {
-                    OrderStatus::PENDING => Task::query()->create([
+            match ($order->status) {
+                OrderStatus::PENDING => Task::query()->create([
+                    'order_id' => $order->id,
+                    'department_id' => $firstDept->id,
+                    'status' => TaskStatus::PENDING_ASSIGNMENT,
+                ]),
+                OrderStatus::IN_PROGRESS => Task::query()->create([
+                    'order_id' => $order->id,
+                    'department_id' => $firstDept->id,
+                    'user_id' => $technicianIdsByDepartment[$firstDept->id] ?? null,
+                    'status' => rand(0, 1) ? TaskStatus::ASSIGNED : TaskStatus::IN_PROGRESS,
+                ]),
+                OrderStatus::TRY_ON, OrderStatus::RESEND_WRONG_IMPRESSION => Task::query()->create([
+                    'order_id' => $order->id,
+                    'department_id' => $firstDept->id,
+                    'user_id' => $technicianIdsByDepartment[$firstDept->id] ?? null,
+                    'status' => rand(0, 1) ? TaskStatus::ASSIGNED : TaskStatus::IN_PROGRESS,
+                ]),
+                OrderStatus::COMPLETED => collect([$labDepts[0], $labDepts->get(1), $labDepts->get(2)])
+                    ->filter()
+                    ->each(fn (Department $dept) => Task::query()->create([
                         'order_id' => $order->id,
                         'department_id' => $dept->id,
-                        'status' => $deptIndex === 0 ? TaskStatus::PENDING_ASSIGNMENT : TaskStatus::ASSIGNED,
-                        'approved_at' => $currentTime->startOfDay()->addHours(random_int(8, 20)),
-                    ]),
-                    OrderStatus::IN_PROGRESS => Task::query()->create([
-                        'order_id' => $order->id,
-                        'department_id' => $dept->id,
-                        'user_id' => $techId,
-                        'status' => rand(0, 1) ? TaskStatus::IN_PROGRESS : TaskStatus::ASSIGNED,
-                        'approved_at' => $currentTime->startOfDay()->addHours(random_int(8, 20)),
-                    ]),
-                    OrderStatus::TRY_ON, OrderStatus::RESEND_WRONG_IMPRESSION => Task::query()->create([
-                        'order_id' => $order->id,
-                        'department_id' => $dept->id,
-                        'user_id' => $techId,
-                        'status' => rand(0, 1) ? TaskStatus::IN_PROGRESS : TaskStatus::ASSIGNED,
-                        'approved_at' => $currentTime->startOfDay()->addHours(random_int(8, 20)),
-                    ]),
-                    OrderStatus::COMPLETED => $this->createCompletedTaskWithWorkSession($order, $dept, ['dept' => $techId], $currentTime, $deptIndex),
-                    default => Task::query()->create([
-                        'order_id' => $order->id,
-                        'department_id' => $dept->id,
-                        'status' => TaskStatus::PENDING_ASSIGNMENT,
-                        'approved_at' => $currentTime->startOfDay()->addHours(random_int(8, 20)),
-                    ]),
-                };
-
-                // Add small time gap between departments
-                $currentTime = $currentTime->addHours(random_int(1, 4));
-            }
+                        'user_id' => $technicianIdsByDepartment[$dept->id] ?? null,
+                        'status' => TaskStatus::COMPLETED,
+                        'approved_at' => now()->subHours(rand(1, 48)),
+                    ])),
+                default => Task::query()->create([
+                    'order_id' => $order->id,
+                    'department_id' => $firstDept->id,
+                    'status' => TaskStatus::PENDING_ASSIGNMENT,
+                ]),
+            };
         }
-    }
-
-    /**
-     * Create in-progress task with work session.
-     */
-    private function createInProgressTask(Order $order, Department $dept, array $techData, $baseTime): void
-    {
-        $techId = $techData['dept'] ?? null;
-        $isAssigned = rand(0, 1);
-
-        // Use safe hours (8-20) to avoid DST issues
-        $safeTime = $baseTime->startOfDay()->addHours(random_int(8, 20));
-
-        $task = Task::query()->create([
-            'order_id' => $order->id,
-            'department_id' => $dept->id,
-            'user_id' => $isAssigned ? $techId : null,
-            'status' => $isAssigned ? TaskStatus::IN_PROGRESS : TaskStatus::ASSIGNED,
-            'approved_at' => $safeTime,
-        ]);
-
-        if ($isAssigned) {
-            // Start 1-6 hours after safe time
-            $startTime = $safeTime->addHours(random_int(1, 6));
-            TaskWorkSession::query()->create([
-                'task_id' => $task->id,
-                'start_time' => $startTime,
-                'end_time' => null,
-                'status' => 'active',
-                'note' => 'العمل جاري على الطلب',
-            ]);
-        }
-    }
-
-    /**
-     * Create a single completed task with work session.
-     */
-    private function createCompletedTaskWithWorkSession(Order $order, Department $dept, array $techData, $baseTime, int $deptIndex): void
-    {
-        $techId = $techData['dept'] ?? null;
-
-        // Each department takes 3-6 hours of work
-        // Use hours 8-20 to avoid DST transition issues
-        $hourOffset = random_int(8, 20);
-        $workStart = $baseTime->startOfDay()->addHours($hourOffset);
-        $workDuration = random_int(3, 6);
-        $workEnd = $workStart->addHours($workDuration);
-
-        $task = Task::query()->create([
-            'order_id' => $order->id,
-            'department_id' => $dept->id,
-            'user_id' => $techId,
-            'status' => TaskStatus::COMPLETED,
-            'approved_at' => $workEnd,
-        ]);
-
-        TaskWorkSession::query()->create([
-            'task_id' => $task->id,
-            'start_time' => $workStart,
-            'end_time' => $workEnd,
-            'status' => 'completed',
-            'note' => 'تم إنجاز المهمة بنجاح في قسم '.$dept->name,
-        ]);
     }
 
     /**
@@ -1288,31 +1025,19 @@ class DemoDataSeeder extends Seeder
                 continue;
             }
 
-            // Determine payment date: for completed orders, around delivered_at or received_at
-            // For in-progress orders, sometime after received_at
-            $baseTime = $order->received_at ?? now();
-            $paidAt = $baseTime->addDays(random_int(0, $order->status === OrderStatus::COMPLETED ? 10 : 30));
-
-            // Cap at end of 2026
-            if ($paidAt->year > 2026) {
-                $paidAt = CarbonImmutable::create(2026, 12, 28, 17, 0);
-            }
-
             $payment = Payment::query()->create([
                 'user_id' => $order->user_id,
                 'amount' => $paidAmount,
                 'payment_method' => $methods[$index % count($methods)],
-                'payment_status' => 'paid',
-                'currency' => 'USD',
-                'paid_at' => $paidAt,
+                'paid_at' => now()->subDays($index % 20),
             ]);
 
             DB::table('payment_order')->insert([
                 'payment_id' => $payment->id,
                 'order_id' => $order->id,
                 'amount' => $paidAmount,
-                'created_at' => $paidAt,
-                'updated_at' => $paidAt,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             $order->update(['remaining_amount' => 0]);
@@ -1350,9 +1075,9 @@ class DemoDataSeeder extends Seeder
 
     /**
      * @param  array<int, Order>  $orders
-     * @param  array<int, User>  $deliveryUsersByLabId  keyed by lab ID
+     * @param  array<int, User>  $deliveryUsers
      */
-    private function seedDeliveryTasks(array $orders, array $deliveryUsersByLabId): void
+    private function seedDeliveryTasks(array $orders, array $deliveryUsers): void
     {
         $deliveryStatuses = DeliveryStatus::ALL;
 
@@ -1361,60 +1086,25 @@ class DemoDataSeeder extends Seeder
                 continue;
             }
 
-            // Weight status: most completed orders should be DELIVERED
-            $status = $this->weightedStatus([
-                DeliveryStatus::DELIVERED => 70,
-                DeliveryStatus::ON_THE_WAY_TO_DOCTOR => 15,
-                DeliveryStatus::RECEIVED => 10,
-                DeliveryStatus::EMPTY => 5,
-            ]);
-            $deliveryUser = $deliveryUsersByLabId[$order->lab_id] ?? null;
-
-            if ($deliveryUser === null) {
-                continue;
-            }
+            $status = $deliveryStatuses[$index % count($deliveryStatuses)];
+            $deliveryUser = $deliveryUsers[$index % count($deliveryUsers)];
 
             $direction = match ($order->status) {
                 OrderStatus::COMPLETED => DeliveryTaskDirection::TO_DOCTOR,
                 default => DeliveryTaskDirection::TO_LAB,
             };
 
-            // Base delivery timeline on order's delivered_at
-            $baseTime = $order->delivered_at ?? $order->received_at ?? now();
-
-            $pickedAt = null;
-            $deliveredAt = null;
-
-            if (in_array($status, DeliveryStatus::PICKED_STATUSES, true)) {
-                // Picked up 0-2 days after order delivered/completed
-                $pickedAt = $baseTime->addDays(random_int(0, 2));
-            }
-
-            if ($status === DeliveryStatus::DELIVERED) {
-                // Delivered 1-3 days after pickup, or 1-5 days after base if no pickup
-                if ($pickedAt) {
-                    $deliveredAt = $pickedAt->addDays(random_int(1, 3));
-                } else {
-                    $deliveredAt = $baseTime->addDays(random_int(1, 5));
-                }
-            }
-
-            // Cap dates at end of 2026
-            if ($pickedAt && $pickedAt->year > 2026) {
-                $pickedAt = CarbonImmutable::create(2026, 12, 28, 17, 0);
-            }
-            if ($deliveredAt && $deliveredAt->year > 2026) {
-                $deliveredAt = CarbonImmutable::create(2026, 12, 28, 17, 0);
-            }
-
             DeliveryTask::query()->create([
                 'order_id' => $order->id,
                 'user_id' => $deliveryUser->id,
-                'status' => 'empty',
-                // $status,
+                'status' => $status,
                 'direction' => $direction,
-                'picked_at' => $pickedAt,
-                'delivered_at' => $deliveredAt,
+                'picked_at' => in_array($status, DeliveryStatus::PICKED_STATUSES, true)
+                    ? now()->subDays(($index % 10) + 1)
+                    : null,
+                'delivered_at' => $status === DeliveryStatus::DELIVERED
+                    ? now()->subDays($index % 7)
+                    : null,
             ]);
         }
     }
@@ -1546,5 +1236,12 @@ class DemoDataSeeder extends Seeder
 
             $tokenUser->createToken('demo-token-'.Str::lower(str_replace(' ', '-', $tokenUser->name)), ['*']);
         }
+    }
+
+    private function arabicNumber(int $number): string
+    {
+        $arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+
+        return str_replace(range(0, 9), $arabic, (string) $number);
     }
 }
