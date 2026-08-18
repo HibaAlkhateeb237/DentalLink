@@ -39,7 +39,7 @@ class EmployeeResource extends JsonResource
 
                 return [
                     'id' => $department->id,
-                    'name' => $department->name,
+                    'name' => $department->translated_name,
                     'lab' => $department->lab === null
                         ? null
                         : [

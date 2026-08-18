@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Services\DashboardService;
 use App\Models\Department;
 use App\Models\DepartmentUserRole;
 use App\Models\Lab;
@@ -31,7 +32,7 @@ class DemoDataSeederTest extends TestCase
 
         $receptionDepartment = Department::query()
             ->where('lab_id', $firstLab->id)
-            ->where('name', 'Reception')
+            ->where('name', 'الاستقبال')
             ->first();
         $this->assertNotNull($receptionDepartment);
 
@@ -75,7 +76,7 @@ class DemoDataSeederTest extends TestCase
         $departments = Department::query()
             ->where('lab_id', $firstLab->id)
             ->where('is_management', false)
-            ->where('name', '!=', 'Reception')
+            ->whereNotIn('name', ['الاستقبال', 'التوصيل'])
             ->get();
 
         $this->assertNotEmpty($departments);
@@ -123,7 +124,7 @@ class DemoDataSeederTest extends TestCase
             $this->assertNotNull($lab);
             $this->assertSame($lab->name, $technician->lab_name);
             $this->assertSame(0, (int) $department->is_management);
-            $this->assertNotSame('Reception', $department->name);
+            $this->assertNotSame('الاستقبال', $department->name);
         }
     }
 
@@ -154,6 +155,26 @@ class DemoDataSeederTest extends TestCase
                     ->exists()
             );
         }
+    }
+
+    public function test_demo_data_seeder_first_lab_dashboard_stats_are_not_zeros(): void
+    {
+        Storage::fake('public');
+
+        $this->seed(DemoDataSeeder::class);
+
+        $firstLab = Lab::query()->orderBy('id')->first();
+        $this->assertNotNull($firstLab);
+
+        $data = app(DashboardService::class)->getDashboardData((int) $firstLab->id);
+
+        $this->assertGreaterThan(0, $data['monthly_revenue']['orders_count']);
+        $this->assertGreaterThan(0, $data['monthly_revenue']['total_revenue']);
+        $this->assertGreaterThan(0, $data['monthly_revenue']['average_order_value']);
+        $this->assertGreaterThan(0, $data['average_delivery_time']['total_completed']);
+        $this->assertGreaterThan(0, $data['department_workload']['total_tasks']);
+        $this->assertGreaterThan(0, $data['yearly_performance_chart']['yearly_total_orders']);
+        $this->assertGreaterThan(0, count($data['top_clinics']['doctors']));
     }
 
     public function test_demo_data_seeder_cleans_existing_order_qr_images(): void

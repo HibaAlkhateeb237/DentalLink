@@ -168,15 +168,15 @@ class LabService
 
             $managementDepartment = Department::query()->create([
                 'lab_id' => $lab->id,
-                'name' => 'Management',
+                'name' => 'الإدارة',
                 'is_management' => true,
             ]);
 
             $departments = [
-                ['name' => 'Gypsum', 'sort_order' => 1, 'time_allowed' => 7],
-                ['name' => 'Design', 'sort_order' => 2, 'time_allowed' => 2],
-                ['name' => 'Roughing', 'sort_order' => 3, 'time_allowed' => 2],
-                ['name' => 'Polishing', 'sort_order' => 4, 'time_allowed' => 2],
+                ['name' => 'الجبص', 'sort_order' => 1, 'time_allowed' => 7],
+                ['name' => 'التصميم', 'sort_order' => 2, 'time_allowed' => 2],
+                ['name' => 'التسوية', 'sort_order' => 3, 'time_allowed' => 2],
+                ['name' => 'التلميع', 'sort_order' => 4, 'time_allowed' => 2],
             ];
 
             foreach ($departments as $dept) {
