@@ -1099,7 +1099,8 @@ class DemoDataSeeder extends Seeder
             DeliveryTask::query()->create([
                 'order_id' => $order->id,
                 'user_id' => $deliveryUser->id,
-                'status' => $status,
+                'status' => "empty",
+                    //$status,
                 'direction' => $direction,
                 'picked_at' => in_array($status, DeliveryStatus::PICKED_STATUSES, true)
                     ? now()->subDays(($index % 10) + 1)
