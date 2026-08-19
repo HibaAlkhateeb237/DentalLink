@@ -1079,15 +1079,23 @@ class DemoDataSeeder extends Seeder
      */
     private function seedDeliveryTasks(array $orders, array $deliveryUsers): void
     {
-        $deliveryStatuses = DeliveryStatus::ALL;
+        // Build mapping: lab name -> delivery user (enforces 1 delivery person per lab)
+        $deliveryUsersByLab = [];
+        foreach ($deliveryUsers as $deliveryUser) {
+            $deliveryUsersByLab[$deliveryUser->lab_name] = $deliveryUser;
+        }
 
         foreach ($orders as $index => $order) {
             if (! in_array($order->status, ['completed', 'delivered'], true)) {
                 continue;
             }
 
-            $status = $deliveryStatuses[$index % count($deliveryStatuses)];
-            $deliveryUser = $deliveryUsers[$index % count($deliveryUsers)];
+            // All delivery tasks start with status "empty"
+            $status = DeliveryStatus::EMPTY;
+
+            // Look up delivery user assigned to this order's lab (enforces lab-task compatibility)
+            $labName = $order->lab?->name ?? null;
+            $deliveryUser = $deliveryUsersByLab[$labName] ?? $deliveryUsers[$index % count($deliveryUsers)];
 
             $direction = match ($order->status) {
                 OrderStatus::COMPLETED => DeliveryTaskDirection::TO_DOCTOR,
@@ -1099,12 +1107,8 @@ class DemoDataSeeder extends Seeder
                 'user_id' => $deliveryUser->id,
                 'status' => $status,
                 'direction' => $direction,
-                'picked_at' => in_array($status, DeliveryStatus::PICKED_STATUSES, true)
-                    ? now()->subDays(($index % 10) + 1)
-                    : null,
-                'delivered_at' => $status === DeliveryStatus::DELIVERED
-                    ? now()->subDays($index % 7)
-                    : null,
+                'picked_at' => null,
+                'delivered_at' => null,
             ]);
         }
     }
