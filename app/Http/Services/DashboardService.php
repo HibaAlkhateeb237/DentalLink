@@ -139,8 +139,12 @@ class DashboardService
         $yearStart = Carbon::create($year, 1, 1)->startOfDay();
         $yearEnd = Carbon::create($year, 12, 31)->endOfDay();
 
+        $excludedNames = ['الإدارة', 'الاستقبال', 'التوصيل'];
+
         $departments = Department::query()
             ->whereIn('lab_id', $labIds)
+            ->where('is_management', false)
+            ->whereNotIn('name', $excludedNames)
             ->with(['tasks' => fn ($q) => $q->whereBetween('approved_at', [$yearStart, $yearEnd])])
             ->get();
 
