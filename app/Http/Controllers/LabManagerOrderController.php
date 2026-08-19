@@ -21,6 +21,18 @@ class LabManagerOrderController extends Controller
     public function setDepartmentRoute(LabManagerOrderDepartmentRequest $request): JsonResponse
     {
         $labId = $request->getManagerLabId();
+
+        $hasExistingOrders = Order::query()
+            ->where('lab_id', $labId)
+            ->exists();
+
+        if ($hasExistingOrders) {
+            return $this->apiResponse->error(
+                __('orders.cannot_edit_department_route_with_existing_orders'),
+                422
+            );
+        }
+
         $departmentIds = $request->validated('department_ids');
         $departmentTimes = $request->validated('department_time_allowed_hours');
 

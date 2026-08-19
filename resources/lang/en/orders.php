@@ -31,6 +31,8 @@ return [
     'department_not_in_lab' => 'Selected department does not belong to this lab',
     'no_orders_for_route' => 'No orders in your lab are eligible for department routing',
 
+    'cannot_edit_department_route_with_existing_orders' => 'Cannot edit department route: lab already has existing orders',
+
     'delivery_status_updated' => 'Delivery status updated successfully',
     'delivery_status_transition_invalid' => 'Cannot change delivery status to the requested status',
 

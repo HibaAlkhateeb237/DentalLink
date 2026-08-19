@@ -62,7 +62,7 @@ class ReceptionistOrderListResource extends JsonResource
                             'status' => $departmentStatus,
                             'task_id' => $task?->id,
                             'approved_at' => $task?->approved_at?->toISOString(),
-                            'is_current' => ! $isOrderCompleted && $currentTask?->id === $task?->id,
+                            'is_current' => ! $isOrderCompleted && $currentTask !== null && $currentTask->id === $task?->id,
                         ];
                     })
                     ->all()
@@ -108,9 +108,38 @@ class ReceptionistOrderListResource extends JsonResource
             return null;
         }
 
-        return $this->tasks
+        $activeTask = $this->tasks
             ->filter(fn ($task): bool => in_array($task->status, ['assigned', 'in_progress', 'pending_review'], true))
             ->sortByDesc('id')
+            ->first();
+
+        if ($activeTask !== null) {
+            return $activeTask;
+        }
+
+        $processingStatuses = [OrderStatus::IN_PROGRESS, OrderStatus::TRY_ON, OrderStatus::RESEND_WRONG_IMPRESSION];
+
+        if (! in_array($this->status, $processingStatuses, true)) {
+            return null;
+        }
+
+        $departments = $this->lab?->departments;
+
+        if (! $departments) {
+            return null;
+        }
+
+        $firstDepartment = $departments
+            ->filter(fn ($department) => ! $department->is_management && ! in_array($department->name, ['الاستقبال', 'التوصيل', 'الإدارة'], true))
+            ->sortBy('sort_order')
+            ->first();
+
+        if (! $firstDepartment) {
+            return null;
+        }
+
+        return $this->tasks
+            ->filter(fn ($task): bool => $task->department_id === $firstDepartment->id && $task->status === TaskStatus::PENDING_ASSIGNMENT)
             ->first();
     }
 }
