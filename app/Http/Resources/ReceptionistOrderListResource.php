@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources;
 
+use App\Support\OrderStatus;
+use App\Support\TaskStatus;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -47,16 +49,20 @@ class ReceptionistOrderListResource extends JsonResource
                     ->values()
                     ->map(function ($department) use ($tasksByDepartmentId, $currentTask): array {
                         $task = $tasksByDepartmentId->get($department->id);
+                        $isOrderCompleted = $this->status === OrderStatus::COMPLETED;
+                        $departmentStatus = $isOrderCompleted
+                            ? TaskStatus::COMPLETED
+                            : $task?->status;
 
                         return [
                             'id' => $department->id,
                             'name' => $department->translated_name,
                             'sort_order' => $department->sort_order,
                             'is_management' => (bool) $department->is_management,
-                            'status' => $task?->status,
+                            'status' => $departmentStatus,
                             'task_id' => $task?->id,
                             'approved_at' => $task?->approved_at?->toISOString(),
-                            'is_current' => $currentTask?->id === $task?->id,
+                            'is_current' => ! $isOrderCompleted && $currentTask?->id === $task?->id,
                         ];
                     })
                     ->all()

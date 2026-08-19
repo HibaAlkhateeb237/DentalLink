@@ -4,6 +4,7 @@ namespace App\Http\Services;
 
 use App\Http\Repositories\OrderTrackingRepository;
 use App\Models\Order;
+use App\Support\OrderStatus;
 use Carbon\Carbon;
 
 class DoctorOrderTrackingService
@@ -31,13 +32,19 @@ class DoctorOrderTrackingService
             $totalRemainingMinutes = 0;
         }
 
+        $isOrderCompleted = $order->status === OrderStatus::COMPLETED;
+
         foreach ($departments as $department) {
             $task = $department->tasks->first();
 
             $allowedMinutes = ((int) ($department->time_allowed ?? 0)) * 60;
             $workedMinutes = $task ? $task->workedMinutes() : 0;
 
-            if ($task && $task->status === 'completed') {
+            if ($isOrderCompleted) {
+                $stepStatus = 'completed';
+                $remainingMinutesForStep = 0;
+
+            } elseif ($task && $task->status === 'completed') {
                 $stepStatus = 'completed';
                 $remainingMinutesForStep = 0;
 

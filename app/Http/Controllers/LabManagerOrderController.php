@@ -8,6 +8,7 @@ use App\Models\Department;
 use App\Models\Lab;
 use App\Models\Order;
 use App\Models\Task;
+use App\Support\OrderStatus;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
@@ -95,11 +96,15 @@ class LabManagerOrderController extends Controller
             ->orderBy('sort_order')
             ->get();
 
-        $departmentsWithStatus = $departments->map(function (Department $department) use ($order) {
+        $isOrderCompleted = $order->status === OrderStatus::COMPLETED;
+
+        $departmentsWithStatus = $departments->map(function (Department $department) use ($order, $isOrderCompleted) {
             $task = Task::query()
                 ->where('order_id', $order->id)
                 ->where('department_id', $department->id)
                 ->first();
+
+            $taskStatus = $isOrderCompleted ? 'completed' : $task?->status;
 
             return [
                 'id' => $department->id,
@@ -108,12 +113,12 @@ class LabManagerOrderController extends Controller
                 'time_allowed_hours' => max(0, (int) ($department->time_allowed ?? 0)),
                 'task' => $task ? [
                     'id' => $task->id,
-                    'status' => $task->status,
+                    'status' => $taskStatus,
                     'user_id' => $task->user_id,
                     'approved_at' => $task->approved_at,
                 ] : null,
-                'is_current' => $task && in_array($task->status, ['assigned', 'in_progress'], true),
-                'is_completed' => $task && $task->status === 'completed',
+                'is_current' => ! $isOrderCompleted && $task && in_array($task->status, ['assigned', 'in_progress'], true),
+                'is_completed' => $isOrderCompleted || ($task && $task->status === 'completed'),
             ];
         })->values();
 
