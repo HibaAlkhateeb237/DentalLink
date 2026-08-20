@@ -35,6 +35,7 @@ class OrderDetailResource extends JsonResource
             'files' => OrderFileResource::collection($this->whenLoaded('orderFiles')),
             //  'status_history' => OrderStatusHistoryResource::collection($this->whenLoaded('statusHistory')),
             'created_at' => $this->created_at?->toISOString(),
+            'qr_printed_at' => $this->qr_printed_at?->toISOString(),
 
         ];
     }

@@ -36,6 +36,7 @@ class OrderResource extends JsonResource
             // 'teeth' => OrderToothResource::collection($this->whenLoaded('orderTeeth')),
 
             'created_at' => $this->created_at?->toISOString(),
+            'qr_printed_at' => $this->qr_printed_at?->toISOString(),
 
         ];
     }

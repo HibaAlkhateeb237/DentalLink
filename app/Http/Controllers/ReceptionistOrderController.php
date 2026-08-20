@@ -218,17 +218,17 @@ class ReceptionistOrderController extends Controller
             return $this->apiResponse->error(__('orders.qr_already_printed'), 409);
         }
 
-        return DB::transaction(function () use ($order, $user, $path) {
+        return DB::transaction(function () use ($order, $path) {
 
             $order->qr_printed_at = now();
             $order->save();
 
-        /*    $this->receptionistOrderService->updateStatus(
-                $order,
-                OrderStatus::IN_PROGRESS,
-                null,
-                $user,
-            );*/
+            /*    $this->receptionistOrderService->updateStatus(
+                    $order,
+                    OrderStatus::IN_PROGRESS,
+                    null,
+                    $user,
+                );*/
 
             $firstDepartment = Department::query()
                 ->where('lab_id', $order->lab_id)

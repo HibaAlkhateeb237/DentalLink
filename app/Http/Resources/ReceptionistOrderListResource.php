@@ -53,6 +53,7 @@ class ReceptionistOrderListResource extends JsonResource
             'requires_resubmission' => (bool) $this->requires_resubmission,
             'resubmission_reason' => $this->resubmission_reason,
             'resubmission_requested_at' => $this->resubmission_requested_at,
+            'qr_printed_at' => $this->qr_printed_at?->toISOString(),
             'created_at' => $this->created_at,
             'doctor' => $this->user === null
                 ? null
