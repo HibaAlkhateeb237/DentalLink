@@ -60,6 +60,30 @@ class DemoDataSeeder extends Seeder
     ];
 
     /**
+     * Real, publicly accessible before/after dental treatment photos used for demo portfolios.
+     *
+     * Sources:
+     *  - Apex Dental Centre (Dr. Mahesh Gantasala, specialist prosthodontist): https://www.apexdentalcentre.com.au/case.html
+     *  - McOmie Family Dentistry (Dr. Mark D. McOmie, real patient veneer cases): https://mcomiedentistry.com/dental-galleries/veneers-patient-before-afters/
+     *
+     * @var array<int, array{before: string, after: string}>
+     */
+    private const PORTFOLIO_REAL_IMAGES = [
+        ['before' => 'https://apexdentalcentre.com.au/images/cs/full-mouth-rehab-crowns-n-bridges-case-1-before-2.jpg', 'after' => 'https://apexdentalcentre.com.au/images/cs/full-mouth-rehab-crowns-n-bridges-case-1-after-2.jpg'],
+        ['before' => 'https://apexdentalcentre.com.au/images/cs/full-implant-bridge-case-1-before.jpg', 'after' => 'https://apexdentalcentre.com.au/images/cs/full-implant-bridge-case-1-after.jpg'],
+        ['before' => 'https://apexdentalcentre.com.au/images/cs/implant-crowns-n-bridges-case-1-before.jpg', 'after' => 'https://apexdentalcentre.com.au/images/cs/implant-crowns-n-bridges-case-1-after.jpg'],
+        ['before' => 'https://apexdentalcentre.com.au/images/cs/implants-replace-missing-incisors-case-1-before.jpg', 'after' => 'https://apexdentalcentre.com.au/images/cs/implants-replace-missing-incisors-case-1-after.jpg'],
+        ['before' => 'https://apexdentalcentre.com.au/images/cs/maryland-bridges-case-1-before.jpg', 'after' => 'https://apexdentalcentre.com.au/images/cs/maryland-bridges-case-1-after.jpg'],
+        ['before' => 'https://apexdentalcentre.com.au/images/cs/missing-teeth-replaced-with-bridge-case-1-before.jpg', 'after' => 'https://apexdentalcentre.com.au/images/cs/missing-teeth-replaced-with-bridge-case-1-after.jpg'],
+        ['before' => 'https://apexdentalcentre.com.au/images/cs/porcelain-veneers-case-1-before.jpg', 'after' => 'https://apexdentalcentre.com.au/images/cs/porcelain-veneers-case-1-after.jpg'],
+        ['before' => 'https://apexdentalcentre.com.au/images/cs/midline-space-closer-direct-resin-restorations-case-1-before.jpg', 'after' => 'https://apexdentalcentre.com.au/images/cs/midline-space-closer-direct-resin-restorations-case-1-after.jpg'],
+        ['before' => 'https://mcomiedentistry.com/wp-content/uploads/2021/09/dental-veneers-before-sd-1.jpg', 'after' => 'https://mcomiedentistry.com/wp-content/uploads/2021/09/dental-veneers-after-sd-2.jpg'],
+        ['before' => 'https://mcomiedentistry.com/wp-content/uploads/2021/09/veneers-before-sc-1.jpg', 'after' => 'https://mcomiedentistry.com/wp-content/uploads/2021/09/veneers-after-sc-2.jpg'],
+        ['before' => 'https://mcomiedentistry.com/wp-content/uploads/2021/09/veneers-before-ba-1.jpg', 'after' => 'https://mcomiedentistry.com/wp-content/uploads/2021/09/veneers-after-ba-2.jpg'],
+        ['before' => 'https://mcomiedentistry.com/wp-content/uploads/2021/09/dental-veneers-before-ep-1.jpg', 'after' => 'https://mcomiedentistry.com/wp-content/uploads/2021/09/dental-veneers-after-ep-2.jpg'],
+    ];
+
+    /**
      * Run the database seeds.
      */
     public function run(): void
@@ -1175,6 +1199,9 @@ class DemoDataSeeder extends Seeder
      */
     private function seedPortfolioCases(array $orders): void
     {
+        $realImages = self::PORTFOLIO_REAL_IMAGES;
+        $realImagesCount = count($realImages);
+
         foreach ($orders as $index => $order) {
             if (! in_array($order->status, ['completed', 'delivered'], true)) {
                 continue;
@@ -1187,8 +1214,8 @@ class DemoDataSeeder extends Seeder
             PortfolioCase::query()->create([
                 'order_id' => $order->id,
                 'case_name' => 'حالة من أعمال المختبر #'.$order->id,
-                'before_image_path' => 'labs/portfolio/order-'.$order->id.'-before.jpg',
-                'after_image_path' => 'labs/portfolio/order-'.$order->id.'-after.jpg',
+                'before_image_path' => $realImages[$index % $realImagesCount]['before'],
+                'after_image_path' => $realImages[$index % $realImagesCount]['after'],
                 'duration_minutes' => 90 + (($index % 4) * 20),
                 'is_published' => ($index % 5) !== 0,
             ]);
