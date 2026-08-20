@@ -223,12 +223,12 @@ class ReceptionistOrderController extends Controller
             $order->qr_printed_at = now();
             $order->save();
 
-            $this->receptionistOrderService->updateStatus(
+        /*    $this->receptionistOrderService->updateStatus(
                 $order,
                 OrderStatus::IN_PROGRESS,
                 null,
                 $user,
-            );
+            );*/
 
             $firstDepartment = Department::query()
                 ->where('lab_id', $order->lab_id)
