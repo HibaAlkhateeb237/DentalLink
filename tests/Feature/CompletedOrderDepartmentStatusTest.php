@@ -98,6 +98,80 @@ class CompletedOrderDepartmentStatusTest extends TestCase
             ->assertJsonCount(3, 'data.data.0.departments');
     }
 
+    public function test_completed_order_shows_all_departments_as_completed_in_receptionist_details(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $receptionist = $this->actingAsRole('receptionist');
+        $doctor = User::factory()->create();
+
+        $lab = Lab::query()->create([
+            'name' => 'Detail Status Lab',
+            'phone' => '4444444',
+            'address' => 'Damascus',
+            'latitude' => 33.5138070,
+            'longitude' => 36.2765279,
+        ]);
+
+        $this->attachReceptionistToLab($receptionist, $lab);
+
+        $deptA = Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'Ceramics',
+            'is_management' => false,
+            'sort_order' => 1,
+            'time_allowed' => 8,
+        ]);
+
+        $deptB = Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'CAD/CAM',
+            'is_management' => false,
+            'sort_order' => 2,
+            'time_allowed' => 6,
+        ]);
+
+        $deptC = Department::query()->create([
+            'lab_id' => $lab->id,
+            'name' => 'Finishing',
+            'is_management' => false,
+            'sort_order' => 3,
+            'time_allowed' => 4,
+        ]);
+
+        $order = Order::query()->create([
+            'user_id' => $doctor->id,
+            'lab_id' => $lab->id,
+            'qr_code' => 'QR-COMPLETED-DETAIL-001',
+            'priority' => 'normal',
+            'status' => 'completed',
+            'order_type' => 'digital',
+            'price' => 200,
+            'remaining_amount' => 0,
+        ]);
+
+        $deptATask = Task::query()->create([
+            'order_id' => $order->id,
+            'department_id' => $deptA->id,
+            'status' => 'completed',
+            'approved_at' => now(),
+        ]);
+
+        Sanctum::actingAs($receptionist);
+
+        $response = $this->getJson("/api/auth/orders/{$order->id}");
+
+        $response->assertOk()
+            ->assertJsonPath('data.order.tasks.0.department.name', 'Ceramics')
+            ->assertJsonPath('data.order.tasks.0.status', 'completed')
+            ->assertJsonPath('data.order.tasks.0.id', $deptATask->id)
+            ->assertJsonPath('data.order.tasks.1.status', 'completed')
+            ->assertJsonPath('data.order.tasks.1.id', null)
+            ->assertJsonPath('data.order.tasks.2.status', 'completed')
+            ->assertJsonPath('data.order.tasks.2.id', null)
+            ->assertJsonCount(3, 'data.order.tasks');
+    }
+
     public function test_completed_order_shows_all_departments_completed_in_lab_manager_route(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);

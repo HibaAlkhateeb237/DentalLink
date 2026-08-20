@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\OrderDepartmentDisplay;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Carbon;
@@ -99,24 +100,33 @@ class ReceptionistOrderDetailsResource extends JsonResource
                 ],
             'teeth' => OrderToothResource::collection($this->whenLoaded('orderTeeth')),
             'files' => OrderFileResource::collection($this->whenLoaded('orderFiles')),
-            'tasks' => $this->whenLoaded('tasks', fn () => $this->tasks->map(fn ($task): array => [
-                'id' => $task->id,
-                'status' => $task->status,
-                'approved_at' => $task->approved_at,
-                'department' => $task->department === null
-                    ? null
-                    : [
-                        'id' => $task->department->id,
-                        'name' => $task->department->translated_name,
-                    ],
-                'employee' => $task->user === null
-                    ? null
-                    : [
-                        'id' => $task->user->id,
-                        'name' => $task->user->name,
-                        'email' => $task->user->email,
-                    ],
-            ])->values()),
+            'tasks' => $this->whenLoaded('tasks', function (): array {
+                $tasksByDepartmentId = $this->tasks->keyBy('department_id');
+
+                return collect(OrderDepartmentDisplay::departments($this->resource))
+                    ->map(function (array $departmentEntry) use ($tasksByDepartmentId): array {
+                        $task = $tasksByDepartmentId->get($departmentEntry['id']);
+
+                        return [
+                            'id' => $task?->id,
+                            'status' => $departmentEntry['status'],
+                            'approved_at' => $departmentEntry['approved_at'],
+                            'department' => [
+                                'id' => $departmentEntry['id'],
+                                'name' => $departmentEntry['name'],
+                            ],
+                            'employee' => $task?->user === null
+                                ? null
+                                : [
+                                    'id' => $task->user->id,
+                                    'name' => $task->user->name,
+                                    'email' => $task->user->email,
+                                ],
+                        ];
+                    })
+                    ->values()
+                    ->all();
+            }),
             'payments' => $this->whenLoaded('payments', fn () => $this->payments->map(fn ($payment): array => [
                 'id' => $payment->id,
                 'amount' => $payment->pivot?->amount,
