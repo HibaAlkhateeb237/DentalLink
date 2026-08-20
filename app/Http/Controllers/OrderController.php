@@ -21,6 +21,7 @@ use App\Models\Task;
 use App\Repositories\TaskRepository;
 use App\Support\OrderStatus;
 use App\Support\TaskStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -55,8 +56,17 @@ class OrderController extends Controller
             ->where('user_id', $user->id)
             ->when($request->status, function ($query, $status) {
                 if ($status === OrderStatus::PENDING) {
-
-                    $query->whereIn('status', [OrderStatus::PENDING, OrderStatus::NEW]);
+                    $query->where(function (Builder $pendingTabQuery): void {
+                        $pendingTabQuery
+                            ->whereIn('status', [OrderStatus::PENDING, OrderStatus::NEW])
+                            ->orWhere(function (Builder $inProgressOrderQuery): void {
+                                $inProgressOrderQuery->where('status', OrderStatus::IN_PROGRESS);
+                                $this->applyFirstDepartmentTaskPendingOrAssignedConstraint($inProgressOrderQuery);
+                            });
+                    });
+                } elseif ($status === OrderStatus::IN_PROGRESS) {
+                    $query->where('status', OrderStatus::IN_PROGRESS);
+                    $this->applyFirstDepartmentTaskNotPendingOrAssignedConstraint($query);
                 } elseif ($status === OrderStatus::RESEND_WRONG_IMPRESSION) {
                     $query->whereIn('status', [OrderStatus::RESEND_WRONG_IMPRESSION, OrderStatus::TRY_ON]);
                 } else {
@@ -72,6 +82,46 @@ class OrderController extends Controller
             OrderResource::collection($orders),
             __('orders.retrieved_successfully')
         );
+    }
+
+    private function applyFirstDepartmentTaskPendingOrAssignedConstraint(Builder $query): void
+    {
+        $query->whereExists(function ($existsQuery): void {
+            $existsQuery->selectRaw('1')
+                ->from('tasks as first_tasks')
+                ->join('departments as first_departments', 'first_departments.id', '=', 'first_tasks.department_id')
+                ->whereColumn('first_tasks.order_id', 'orders.id')
+                ->whereIn('first_tasks.status', [TaskStatus::PENDING_ASSIGNMENT, TaskStatus::ASSIGNED])
+                ->where('first_departments.sort_order', '>', 0)
+                ->whereRaw('first_departments.sort_order = (
+                    select min(departments_for_order.sort_order)
+                    from tasks as tasks_for_order
+                    inner join departments as departments_for_order
+                        on departments_for_order.id = tasks_for_order.department_id
+                    where tasks_for_order.order_id = orders.id
+                        and departments_for_order.sort_order > 0
+                )');
+        });
+    }
+
+    private function applyFirstDepartmentTaskNotPendingOrAssignedConstraint(Builder $query): void
+    {
+        $query->whereNotExists(function ($existsQuery): void {
+            $existsQuery->selectRaw('1')
+                ->from('tasks as first_tasks')
+                ->join('departments as first_departments', 'first_departments.id', '=', 'first_tasks.department_id')
+                ->whereColumn('first_tasks.order_id', 'orders.id')
+                ->whereIn('first_tasks.status', [TaskStatus::PENDING_ASSIGNMENT, TaskStatus::ASSIGNED])
+                ->where('first_departments.sort_order', '>', 0)
+                ->whereRaw('first_departments.sort_order = (
+                    select min(departments_for_order.sort_order)
+                    from tasks as tasks_for_order
+                    inner join departments as departments_for_order
+                        on departments_for_order.id = tasks_for_order.department_id
+                    where tasks_for_order.order_id = orders.id
+                        and departments_for_order.sort_order > 0
+                )');
+        });
     }
 
     public function show(Request $request, Order $order): JsonResponse
