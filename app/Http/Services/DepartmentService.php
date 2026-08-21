@@ -25,6 +25,7 @@ class DepartmentService
                 'name' => $validated['name'],
                 'description' => $validated['description'] ?? null,
                 'is_management' => false,
+                'sort_order' => 0,
             ]);
 
             return $department->load('lab:id,name');
@@ -72,6 +73,7 @@ class DepartmentService
                     'name' => $departmentData['name'],
                     'description' => $departmentData['description'] ?? null,
                     'is_management' => false,
+                    'sort_order' => 0,
                 ]);
 
                 $departmentIds[] = $department->id;

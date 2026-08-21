@@ -134,13 +134,14 @@ class LabManagerOrderDepartmentRouteApiTest extends TestCase
             ->assertJsonValidationErrors(['department_ids.3']);
     }
 
-    public function test_returns_400_when_department_sort_order_is_zero(): void
+    public function test_can_assign_inactive_department_to_route(): void
     {
         [$manager, $lab] = $this->authenticateLabManager();
         $deptA = $this->createDepartment($lab, 'Ceramics', 1);
         $deptB = $this->createDepartment($lab, 'Implants', 2);
         $deptC = $this->createDepartment($lab, 'Orthodontics', 3);
 
+        // A department with sort_order = 0 is not yet part of the workflow
         $inactive = Department::query()->create([
             'lab_id' => $lab->id,
             'name' => 'Inactive',
@@ -156,8 +157,14 @@ class LabManagerOrderDepartmentRouteApiTest extends TestCase
         ]);
 
         $response
-            ->assertStatus(400)
-            ->assertJsonValidationErrors(['department_ids.3']);
+            ->assertOk()
+            ->assertJsonPath('data.total_departments_updated', 4);
+
+        // The previously inactive department is now activated (sort_order > 0)
+        $this->assertDatabaseHas('departments', [
+            'id' => $inactive->id,
+            'sort_order' => 4,
+        ]);
     }
 
     public function test_returns_400_when_department_ids_empty(): void
@@ -302,6 +309,49 @@ class LabManagerOrderDepartmentRouteApiTest extends TestCase
         ]);
 
         $response->assertUnauthorized();
+    }
+
+    public function test_newly_created_department_not_in_route_until_assigned(): void
+    {
+        [$manager, $lab] = $this->authenticateLabManager();
+
+        $deptA = $this->createDepartment($lab, 'Ceramics', 1);
+        $deptB = $this->createDepartment($lab, 'Implants', 2);
+        $deptC = $this->createDepartment($lab, 'Orthodontics', 3);
+        $deptD = $this->createDepartment($lab, 'Veneers', 4);
+
+        Sanctum::actingAs($manager);
+
+        // Create a department via the department store endpoint (should default to sort_order = 0)
+        $created = $this->postJson('/api/auth/lab/departments', [
+            'name' => 'Extra Dept',
+        ]);
+        $created->assertCreated();
+        $extraDeptId = $created->json('data.department.id');
+
+        $this->assertDatabaseHas('departments', [
+            'id' => $extraDeptId,
+            'sort_order' => 0,
+        ]);
+
+        // Retrieve the lab department route: the extra department must NOT appear
+        $route = $this->getJson('/api/auth/lab/department-route');
+        $route->assertOk();
+        $routeIds = $route->json('data.departments.*.id');
+        $this->assertNotContains($extraDeptId, $routeIds);
+
+        // Now explicitly set the route including the extra department
+        $response = $this->postJson('/api/auth/lab/orders/departments', [
+            'department_ids' => [$deptC->id, $deptA->id, $deptB->id, $deptD->id, $extraDeptId],
+            'department_time_allowed_hours' => [8, 4, 6, 10, 2],
+        ]);
+        $response->assertOk();
+
+        // The extra department should now appear in the lab department route
+        $route = $this->getJson('/api/auth/lab/department-route');
+        $route->assertOk();
+        $routeIds = $route->json('data.departments.*.id');
+        $this->assertContains($extraDeptId, $routeIds);
     }
 
     /**

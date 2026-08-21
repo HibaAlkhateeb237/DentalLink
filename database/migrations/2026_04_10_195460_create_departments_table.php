@@ -18,7 +18,7 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
             $table->string('name');
-            $table->unsignedInteger('sort_order')->default(1);
+            $table->unsignedInteger('sort_order')->default(0);
             $table->text('description')->nullable();
             $table->boolean('is_management')->default(false);
             $table->timestamps();
