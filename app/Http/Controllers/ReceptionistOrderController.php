@@ -250,7 +250,7 @@ class ReceptionistOrderController extends Controller
                     ]
                 );
 
-                $this->orderNotificationService->notifyDepartmentManagerAboutUrgentCase($task);
+              //  $this->orderNotificationService->notifyDepartmentManagerAboutUrgentCase($task);
 
             }
 
