@@ -13,6 +13,7 @@ class DeliveryTrack extends Model
 
     protected $fillable = [
         'order_id',
+        'delivery_task_id',
         'delivery_person_id',
         'latitude',
         'longitude',
@@ -36,6 +37,11 @@ class DeliveryTrack extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    public function deliveryTask(): BelongsTo
+    {
+        return $this->belongsTo(DeliveryTask::class);
     }
 
     public function deliveryPerson(): BelongsTo
