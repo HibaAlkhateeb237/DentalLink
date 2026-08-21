@@ -52,6 +52,7 @@ class ReceptionistOrderManagementApiTest extends TestCase
             'name' => 'CAD/CAM',
             'description' => 'Digital design department',
             'is_management' => false,
+            'sort_order' => 1,
             'time_allowed' => 8,
         ]);
 

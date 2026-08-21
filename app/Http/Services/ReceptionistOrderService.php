@@ -26,7 +26,7 @@ class ReceptionistOrderService
             ->with([
                 'user:id,name,email,phone,location',
                 'lab:id,name,phone,address',
-                'lab.departments:id,lab_id,name,sort_order,is_management',
+                'lab.departments' => fn ($q) => $q->select('id', 'lab_id', 'name', 'sort_order', 'is_management')->where('sort_order', '>', 0),
                 'toothShade:id,name',
                 'dentalCompensationTypePrice:id,dental_compensation_type_id',
                 'dentalCompensationTypePrice.dentalCompensationType:id,name',
@@ -181,6 +181,11 @@ class ReceptionistOrderService
 
                 // Notify doctor when order status changes to resend_wrong_impression
                 $this->notifyDoctorForOrderChanges($order, $from, $data['status']);
+
+                // Delete all existing tasks when status changes to resend_wrong_impression
+                if ($data['status'] === OrderStatus::RESEND_WRONG_IMPRESSION) {
+                    $order->tasks()->delete();
+                }
             }
 
             if (array_key_exists('notes', $data)) {
@@ -240,6 +245,11 @@ class ReceptionistOrderService
 
             // Notify doctor when order status changes to resend_wrong_impression
             $this->notifyDoctorForOrderChanges($order, $from, $toStatus);
+
+            // Delete all existing tasks when status changes to resend_wrong_impression
+            if ($toStatus === OrderStatus::RESEND_WRONG_IMPRESSION) {
+                $order->tasks()->delete();
+            }
 
             $this->systemLogs->info(
                 'order.status.changed',
