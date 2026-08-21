@@ -55,7 +55,7 @@ class OrderDeliveryTransitionService
         return match (true) {
             $originalStatus === OrderStatus::NEW && $direction === DeliveryTaskDirection::TO_LAB => OrderStatus::PENDING,
 
-            $originalStatus === OrderStatus::RESEND_WRONG_IMPRESSION && $direction === DeliveryTaskDirection::TO_LAB => OrderStatus::IN_PROGRESS,
+            $originalStatus === OrderStatus::RESEND_WRONG_IMPRESSION && $direction === DeliveryTaskDirection::TO_LAB => OrderStatus::PENDING,
 
             $originalStatus === OrderStatus::TRY_ON && $direction === DeliveryTaskDirection::TO_DOCTOR => OrderStatus::TRY_ON,
 

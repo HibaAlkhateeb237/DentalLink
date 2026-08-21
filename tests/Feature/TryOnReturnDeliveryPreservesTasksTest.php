@@ -248,12 +248,12 @@ class TryOnReturnDeliveryPreservesTasksTest extends TestCase
         $this->assertDatabaseCount('tasks', 2);
     }
 
-    public function test_resend_wrong_impression_still_creates_first_department_task(): void
+    public function test_resend_wrong_impression_sets_order_to_pending_on_delivery_completion(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);
 
         $lab = $this->createLab('Resend Lab');
-        $deptA = $this->createDepartment($lab, 'Ceramics', 1);
+        $this->createDepartment($lab, 'Ceramics', 1);
 
         $doctor = User::factory()->create();
         $order = Order::query()->create([
@@ -279,12 +279,9 @@ class TryOnReturnDeliveryPreservesTasksTest extends TestCase
 
         app(OrderDeliveryTransitionService::class)->handleDeliveryCompleted($deliveryTask);
 
-        $this->assertDatabaseCount('tasks', 1);
-        $this->assertDatabaseHas('tasks', [
-            'order_id' => $order->id,
-            'department_id' => $deptA->id,
-            'status' => TaskStatus::PENDING_ASSIGNMENT,
-        ]);
+        $order->refresh();
+        $this->assertEquals(OrderStatus::PENDING, $order->status);
+        $this->assertDatabaseCount('tasks', 0);
     }
 
     private function createLab(string $name): Lab
