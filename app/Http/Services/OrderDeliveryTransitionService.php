@@ -44,7 +44,7 @@ class OrderDeliveryTransitionService
                 'metadata' => ['triggered_via' => 'delivery_completion'],
             ]);
 
-            if ($newStatus === OrderStatus::IN_PROGRESS) {
+            if ($newStatus === OrderStatus::IN_PROGRESS && $originalStatus !== OrderStatus::TRY_ON) {
                 $this->createFirstDepartmentTask($order);
             }
         });
