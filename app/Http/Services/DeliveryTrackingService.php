@@ -32,9 +32,9 @@ class DeliveryTrackingService
             $doctorId = $this->doctorIdFromTasks($tasks);
             $orderIds = $tasks->pluck('order_id')->all();
 
-            $this->assertCanTransitionTo($orderIds, $deliveryPerson, DeliveryTrackStatus::STARTED);
+            $this->assertCanTransitionTo($tasks, DeliveryTrackStatus::STARTED);
 
-            $tracks = $this->upsertTracks($orderIds, $deliveryPerson, [
+            $tracks = $this->upsertTracks($tasks, $deliveryPerson, [
                 'status' => DeliveryTrackStatus::STARTED,
             ]);
 
@@ -86,9 +86,9 @@ class DeliveryTrackingService
             $doctorId = $this->doctorIdFromTasks($tasks);
             $orderIds = $tasks->pluck('order_id')->all();
 
-            $this->assertTripNotTerminal($orderIds, $deliveryPerson);
+            $this->assertTripNotTerminal($tasks);
 
-            $tracks = $this->upsertTracks($orderIds, $deliveryPerson, [
+            $tracks = $this->upsertTracks($tasks, $deliveryPerson, [
                 'latitude' => $latitude,
                 'longitude' => $longitude,
                 'location_recorded_at' => $locationRecordedAt ?? now(),
@@ -126,10 +126,9 @@ class DeliveryTrackingService
             $doctorId = $this->doctorIdFromTasks($tasks);
             $orderIds = $tasks->pluck('order_id')->all();
 
-            $this->assertCanTransitionTo($orderIds, $deliveryPerson, DeliveryTrackStatus::ARRIVED);
+            $this->assertCanTransitionTo($tasks, DeliveryTrackStatus::ARRIVED);
 
-            $tracks = DeliveryTrack::whereIn('order_id', $orderIds)
-                ->where('delivery_person_id', $deliveryPerson->id)
+            $tracks = DeliveryTrack::whereIn('delivery_task_id', $tasks->pluck('id')->all())
                 ->get();
 
             foreach ($tracks as $track) {
@@ -221,16 +220,14 @@ class DeliveryTrackingService
     }
 
     /**
-     * Enforce the state machine for every order of the trip.
+     * Enforce the state machine for the track of every given task.
      *
-     * @param  int[]  $orderIds
+     * @param  Collection<int, DeliveryTask>  $tasks
      */
-    private function assertCanTransitionTo(array $orderIds, User $deliveryPerson, string $targetStatus): void
+    private function assertCanTransitionTo(Collection $tasks, string $targetStatus): void
     {
-        foreach ($orderIds as $orderId) {
-            $track = DeliveryTrack::where('order_id', $orderId)
-                ->where('delivery_person_id', $deliveryPerson->id)
-                ->first();
+        foreach ($tasks as $task) {
+            $track = DeliveryTrack::where('delivery_task_id', $task->id)->first();
 
             $currentStatus = $track?->status ?? DeliveryTrackStatus::PENDING;
 
@@ -239,7 +236,7 @@ class DeliveryTrackingService
                     'task_ids' => __(
                         'orders.tracking_invalid_transition',
                         [
-                            'order_id' => $orderId,
+                            'order_id' => $task->order_id,
                             'from' => $currentStatus,
                             'to' => $targetStatus,
                             'allowed' => implode(', ', DeliveryTrackStatus::getNextAllowedStates($currentStatus)),
@@ -251,19 +248,17 @@ class DeliveryTrackingService
     }
 
     /**
-     * @param  int[]  $orderIds
+     * @param  Collection<int, DeliveryTask>  $tasks
      */
-    private function assertTripNotTerminal(array $orderIds, User $deliveryPerson): void
+    private function assertTripNotTerminal(Collection $tasks): void
     {
-        foreach ($orderIds as $orderId) {
-            $track = DeliveryTrack::where('order_id', $orderId)
-                ->where('delivery_person_id', $deliveryPerson->id)
-                ->first();
+        foreach ($tasks as $task) {
+            $track = DeliveryTrack::where('delivery_task_id', $task->id)->first();
 
             if ($track !== null && in_array($track->status, [DeliveryTrackStatus::ARRIVED, DeliveryTrackStatus::CANCELLED], true)) {
                 throw ValidationException::withMessages([
                     'task_ids' => __('orders.tracking_location_after_terminal', [
-                        'order_id' => $orderId,
+                        'order_id' => $task->order_id,
                         'status' => $track->status,
                     ]),
                 ]);
@@ -272,18 +267,19 @@ class DeliveryTrackingService
     }
 
     /**
-     * @param  int[]  $orderIds
+     * @param  Collection<int, DeliveryTask>  $tasks
      * @param  array<string, mixed>  $attributes
      * @return Collection<int, DeliveryTrack>
      */
-    private function upsertTracks(array $orderIds, User $deliveryPerson, array $attributes): Collection
+    private function upsertTracks(Collection $tasks, User $deliveryPerson, array $attributes): Collection
     {
         $tracks = new Collection;
 
-        foreach ($orderIds as $orderId) {
+        foreach ($tasks as $task) {
             $tracks->push(DeliveryTrack::updateOrCreate(
-                ['order_id' => $orderId],
+                ['delivery_task_id' => $task->id],
                 [
+                    'order_id' => $task->order_id,
                     'delivery_person_id' => $deliveryPerson->id,
                     ...$attributes,
                 ],
@@ -314,9 +310,9 @@ class DeliveryTrackingService
      */
     public function getActiveTripForDoctor(array $orderIds): ?array
     {
-        // Find all tracks with STARTED status for these specific order IDs
+        // Find all tracks with STARTED status whose task belongs to these order IDs
         $tracks = DeliveryTrack::query()
-            ->whereIn('order_id', $orderIds)
+            ->whereHas('deliveryTask', fn ($query) => $query->whereIn('order_id', $orderIds))
             ->where('status', DeliveryTrackStatus::STARTED)
             ->with(['order', 'deliveryPerson'])
             ->get();
@@ -337,12 +333,7 @@ class DeliveryTrackingService
         // Sort tracks by location_recorded_at descending
         $tracks = $tracks->sortByDesc('location_recorded_at');
 
-        // Get the associated task_ids for this delivery person and order IDs
-        $taskIds = DeliveryTask::query()
-            ->whereIn('order_id', $orderIds)
-            ->where('user_id', $deliveryPersonId)
-            ->pluck('id')
-            ->all();
+        $taskIds = $tracks->pluck('delivery_task_id')->all();
 
         return [
             'delivery_person_id' => $deliveryPersonId,

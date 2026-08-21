@@ -212,6 +212,7 @@ class DeliveryTrackingApiTest extends TestCase
 
         DeliveryTrack::query()->create([
             'order_id' => $order->id,
+            'delivery_task_id' => $task->id,
             'delivery_person_id' => $this->deliveryEmployee->id,
             'status' => DeliveryTrackStatus::ARRIVED,
         ]);
@@ -225,6 +226,46 @@ class DeliveryTrackingApiTest extends TestCase
         $response
             ->assertStatus(400)
             ->assertJsonValidationErrors(['task_ids']);
+    }
+
+    public function test_new_trip_can_start_for_same_order_after_previous_trip_ended(): void
+    {
+        $doctor = User::factory()->create();
+        $order = $this->createOrder($doctor);
+        $toLabTask = $this->createAssignedTask($doctor, $this->deliveryEmployee, $order);
+        $toDoctorTask = $this->createAssignedTask($doctor, $this->deliveryEmployee, $order);
+
+        Sanctum::actingAs($this->deliveryEmployee);
+
+        $this->postJson('/api/auth/delivery/tracking/start', [
+            'task_ids' => [$toLabTask->id],
+        ])->assertStatus(201);
+
+        $this->postJson('/api/auth/delivery/tracking/end', [
+            'task_ids' => [$toLabTask->id],
+        ])->assertOk();
+
+        $response = $this->postJson('/api/auth/delivery/tracking/start', [
+            'task_ids' => [$toDoctorTask->id],
+        ]);
+
+        $response
+            ->assertStatus(201)
+            ->assertJsonPath('data.tracks.0.task_id', $toDoctorTask->id)
+            ->assertJsonPath('data.tracks.0.order_id', $order->id)
+            ->assertJsonPath('data.tracks.0.status', DeliveryTrackStatus::STARTED);
+
+        $this->assertDatabaseHas('delivery_tracks', [
+            'delivery_task_id' => $toLabTask->id,
+            'order_id' => $order->id,
+            'status' => DeliveryTrackStatus::ARRIVED,
+        ]);
+
+        $this->assertDatabaseHas('delivery_tracks', [
+            'delivery_task_id' => $toDoctorTask->id,
+            'order_id' => $order->id,
+            'status' => DeliveryTrackStatus::STARTED,
+        ]);
     }
 
     public function test_delivery_employee_can_update_location(): void

@@ -126,6 +126,7 @@ class DeliveryTrackingController extends Controller
             'tracks' => $tracks->map(function (DeliveryTrack $track): array {
                 $payload = [
                     'track_id' => $track->id,
+                    'task_id' => $track->delivery_task_id,
                     'order_id' => $track->order_id,
                     'status' => $track->status,
                 ];
