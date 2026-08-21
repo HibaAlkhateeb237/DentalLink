@@ -184,6 +184,7 @@ class ReceptionistOrderService
 
                 // Delete all existing tasks when status changes to resend_wrong_impression
                 if ($data['status'] === OrderStatus::RESEND_WRONG_IMPRESSION) {
+                    $order->qr_printed_at = null;
                     $order->tasks()->delete();
                 }
             }
@@ -248,6 +249,7 @@ class ReceptionistOrderService
 
             // Delete all existing tasks when status changes to resend_wrong_impression
             if ($toStatus === OrderStatus::RESEND_WRONG_IMPRESSION) {
+                $order->qr_printed_at = null;
                 $order->tasks()->delete();
             }
 

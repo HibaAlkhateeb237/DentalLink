@@ -113,6 +113,55 @@ class ReceptionistResendDeletesTasksTest extends TestCase
         ]);
     }
 
+    public function test_resend_status_resets_qr_printed_at(): void
+    {
+        Notification::fake();
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $receptionist = $this->actingAsRole('receptionist');
+        $doctor = User::factory()->create();
+
+        $lab = Lab::query()->create([
+            'name' => 'Resend QR Lab',
+            'phone' => '7777777',
+            'address' => 'Damascus',
+            'latitude' => 33.5138070,
+            'longitude' => 36.2765279,
+        ]);
+
+        $this->attachReceptionistToLab($receptionist, $lab);
+
+        $order = Order::query()->create([
+            'user_id' => $doctor->id,
+            'lab_id' => $lab->id,
+            'qr_code' => 'QR-RESEND-QR-001',
+            'priority' => 'normal',
+            'status' => 'in_progress',
+            'order_type' => 'digital',
+            'price' => 100,
+            'remaining_amount' => 100,
+            'qr_printed_at' => now(),
+        ]);
+
+        Sanctum::actingAs($receptionist);
+
+        $response = $this->postJson("/api/auth/orders/{$order->id}/status", [
+            'status' => 'resend_wrong_impression',
+            'notes' => 'Wrong impression taken',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.order.status', 'resend_wrong_impression');
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => 'resend_wrong_impression',
+        ]);
+
+        $this->assertNull($order->fresh()->qr_printed_at);
+    }
+
     public function test_other_status_changes_do_not_delete_tasks(): void
     {
         Notification::fake();
